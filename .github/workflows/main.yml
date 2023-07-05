@@ -1,0 +1,27 @@
+name: test plugins ⚙️
+
+on: [push, pull_request]
+
+jobs:
+  main:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-python@v2
+        name: setup Python
+        with:
+          python-version: 3.8
+      - name: install testing requirements 📦
+        run: |
+          pip3 install https://github.com/geopython/pygeoapi/archive/refs/heads/master.zip
+          pip3 install -r requirements.txt
+          pip3 install -r requirements-dev.txt
+          python3 setup.py install
+      - name: run unit tests ⚙️
+        run: |
+          pytest tests/test_ckan.py
+          pytest tests/test_sparql.py
+      - name: run flake8 ⚙️
+        run: |
+          find . -type f -name "*.py" | xargs flake8
