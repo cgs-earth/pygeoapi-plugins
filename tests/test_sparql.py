@@ -75,10 +75,10 @@ def test_query(config):
     assert results['features'][0]['id'] == '0'
     assert results['features'][0]['properties']['city'] == 'Berlin'
     assert results['features'][0]['properties']['population'] == '3677472'
-    assert results['features'][0]['properties']['country'] == 'http://dbpedia.org/resource/Germany'
+    assert results['features'][0]['properties']['country'] == 'http://dbpedia.org/resource/Germany'  # noqa
     assert results['features'][0]['geometry']['coordinates'][0] == 13.405
     assert results['features'][0]['geometry']['coordinates'][1] == 52.52
 
     assert results['features'][2]['properties']['city'] == 'New York'
-    assert results['features'][2]['properties']['country'] == 'http://dbpedia.org/resource/United_States'
+    assert results['features'][2]['properties']['country'] == 'http://dbpedia.org/resource/United_States'  # noqa
     assert results['features'][2]['properties']['leader'] == 'Eric Adams'
