@@ -1,0 +1,110 @@
+# =================================================================
+#
+# Authors: Tom Kralidis <tomkralidis@gmail.com>
+#
+# Copyright (c) 2020 Tom Kralidis
+#
+# Permission is hereby granted, free of charge, to any person
+# obtaining a copy of this software and associated documentation
+# files (the "Software"), to deal in the Software without
+# restriction, including without limitation the rights to use,
+# copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the
+# Software is furnished to do so, subject to the following
+# conditions:
+#
+# The above copyright notice and this permission notice shall be
+# included in all copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+# EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+# OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+# NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT
+# HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
+# WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+# FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR
+# OTHER DEALINGS IN THE SOFTWARE.
+#
+# =================================================================
+
+server:
+  bind:
+    host: 0.0.0.0 #change to your hostname if running your own instance
+    port: 80
+  url: ${PYGEOAPI_URL} #change to host URL  if running your own instance
+  mimetype: application/json; charset=UTF-8
+  encoding: utf-8
+  language: en-US
+  cors: true
+  pretty_print: true
+  limit: 10
+  map:
+    url: https://tile.openstreetmap.org/{z}/{x}/{y}.png
+    attribution: '<a href="https://www.openstreetmap.org/copyright">© OpenStreetMap contributors</a>'
+  # ogc_schemas_location: /opt/schemas.opengis.net
+
+logging:
+  level: DEBUG
+  # logfile: /tmp/pygeoapi.log
+
+metadata:
+  identification:
+    title: pygeoapi using CKAN provider
+    description: pygeoapi using CKAN provider
+    keywords:
+      - ckan
+      - pygeoapi
+      - api
+    keywords_type: theme
+    terms_of_service: https://creativecommons.org/licenses/by/4.0/
+    url: https://github.com/cgs-earth/pygeoapi-plugins
+  license:
+    name: CC-BY 4.0 license
+    url: https://creativecommons.org/licenses/by/4.0/
+  provider:
+    name: Center for Geospatial Solutions
+    url: https://github.com/cgs-earth/pygeoapi-plugins
+  contact:
+    address: 113 Brattle St
+    city: Cambridge
+    stateorprovince: Massachusetts
+    postalcode: 02138
+    country: USA
+    email: bwebb@lincolninst.edt
+    url: https://cgs.earth
+    role: pointOfContact
+
+resources:
+  reservoirs:
+    type: collection
+    title: New Mexico Reservoirs
+    description: This is a point coverage of dams in the New Mexico, which originally was derived from the national inventory of dams data base (U.S. Army Corps of Engineers, 1982)
+    keywords:
+      - pygeoapi
+      - ckan
+      - api
+    context:
+      - name: schema:name
+        description: schema:description
+        subjectOf: schema:subjectOf
+    links:
+      - type: application/html
+        rel: canonical
+        title: data source
+        href: https://catalog.newmexicowaterdata.org/mn_MN/dataset/new-mexico-reservoirs/resource/08369d21-520b-439e-97e3-5ecb50737887
+        hreflang: en-US
+    extents:
+      spatial:
+        bbox: [-109, 31, -103, 37]
+        crs: http://www.opengis.net/def/crs/OGC/1.3/CRS84
+      temporal:
+        begin: null
+        end: null
+    providers:
+      - type: feature
+        name: pygeoapi_plugins.provider.ckan.CKANProvider
+        data: https://catalog.newmexicowaterdata.org/api/3/action/datastore_search
+        resource_id: 08369d21-520b-439e-97e3-5ecb50737887
+        id_field: _id
+        x_field: LONDD
+        y_field: LATDD
