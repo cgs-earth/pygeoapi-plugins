@@ -4,7 +4,7 @@ pygeoapi plugins developed by the Center for Geospatial Solutions
 
 ## OGC API - Features
 
-CGS additional feature providers are listed below, along with a matric of supported query parameters.
+CGS additional feature providers are listed below, along with a matrix of supported query parameters.
 
 | Provider | Property Filters/Display | Result Type  | BBox | Datetime | Sort By | Skip Geometry | CQL | Transactions | CRS |
 | -------- | ------------------------ | ------------ | ---- | -------- | ------- | ------------- | --- | ------------ | --- |
