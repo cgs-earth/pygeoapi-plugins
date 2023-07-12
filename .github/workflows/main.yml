@@ -2,6 +2,9 @@ name: test plugins ⚙️
 
 on: [push, pull_request]
 
+env:
+  POSTGRESQL_PASSWORD: ${{ secrets.DatabasePassword || 'postgres' }}
+
 jobs:
   main:
     runs-on: ubuntu-latest
@@ -12,15 +15,26 @@ jobs:
         name: setup Python
         with:
           python-version: 3.8
-      - name: install testing requirements 📦
+      - name: Install and run PostgreSQL/PostGIS 📦
+        uses: huaxk/postgis-action@v1
+        with:
+          postgresql password: ${{ env.POSTGRESQL_PASSWORD }}
+          postgresql db: "test"
+      - name: Install requirements 📦
         run: |
           pip3 install https://github.com/geopython/pygeoapi/archive/refs/heads/master.zip
           pip3 install -r requirements.txt
           pip3 install -r requirements-dev.txt
           python3 setup.py install
+      - name: setup test data ⚙️
+        run: |
+          gunzip < tests/data/hotosm_bdi_waterways.sql.gz | psql postgresql://postgres:${{ env.POSTGRESQL_PASSWORD }}@localhost:5432/test
       - name: run unit tests ⚙️
+        env:
+          POSTGRESQL_PASSWORD: ${{ env.POSTGRESQL_PASSWORD }}
         run: |
           pytest tests/test_ckan.py
+          pytest tests/test_postgresql_provider.py
           pytest tests/test_sparql.py
       - name: run flake8 ⚙️
         run: |

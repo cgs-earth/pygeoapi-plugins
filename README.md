@@ -6,10 +6,11 @@ pygeoapi plugins developed by the Center for Geospatial Solutions
 
 CGS additional feature providers are listed below, along with a matrix of supported query parameters.
 
-| Provider | Property Filters/Display | Result Type  | BBox | Datetime | Sort By | Skip Geometry | CQL | Transactions | CRS |
-| -------- | ------------------------ | ------------ | ---- | -------- | ------- | ------------- | --- | ------------ | --- |
-| `CKAN`   | ✅/✅                    | results/hits | ❌   | ❌       | ✅      | ✅            | ❌  | ❌           | ✅  |
-| `SPARQL` | ❌/✅                    | results/hits | ❌   | ❌       | ❌      | ❌            | ❌  | ❌           | ❌  |
+| Provider           | Property Filters/Display | Result Type  | BBox | Datetime | Sort By | Skip Geometry | CQL | Transactions | CRS |
+| ------------------ | ------------------------ | ------------ | ---- | -------- | ------- | ------------- | --- | ------------ | --- |
+| `CKAN`             | ✅/✅                    | results/hits | ❌   | ❌       | ✅      | ✅            | ❌  | ❌           | ✅  |
+| `PsuedoPostgreSQL` | ✅/✅                    | results/hits | ✅   | ✅       | ✅      | ✅            | ✅  | ❌           | ✅  |
+| `SPARQL`           | ❌/✅                    | results/hits | ❌   | ❌       | ❌      | ❌            | ❌  | ❌           | ❌  |
 
 The provider names listed in the table are only accessible in [internetofwater/pygeoapi](https://github.com/internetofwater/pygeoapi), otherwise the full python path is required.
 
@@ -38,6 +39,13 @@ In this example, the CKAN Provider is configured to work with the specified CKAN
 - `id_field`: The field that serves as the unique identifier for features in the CKAN resource.
 - `x_field`: The field representing the X-coordinate (longitude) for the features in the CKAN resource.
 - `y_field`: The field representing the Y-coordinate (latitude) for the features in the CKAN resource.
+
+### PseudoPostgresSQL
+
+The PseudoPostgresSQL Provider adds a simple capacity to the PostgresSQL Provider in pygeoapi core - faster counting.
+This is done by performing a pseudo-count on tables exceeding a definable limit.
+The limit is defined using the PSEUDO_COUNT_LIMIT environment variable.
+To use the PseudoPostgresSQL Provider, you need to specify `pygeoapi_plugins.provider.postgresql.PseudoPostgreSQLProvider` as the provider's name.
 
 ### SPARQL
 
