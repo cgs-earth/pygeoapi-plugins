@@ -1,4 +1,7 @@
 pygeoapi
-pygeofilter
+geoalchemy
+psycopg2
+pygeofilter[backend-sqlalchemy]
 requests
 SPARQLWrapper
+SQLAlchemy<2.0.0
