@@ -191,7 +191,8 @@ class IntersectionProcessor(BaseProcessor):
             else:
                 LOGGER.debug(f'Using provided geom field: {geom_field}')
             if not geom_field:
-              raise ProcessorExecuteError(f'Invalid geom_field: {data.items()}')
+                msg = f'Invalid geom_field: {data.items()}'
+                raise ProcessorExecuteError(msg)
 
             LOGGER.debug(f'Intesecting {cname} with backend {provider}')
             outputs = self._intersect(feature, geom_field, provider)
