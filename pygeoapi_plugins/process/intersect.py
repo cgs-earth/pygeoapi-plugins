@@ -170,7 +170,7 @@ class IntersectionProcessor(BaseProcessor):
         if not data.get('url') or not data.get('collection'):
             raise ProcessorExecuteError(f'Invalid input: {data.items()}')
         feature_url = data['url']
-        geom_field = data['geom_field']
+        geom_field = data.get('geom_field')
         collection = data['collection']
 
         LOGGER.debug(f'Fetching {feature_url}')
@@ -190,6 +190,9 @@ class IntersectionProcessor(BaseProcessor):
                 LOGGER.debug(f'Using geom from configuration: {geom_field}')
             else:
                 LOGGER.debug(f'Using provided geom field: {geom_field}')
+            if not geom_field:
+                msg = f'Invalid geom_field: {data.items()}'
+                raise ProcessorExecuteError(msg)
 
             LOGGER.debug(f'Intesecting {cname} with backend {provider}')
             outputs = self._intersect(feature, geom_field, provider)
