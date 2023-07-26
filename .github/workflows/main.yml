@@ -36,6 +36,7 @@ jobs:
           pytest tests/test_ckan_provider.py
           pytest tests/test_postgresql_provider.py
           pytest tests/test_sparql_provider.py
+          pytest tests/test_xml_formatter.py
       - name: run flake8 ⚙️
         run: |
           find . -type f -name "*.py" | xargs flake8
