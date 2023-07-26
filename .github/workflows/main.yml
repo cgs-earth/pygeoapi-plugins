@@ -33,9 +33,9 @@ jobs:
         env:
           POSTGRESQL_PASSWORD: ${{ env.POSTGRESQL_PASSWORD }}
         run: |
-          pytest tests/test_ckan.py
+          pytest tests/test_ckan_provider.py
           pytest tests/test_postgresql_provider.py
-          pytest tests/test_sparql.py
+          pytest tests/test_sparql_provider.py
       - name: run flake8 ⚙️
         run: |
           find . -type f -name "*.py" | xargs flake8
