@@ -33,7 +33,7 @@ import logging
 import xml.etree.ElementTree as ET
 
 from pygeoapi.formatter.base import (
-    BaseFormatter, FormatterGenericError, FormatterSerializationError)
+    BaseFormatter, FormatterSerializationError)
 
 LOGGER = logging.getLogger(__name__)
 
@@ -62,13 +62,7 @@ class XMLFormatter(BaseFormatter):
         """
 
         geom = False
-        try:
-            self.uri_field = formatter_def['uri_field']
-        except KeyError:
-            msg = 'URI field required for XML output'
-            LOGGER.error(msg)
-            raise FormatterGenericError(msg)
-
+        self.uri_field = formatter_def.get('uri_field')
         super().__init__({'name': 'xml', 'geom': geom})
         self.mimetype = 'application/xml; charset=utf-8'
 
@@ -83,12 +77,11 @@ class XMLFormatter(BaseFormatter):
         """
 
         try:
-            fields = list(data['features'][0]['properties'].keys())
+            feature = list(data['features'][0])
         except IndexError:
             LOGGER.error('no features')
             return str()
 
-        LOGGER.debug(f'XML fields: {fields}')
         lastmod = datetime.now().strftime('%Y-%m-%dT%H:%M:%SZ')
         root = ET.fromstring(URLSET)
         tree = ET.ElementTree(root)
@@ -103,13 +96,17 @@ class XMLFormatter(BaseFormatter):
                     LOGGER.warning('Maximum size of sitemap reached')
                     break
 
-                loc = feature['properties'][self.uri_field]
+                try:
+                    loc = feature['properties'][self.uri_field]
+                except KeyError:
+                    loc = feature['@id']
+
                 _ = URLSET_FOREACH.format(loc, lastmod)
                 root.append(ET.fromstring(_))
 
         except ValueError as err:
             LOGGER.error(err)
-            raise FormatterSerializationError('Error writing CSV output')
+            raise FormatterSerializationError('Error writing XML output')
 
         output = io.BytesIO()
         tree.write(output, encoding='utf-8', xml_declaration=True)
