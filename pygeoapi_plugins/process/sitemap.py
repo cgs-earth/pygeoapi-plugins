@@ -79,7 +79,7 @@ PROCESS_DEF.update({
             },
             'schema': {
                 'type': 'boolean',
-                'default': True
+                'default': False
             },
             'minOccurs': 0,
             'maxOccurs': 1,
@@ -102,7 +102,7 @@ PROCESS_DEF.update({
     },
     'example': {
         'inputs': {
-            'zip': True
+            'zip': False
         }
     }
 })
@@ -134,14 +134,32 @@ class SitemapProcessor(BaseProcessor):
         :returns: 'application/json'
         """
         mimetype = 'application/json'
-        outputs = {}
 
+        if data.get('zip'):
+            LOGGER.debug('Returning zipped response')
+            zip_output = io.BytesIO()
+            with zipfile.ZipFile(zip_output, 'w') as zipf:
+                for filename, content in self.generate():
+                    zipf.writestr(filename, content)
+            return 'application/zip', zip_output.getvalue()
+
+        else:
+            LOGGER.debug('Returning response')
+            return mimetype, dict(self.generate())
+
+    def generate(self):
+        """
+        Execute Sitemap Process
+
+        :param data: processor arguments
+        """
         LOGGER.debug('Generating core.xml')
         oas = {'features': []}
         for path in get_oas(self.config)['paths']:
-            path_uri = url_join(self.base_url, path)
-            oas['features'].append({'@id': path_uri})
-        outputs['core.xml'] = self.xml.write(data=oas)
+            if r'{jobId}' not in path and r'{featureId}' not in path:
+                path_uri = url_join(self.base_url, path)
+                oas['features'].append({'@id': path_uri})
+        yield ('core.xml', self.xml.write(data=oas))
 
         LOGGER.debug('Generating collections sitemap')
         for cname, c in COLLECTIONS.items():
@@ -152,18 +170,7 @@ class SitemapProcessor(BaseProcessor):
             for i in range(math.ceil(hits / 50000)):
                 sitemap_name = f'{cname}__{i}.xml'
                 LOGGER.debug(f'Generating {sitemap_name}')
-                outputs[sitemap_name] = self._generate(i, cname, provider)
-
-        LOGGER.debug('Returning response')
-        if data.get('zip'):
-            zip_output = io.BytesIO()
-            with zipfile.ZipFile(zip_output, 'w') as zipf:
-                for filename, content in outputs.items():
-                    zipf.writestr(filename, content)
-            return mimetype, {'sitemap': zip_output.read()}
-
-        else:
-            return mimetype, outputs
+                yield (sitemap_name, self._generate(i, cname, provider))
 
     def _generate(self, index, dataset, provider, n=50000):
         """
