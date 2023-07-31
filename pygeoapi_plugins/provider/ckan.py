@@ -30,6 +30,7 @@
 import json
 from json.decoder import JSONDecodeError
 from requests import Session
+
 import logging
 
 from pygeoapi.provider.base import (BaseProvider, ProviderQueryError,
@@ -117,20 +118,24 @@ class CKANProvider(BaseProvider):
 
         :returns: dict of single GeoJSON feature
         """
-
-        fc = self._load(identifier=identifier)
-        return fc.get('features').pop()
+        properties = [(self.id_field, identifier), ]
+        params = {
+            'filters': self._make_where(properties)
+        }
+        response = self._get_response(self.data, params)
+        [feature] = [self._make_feature(f, False)
+                     for f in response['records']]
+        return feature
 
     def _load(self, offset=0, limit=10, resulttype='results',
-              identifier=None, bbox=[], datetime_=None, properties=[],
-              sortby=[], select_properties=[], skip_geometry=False, q=None):
+              bbox=[], datetime_=None, properties=[], sortby=[],
+              select_properties=[], skip_geometry=False, q=None):
         """
         Private function: Load CKAN data
 
         :param offset: starting record to return (default 0)
         :param limit: number of records to return (default 10)
         :param resulttype: return results or hit limit (default results)
-        :param identifier: feature id (get collections item)
         :param bbox: bounding box [minx,miny,maxx,maxy]
         :param datetime_: temporal (datestamp or extent)
         :param properties: list of tuples (name, value)
@@ -160,24 +165,18 @@ class CKANProvider(BaseProvider):
             params['fields'] = ','.join(
                 set(self.properties) | set(select_properties))
 
-        if identifier:
-            # Add feature id to request params
-            properties = [(self.id_field, identifier), ]
+        # Add queryables to request params
+        if properties:
             params['filters'] = self._make_where(properties)
 
-        else:
-            # Add queryables to request params
-            if properties:
-                params['filters'] = self._make_where(properties)
+        if resulttype == 'hits':
+            params['include_total'] = 'true'
 
-            if resulttype == 'hits':
-                params['include_total'] = 'true'
+        if sortby:
+            params['sort'] = self._make_orderby(sortby)
 
-            if sortby:
-                params['sort'] = self._make_orderby(sortby)
-
-            if q:
-                params['q'] = q
+        if q:
+            params['q'] = q
 
         # Form URL for GET request
         LOGGER.debug('Sending query')
