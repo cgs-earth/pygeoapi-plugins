@@ -67,6 +67,44 @@ PROCESS_DEF.update({
         'hreflang': 'en-US'
     }],
     'inputs': {
+        'include-common': {
+            'title': {
+                'en': 'Include OGC API - Common'
+            },
+            'description': {
+                'en': 'Boolean value controlling the generation of a sitemap '
+                      'for OGC API - Common endpoints'
+            },
+            'keywords': {
+                'en': ['sitemap', 'ogc', 'OGC API - Common', 'pygeoapi']
+            },
+            'schema': {
+                'type': 'boolean',
+                'default': True
+            },
+            'minOccurs': 0,
+            'maxOccurs': 1,
+            'metadata': None,  # TODO how to use?
+        },
+        'include-features': {
+            'title': {
+                'en': 'Include OGC API - Features'
+            },
+            'description': {
+                'en': 'Boolean value controlling the generation of a sitemap '
+                      'for individual OGC API - Features endpoints'
+            },
+            'keywords': {
+                'en': ['sitemap', 'ogc', 'OGC API - Features', 'pygeoapi']
+            },
+            'schema': {
+                'type': 'boolean',
+                'default': True
+            },
+            'minOccurs': 0,
+            'maxOccurs': 1,
+            'metadata': None,  # TODO how to use?
+        },
         'zip': {
             'title': {
                 'en': 'ZIP response'
@@ -75,7 +113,7 @@ PROCESS_DEF.update({
                 'en': 'Boolean whether to ZIP the response'
             },
             'keywords': {
-                'en': ['sitemap', 'pygeoapi']
+                'en': ['sitemap', 'zip', 'pygeoapi']
             },
             'schema': {
                 'type': 'boolean',
@@ -87,7 +125,20 @@ PROCESS_DEF.update({
         },
     },
     'outputs': {
-        'sitemap': {
+        'common.xml': {
+            'title': {
+                'en': 'OGC API - Common Sitemap'
+            },
+            'description': {
+                'en': 'A sitemap of the OGC API - Common end points for the '
+                      'pygeoapi instance.'
+            },
+            'schema': {
+                'type': 'object',
+                'contentMediaType': 'application/json'
+            }
+        },
+        'sitemap.zip': {
             'title': {
                 'en': 'Sitemap'
             },
@@ -96,13 +147,13 @@ PROCESS_DEF.update({
             },
             'schema': {
                 'type': 'object',
-                'contentMediaType': 'application/json'
+                'contentMediaType': 'application/zip'
             }
         }
     },
     'example': {
         'inputs': {
-            'zip': False
+            'include-features': False
         }
     }
 })
@@ -134,43 +185,49 @@ class SitemapProcessor(BaseProcessor):
         :returns: 'application/json'
         """
         mimetype = 'application/json'
-
+        common = data.get('include-common', True)
+        features = data.get('include-features', True)
         if data.get('zip'):
             LOGGER.debug('Returning zipped response')
             zip_output = io.BytesIO()
             with zipfile.ZipFile(zip_output, 'w') as zipf:
-                for filename, content in self.generate():
+                for filename, content in self.generate(common, features):
                     zipf.writestr(filename, content)
             return 'application/zip', zip_output.getvalue()
 
         else:
             LOGGER.debug('Returning response')
-            return mimetype, dict(self.generate())
+            return mimetype, dict(self.generate(common, features))
 
-    def generate(self):
+    def generate(self, include_common, include_features):
         """
         Execute Sitemap Process
 
-        :param data: processor arguments
-        """
-        LOGGER.debug('Generating core.xml')
-        oas = {'features': []}
-        for path in get_oas(self.config)['paths']:
-            if r'{jobId}' not in path and r'{featureId}' not in path:
-                path_uri = url_join(self.base_url, path)
-                oas['features'].append({'@id': path_uri})
-        yield ('core.xml', self.xml.write(data=oas))
+        :param include_common: Include OGC API - Common endpoints
+        :param include_features: Include OGC API - Features endpoints
 
-        LOGGER.debug('Generating collections sitemap')
-        for cname, c in COLLECTIONS.items():
-            p = get_provider_default(c['providers'])
-            provider = load_plugin('provider', p)
-            _ = provider.query(resulttype='hits')
-            hits = _['numberMatched']
-            for i in range(math.ceil(hits / 50000)):
-                sitemap_name = f'{cname}__{i}.xml'
-                LOGGER.debug(f'Generating {sitemap_name}')
-                yield (sitemap_name, self._generate(i, cname, provider))
+        :returns: 'application/json'
+        """
+        if include_common:
+            LOGGER.debug('Generating common.xml')
+            oas = {'features': []}
+            for path in get_oas(self.config).get('paths'):
+                if r'{jobId}' not in path and r'{featureId}' not in path:
+                    path_uri = url_join(self.base_url, path)
+                    oas['features'].append({'@id': path_uri})
+            yield ('common.xml', self.xml.write(data=oas))
+
+        if include_features:
+            LOGGER.debug('Generating collections sitemap')
+            for name, c in COLLECTIONS.items():
+                LOGGER.debug(f'Generating sitemap(s) for {name}')
+                p = get_provider_default(c['providers'])
+                provider = load_plugin('provider', p)
+                hits = provider.query(resulttype='hits').get('numberMatched')
+                iterations = range(math.ceil(hits / 50000))
+                for i in iterations:
+                    yield (f'{name}__{i}.xml',
+                           self._generate(i, name, provider))
 
     def _generate(self, index, dataset, provider, n=50000):
         """
@@ -191,8 +248,8 @@ class SitemapProcessor(BaseProcessor):
         )
         return self.xml.write(data=content)
 
+    def get_collections_url(self):
+        return url_join(self.base_url, 'collections')
+
     def __repr__(self):
         return f'<SitemapProcessor> {self.name}'
-
-    def get_collections_url(self):
-        return f'{self.base_url}/collections'
