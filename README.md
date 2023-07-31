@@ -4,7 +4,7 @@ pygeoapi plugins developed by the Center for Geospatial Solutions
 
 ## OGC API - Features
 
-CGS additional feature providers are listed below, along with a matrix of supported query parameters.
+Additional OGC API - Feature providers are listed below, along with a matrix of supported query parameters.
 
 | Provider           | Property Filters/Display | Result Type  | BBox | Datetime | Sort By | Skip Geometry | CQL | Transactions | CRS |
 | ------------------ | ------------------------ | ------------ | ---- | -------- | ------- | ------------- | --- | ------------ | --- |
@@ -80,7 +80,11 @@ The SPARQL Provider only uses variables prefixed with sparql\_ in the configurat
 
 ## OGC API - Processes
 
-CGS provides an intersection process, using OGC API - Features Part 3: Filtering to return CQL intersections of features.
+Additional OGC API - Process are listed below
+
+### Intersector
+
+The intersection process uses OGC API - Features Part 3: Filtering to return CQL intersections of features.
 An example configuration in a pygeoapi configuration is below.
 
 ```
@@ -90,4 +94,17 @@ An example configuration in a pygeoapi configuration is below.
       name: pygeoapi_plugins.process.intersect.IntersectionProcessor
 ```
 
-This plugin is used in https://nhdpv2-census.internetofwater.app/.
+This plugin is used in https:/reference.geoconnex.us/.
+
+### Sitemap Generator
+
+The Sitemap Generator process makes use of the XML formatter and OGC API - Features to generate a sitemap of the pygeoapi instance.
+This can be used with the python package [sitemap-generator](https://github.com/cgs-earth/sitemap-generator) to generate a sitemap index.
+An example configuration in a pygeoapi configuration is below.
+
+```
+  sitemap-generator:
+    type: process
+    processor:
+      name: pygeoapi_plugins.process.sitemap.SitemapProcessor
+```
