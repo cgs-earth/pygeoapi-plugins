@@ -1,10 +1,9 @@
-name: Publish Python 🐍 distribution 📦 to PyPI
+name: publish python 🐍 distribution 📦 to pypi
 
 on:
   push:
     branches:
       - master
-      - pypi
   release:
     types: [published]
 
