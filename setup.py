@@ -94,7 +94,7 @@ setup(
     packages=find_packages(exclude=['pygeoapi_plugins.tests']),
     include_package_data=True,
     classifiers=[
-        'Development Status :: 1 - Beta',
+        'Development Status :: 4 - Beta',
         'Environment :: Console',
         'Intended Audience :: Developers',
         'Intended Audience :: Science/Research',
