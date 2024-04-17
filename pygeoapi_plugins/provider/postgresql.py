@@ -119,6 +119,7 @@ class PseudoPostgreSQLProvider(PostgreSQLProvider):
         property_filters = self._get_property_filters(properties)
         cql_filters = self._get_cql_filters(filterq)
         bbox_filter = self._get_bbox_filter(bbox)
+        time_filter = self._get_datetime_filter(datetime_)
         order_by_clauses = self._get_order_by_clauses(sortby, self.table_model)
         selected_properties = self._select_properties_clause(select_properties,
                                                              skip_geometry)
@@ -130,6 +131,7 @@ class PseudoPostgreSQLProvider(PostgreSQLProvider):
                        .filter(property_filters)
                        .filter(cql_filters)
                        .filter(bbox_filter)
+                       .filter(time_filter)
                        .order_by(*order_by_clauses)
                        .options(selected_properties)
                        .offset(offset))
