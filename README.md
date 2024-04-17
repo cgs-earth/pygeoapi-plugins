@@ -1,6 +1,6 @@
 # pygeoapi-plugins
 
-pygeoapi plugins developed by the Center for Geospatial Solutions
+[pygeoapi](https://pygeoapi.io) plugins developed by the Center for Geospatial Solutions
 
 ## OGC API - Features
 
