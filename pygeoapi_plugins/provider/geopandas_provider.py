@@ -137,13 +137,19 @@ class GeoPandasProvider(BaseProvider):
         """
         Set geometry fields and check both if there is a point-based csv or a shapely geometry column
         """
-        # Check if it was specified in the config
+        # Check if it was specified in the config, try the CSV geo style and otherwise use the standard shapely geo format
         if "geometry" in provider_def:
             if provider_def["geometry"]["x_field"] and provider_def["geometry"]["y_field"]:
                 self.geometry_x = provider_def['geometry']['x_field']
                 self.geometry_y = provider_def['geometry']['y_field']
                 self._exclude_from_fields.append(self.geometry_x)
                 self._exclude_from_fields.append(self.geometry_y)
+            
+            # Unclear if there can be other types of geometries manually specified in the config 
+            # Otherwise we would just read it in as a shapely geometry\
+            # else:
+            #     self.geometry_col = provider_def["geometry"]
+            #     self._exclude_from_fields.append(self.geometry_col)
 
         # If we don't have x,y coords as separate columns then look for a geometry column
         elif "geometry" in self.gdf.columns:
@@ -188,6 +194,9 @@ class GeoPandasProvider(BaseProvider):
             
         self.gdf[self.id_field] = self.gdf[self.id_field].astype(str)
         
+        # Without below, the CSV reads std_id as an object dtype
+        # And fails the CSV provider tests. Maybe a way to do this better
+        # that is more generalizable?
         if "stn_id" in self.gdf.columns:
             self.gdf["stn_id"] = self.gdf["stn_id"].astype('int64')
         if "value" in self.gdf.columns:
