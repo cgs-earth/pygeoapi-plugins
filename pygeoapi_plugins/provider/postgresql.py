@@ -43,7 +43,6 @@ from sqlalchemy.orm import Session
 
 from pygeoapi.provider.postgresql import PostgreSQLProvider
 from pygeoapi.provider.base import ProviderQueryError
-from pygeoapi.util import crs_transform
 
 PSUEDO_COUNT_LIMIT = os.getenv('PSUEDO_COUNT_LIMIT', 5000000)
 COUNT_FUNCTION = """
