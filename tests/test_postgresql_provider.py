@@ -7,7 +7,7 @@
 #          Francesco Bartoli <xbartolone@gmail.com>
 #
 # Copyright (c) 2019 Just van den Broecke
-# Copyright (c) 2023 Tom Kralidis
+# Copyright (c) 2024 Tom Kralidis
 # Copyright (c) 2022 John A Stevenson and Colin Blackburn
 # Copyright (c) 2023 Francesco Bartoli
 #
@@ -48,9 +48,8 @@ from pygeoapi.provider.base import (
     ProviderItemNotFoundError,
     ProviderQueryError
 )
-from pygeoapi_plugins.provider.postgresql import PseudoPostgreSQLProvider
+from pygeoapi.provider.postgresql import PostgreSQLProvider
 import pygeoapi.provider.postgresql as postgresql_provider_module
-
 
 PASSWORD = os.environ.get('POSTGRESQL_PASSWORD', 'postgres')
 DEFAULT_CRS = 'http://www.opengis.net/def/crs/OGC/1.3/CRS84'
@@ -59,7 +58,7 @@ DEFAULT_CRS = 'http://www.opengis.net/def/crs/OGC/1.3/CRS84'
 @pytest.fixture()
 def config():
     return {
-        'name': 'pygeoapi_plugins.provider.postgresql.PseudoPostgreSQLProvider',  # noqa
+        'name': 'PostgreSQL',
         'type': 'feature',
         'data': {'host': '127.0.0.1',
                  'dbname': 'test',
@@ -67,15 +66,27 @@ def config():
                  'password': PASSWORD,
                  'search_path': ['osm', 'public']
                  },
+        'options': {
+                        'connect_timeout': 10
+                   },
         'id_field': 'osm_id',
         'table': 'hotosm_bdi_waterways',
         'geom_field': 'foo_geom'
     }
 
 
+def test_valid_connection_options(config):
+    if config.get('options'):
+        keys = list(config['options'].keys())
+        for key in keys:
+            assert key in ['connect_timeout', 'tcp_user_timeout', 'keepalives',
+                           'keepalives_idle', 'keepalives_count',
+                           'keepalives_interval']
+
+
 def test_query(config):
     """Testing query for a valid JSON object with geometry"""
-    p = PseudoPostgreSQLProvider(config)
+    p = PostgreSQLProvider(config)
     feature_collection = p.query()
     assert feature_collection.get('type') == 'FeatureCollection'
     features = feature_collection.get('features')
@@ -91,7 +102,7 @@ def test_query_materialised_view(config):
     """Testing query using a materialised view"""
     config_materialised_view = config.copy()
     config_materialised_view['table'] = 'hotosm_bdi_drains'
-    provider = PseudoPostgreSQLProvider(config_materialised_view)
+    provider = PostgreSQLProvider(config_materialised_view)
 
     # Only ID, width and depth properties should be available
     assert set(provider.get_fields().keys()) == {"osm_id", "width", "depth"}
@@ -99,7 +110,7 @@ def test_query_materialised_view(config):
 
 def test_query_with_property_filter(config):
     """Test query valid features when filtering by property"""
-    p = PseudoPostgreSQLProvider(config)
+    p = PostgreSQLProvider(config)
     feature_collection = p.query(properties=[("waterway", "stream")])
     features = feature_collection.get('features')
     stream_features = list(
@@ -121,6 +132,21 @@ def test_query_with_property_filter(config):
     assert feature_collection['numberReturned'] == 50
 
 
+def test_query_with_paging(config):
+    """Test query valid features with paging"""
+    p = PostgreSQLProvider(config)
+    feature_collection = p.query(limit=50)
+
+    assert feature_collection['numberMatched'] == 14776
+    assert feature_collection['numberReturned'] == 50
+
+    offset = feature_collection['numberMatched'] - 10
+
+    feature_collection = p.query(offset=offset)
+    assert feature_collection['numberMatched'] == 14776
+    assert feature_collection['numberReturned'] == 10
+
+
 def test_query_with_config_properties(config):
     """
     Test that query is restricted by properties in the config.
@@ -129,7 +155,7 @@ def test_query_with_config_properties(config):
     """
     properties_subset = ['name', 'waterway', 'width', 'does_not_exist']
     config.update({'properties': properties_subset})
-    provider = PseudoPostgreSQLProvider(config)
+    provider = PostgreSQLProvider(config)
     assert provider.properties == properties_subset
     result = provider.query()
     feature = result.get('features')[0]
@@ -145,14 +171,14 @@ def test_query_with_config_properties(config):
 ])
 def test_query_hits_with_property_filter(config, property_filter, expected):
     """Test query resulttype=hits"""
-    provider = PseudoPostgreSQLProvider(config)
+    provider = PostgreSQLProvider(config)
     results = provider.query(properties=property_filter, resulttype="hits")
     assert results["numberMatched"] == expected
 
 
 def test_query_bbox(config):
     """Test query with a specified bounding box"""
-    psp = PseudoPostgreSQLProvider(config)
+    psp = PostgreSQLProvider(config)
     boxed_feature_collection = psp.query(
         bbox=[29.3373, -3.4099, 29.3761, -3.3924]
     )
@@ -161,7 +187,7 @@ def test_query_bbox(config):
 
 def test_query_sortby(config):
     """Test query with sorting"""
-    psp = PseudoPostgreSQLProvider(config)
+    psp = PostgreSQLProvider(config)
     up = psp.query(sortby=[{'property': 'osm_id', 'order': '+'}])
     assert up['features'][0]['id'] == 13990765
     down = psp.query(sortby=[{'property': 'osm_id', 'order': '-'}])
@@ -173,7 +199,7 @@ def test_query_sortby(config):
 
 def test_query_skip_geometry(config):
     """Test query without geometry"""
-    provider = PseudoPostgreSQLProvider(config)
+    provider = PostgreSQLProvider(config)
     result = provider.query(skip_geometry=True)
     feature = result['features'][0]
     assert feature['geometry'] is None
@@ -186,7 +212,7 @@ def test_query_skip_geometry(config):
 ])
 def test_query_select_properties(config, properties):
     """Test query with selected properties"""
-    provider = PseudoPostgreSQLProvider(config)
+    provider = PostgreSQLProvider(config)
     result = provider.query(select_properties=properties)
     feature = result['features'][0]
 
@@ -201,7 +227,7 @@ def test_query_select_properties(config, properties):
 ])
 def test_get_simple(config, id_, prev, next_):
     """Testing query for a specific object and identifying prev/next"""
-    p = PseudoPostgreSQLProvider(config)
+    p = PostgreSQLProvider(config)
     result = p.get(id_)
     assert result['id'] == id_
     assert 'geometry' in result
@@ -221,7 +247,7 @@ def test_get_with_config_properties(config):
     """
     properties_subset = ['name', 'waterway', 'width', 'does_not_exist']
     config.update({'properties': properties_subset})
-    provider = PseudoPostgreSQLProvider(config)
+    provider = PostgreSQLProvider(config)
     assert provider.properties == properties_subset
     result = provider.get(80835483)
     properties = result.get('properties')
@@ -231,35 +257,35 @@ def test_get_with_config_properties(config):
 
 def test_get_not_existing_item_raise_exception(config):
     """Testing query for a not existing object"""
-    p = PseudoPostgreSQLProvider(config)
+    p = PostgreSQLProvider(config)
     with pytest.raises(ProviderItemNotFoundError):
         p.get(-1)
 
 
 @pytest.mark.parametrize('cql, expected_ids', [
-  ("osm_id BETWEEN 80800000 AND 80900000",
-   [80827787, 80827793, 80835468, 80835470, 80835472, 80835474,
-    80835475, 80835478, 80835483, 80835486]),
-  ("osm_id BETWEEN 80800000 AND 80900000 AND waterway = 'stream'",
-   [80835470]),
-  ("osm_id BETWEEN 80800000 AND 80900000 AND waterway ILIKE 'sTrEam'",
-   [80835470]),
-  ("osm_id BETWEEN 80800000 AND 80900000 AND waterway LIKE 's%'",
-   [80835470]),
-  ("osm_id BETWEEN 80800000 AND 80900000 AND name IN ('Muhira', 'Mpanda')",
-   [80835468, 80835472, 80835475, 80835478]),
-  ("osm_id BETWEEN 80800000 AND 80900000 AND name IS NULL",
-   [80835474, 80835483]),
-  ("osm_id BETWEEN 80800000 AND 80900000 AND BBOX(foo_geom, 29, -2.8, 29.2, -2.9)",  # noqa
-   [80827793, 80835470, 80835472, 80835483, 80835489]),
-  ("osm_id BETWEEN 80800000 AND 80900000 AND "
-   "CROSSES(foo_geom,  LINESTRING(29.091 -2.731, 29.253 -2.845))",
-   [80835470, 80835472, 80835489])
+    ("osm_id BETWEEN 80800000 AND 80900000",
+        [80827787, 80827793, 80835468, 80835470, 80835472, 80835474,
+         80835475, 80835478, 80835483, 80835486]),
+    ("osm_id BETWEEN 80800000 AND 80900000 AND waterway = 'stream'",
+        [80835470]),
+    ("osm_id BETWEEN 80800000 AND 80900000 AND waterway ILIKE 'sTrEam'",
+        [80835470]),
+    ("osm_id BETWEEN 80800000 AND 80900000 AND waterway LIKE 's%'",
+        [80835470]),
+    ("osm_id BETWEEN 80800000 AND 80900000 AND name IN ('Muhira', 'Mpanda')",
+        [80835468, 80835472, 80835475, 80835478]),
+    ("osm_id BETWEEN 80800000 AND 80900000 AND name IS NULL",
+        [80835474, 80835483]),
+    ("osm_id BETWEEN 80800000 AND 80900000 AND BBOX(foo_geom, 29, -2.8, 29.2, -2.9)",  # noqa
+        [80827793, 80835470, 80835472, 80835483, 80835489]),
+    ("osm_id BETWEEN 80800000 AND 80900000 AND "
+        "CROSSES(foo_geom,  LINESTRING(29.091 -2.731, 29.253 -2.845))",
+        [80835470, 80835472, 80835489])
 ])
 def test_query_cql(config, cql, expected_ids):
     """Test a variety of CQL queries"""
     ast = parse(cql)
-    provider = PseudoPostgreSQLProvider(config)
+    provider = PostgreSQLProvider(config)
 
     feature_collection = provider.query(filterq=ast)
     assert feature_collection.get('type') == 'FeatureCollection'
@@ -278,7 +304,7 @@ def test_query_cql_properties_bbox_filters(config):
     expected_ids = [80835470]
 
     # Act
-    provider = PseudoPostgreSQLProvider(config)
+    provider = PostgreSQLProvider(config)
     feature_collection = provider.query(filterq=filterq,
                                         properties=properties,
                                         bbox=bbox)
@@ -291,22 +317,22 @@ def test_query_cql_properties_bbox_filters(config):
 def test_get_fields(config):
     # Arrange
     expected_fields = {
-        'blockage': {'type': 'string'},
-        'covered': {'type': 'string'},
-        'depth': {'type': 'string'},
-        'layer': {'type': 'string'},
-        'name': {'type': 'string'},
-        'natural': {'type': 'string'},
-        'osm_id': {'type': 'integer'},
-        'tunnel': {'type': 'string'},
-        'water': {'type': 'string'},
-        'waterway': {'type': 'string'},
-        'width': {'type': 'string'},
-        'z_index': {'type': 'string'}
+        'blockage': {'type': 'string', 'format': None},
+        'covered': {'type': 'string', 'format': None},
+        'depth': {'type': 'string', 'format': None},
+        'layer': {'type': 'string', 'format': None},
+        'name': {'type': 'string', 'format': None},
+        'natural': {'type': 'string', 'format': None},
+        'osm_id': {'type': 'integer', 'format': None},
+        'tunnel': {'type': 'string', 'format': None},
+        'water': {'type': 'string', 'format': None},
+        'waterway': {'type': 'string', 'format': None},
+        'width': {'type': 'string', 'format': None},
+        'z_index': {'type': 'string', 'format': None}
     }
 
     # Act
-    provider = PseudoPostgreSQLProvider(config)
+    provider = PostgreSQLProvider(config)
 
     # Assert
     assert provider.get_fields() == expected_fields
@@ -316,10 +342,10 @@ def test_get_fields(config):
 def test_instantiation(config):
     """Test attributes are correctly set during instantiation."""
     # Act
-    provider = PseudoPostgreSQLProvider(config)
+    provider = PostgreSQLProvider(config)
 
     # Assert
-    assert provider.name == "pygeoapi_plugins.provider.postgresql.PseudoPostgreSQLProvider"  # noqa
+    assert provider.name == "PostgreSQL"
     assert provider.table == "hotosm_bdi_waterways"
     assert provider.id_field == "osm_id"
 
@@ -328,7 +354,7 @@ def test_instantiation(config):
     ({'table': 'bad_table'}, ProviderQueryError,
      'Table.*not found in schema.*'),
     ({'data': {'bad': 'data'}}, ProviderConnectionError,
-     r'Could not connect to postgresql\+psycopg2:\/\/:5432 \(password hidden\).'),  # noqa
+     r'Could not connect to postgresql\+psycopg2:\/\/:5432 \(password hidden\).'), # noqa
     ({'id_field': 'bad_id'}, ProviderQueryError,
      r'No such id_field column \(bad_id\) on osm.hotosm_bdi_waterways.'),
 ])
@@ -341,7 +367,7 @@ def test_instantiation_with_bad_config(config, bad_data, exception, match):
 
     # Act and assert
     with pytest.raises(exception, match=match):
-        PseudoPostgreSQLProvider(config)
+        PostgreSQLProvider(config)
 
 
 def test_instantiation_with_bad_credentials(config):
@@ -353,14 +379,14 @@ def test_instantiation_with_bad_credentials(config):
 
     # Act and assert
     with pytest.raises(ProviderConnectionError, match=match):
-        PseudoPostgreSQLProvider(config)
+        PostgreSQLProvider(config)
 
 
 def test_engine_and_table_model_stores(config):
-    provider0 = PseudoPostgreSQLProvider(config)
+    provider0 = PostgreSQLProvider(config)
 
     # Same config should return same engine and table_model
-    provider1 = PseudoPostgreSQLProvider(config)
+    provider1 = PostgreSQLProvider(config)
     assert repr(provider1._engine) == repr(provider0._engine)
     assert provider1._engine is provider0._engine
     assert provider1.table_model is provider0.table_model
@@ -368,7 +394,7 @@ def test_engine_and_table_model_stores(config):
     # Same database connection details, but different table
     different_table = config.copy()
     different_table.update(table="hotosm_bdi_drains")
-    provider2 = PseudoPostgreSQLProvider(different_table)
+    provider2 = PostgreSQLProvider(different_table)
     assert repr(provider2._engine) == repr(provider0._engine)
     assert provider2._engine is provider0._engine
     assert provider2.table_model is not provider0.table_model
@@ -378,6 +404,6 @@ def test_engine_and_table_model_stores(config):
     # tables with the same name
     different_host = config.copy()
     different_host["data"]["host"] = "localhost"
-    provider3 = PseudoPostgreSQLProvider(different_host)
+    provider3 = PostgreSQLProvider(different_host)
     assert provider3._engine is not provider0._engine
     assert provider3.table_model is not provider0.table_model
