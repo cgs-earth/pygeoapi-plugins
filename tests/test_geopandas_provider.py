@@ -27,13 +27,15 @@
 #
 # =================================================================
 
-import pytest
-import geopandas as gpd
-import shapely
 import datetime
 
+import geopandas as gpd
+import pytest
+import shapely
+
 from pygeoapi.provider.base import ProviderItemNotFoundError
-from pygeoapi.provider.geopandas_provider import GeoPandasProvider
+from pygeoapi.provider.geopandas_ import GeoPandasProvider
+from tests.util import get_test_file_path
 
 
 @pytest.fixture()
@@ -41,12 +43,36 @@ def config():
     return {
         'name': 'CSV',
         'type': 'feature',
-        'data': "data/obs.csv",
+        'data': get_test_file_path('data/obs.csv'),
         'id_field': 'id',
         'geometry': {
             'x_field': 'long',
             'y_field': 'lat'
         }
+    }
+
+
+@pytest.fixture()
+def station_config():
+    return {
+        'name': 'CSV',
+        'type': 'feature',
+        'data': get_test_file_path("data/station_list.csv"),
+        'id_field': 'wigos_station_identifier',
+        'geometry': {
+            'x_field': 'longitude',
+            'y_field': 'latitude'
+        }
+    }
+
+
+@pytest.fixture()
+def gpkg_config():
+    return {
+        'name': 'gpkg',
+        'type': 'feature',
+        'data': get_test_file_path('data/hu02.gpkg'),
+        'id_field': 'HUC2'
     }
 
 
@@ -122,19 +148,6 @@ def test_csv_get_not_existing_item_raise_exception(config):
         p.get('404')
 
 
-@pytest.fixture()
-def station_config():
-    return {
-        'name': 'CSV',
-        'type': 'feature',
-        'data': "data/station_list.csv",
-        'id_field': 'wigos_station_identifier',
-        'geometry': {
-            'x_field': 'longitude',
-            'y_field': 'latitude'
-        }
-    }
-
 def test_csv_get_station(station_config):
     p = GeoPandasProvider(station_config)
 
@@ -150,35 +163,28 @@ def test_csv_get_station(station_config):
     assert result['properties']['station_name'] == 'NAMITAMBO'
 
 
-@pytest.fixture()
-def gpkg_config():
-    return {
-        'name': 'gpkg',
-        'type': 'feature',
-        'data': "data/hu02.gpkg",
-        'id_field': 'HUC2',
-    }
-
 # Make sure the way we are filtering the dataframe works in general outside of the provider
 def test_intersection():
-    gdf = gpd.read_file("data/hu02.gpkg")
+    gdf = gpd.read_file(get_test_file_path("data/hu02.gpkg"))
     gdf = gdf[gdf['HUC2'] == '01']
-    
-    minx, miny, maxx, maxy =  -70.5, 43.0, -70.0, 43.3
-    polygon = shapely.geometry.Polygon([(minx, miny), (minx, maxy), (maxx, maxy), (maxx, miny)])
+
+    minx, miny, maxx, maxy = -70.5, 43.0, -70.0, 43.3
+    polygon = shapely.geometry.Polygon(
+        [(minx, miny), (minx, maxy), (maxx, maxy), (maxx, miny)])
     box = shapely.box(minx, miny, maxx, maxy)
-    huc_range : shapely.geometry.MultiPolygon = gdf["geometry"].iloc[0]
+    huc_range: shapely.geometry.MultiPolygon = gdf["geometry"].iloc[0]
 
     assert isinstance(huc_range, shapely.geometry.MultiPolygon)
     assert isinstance(polygon, shapely.geometry.Polygon)
-    assert shapely.intersects(polygon, huc_range) == True
-    assert shapely.intersects(box, huc_range) == True
+    assert shapely.intersects(polygon, huc_range) == True # noqa
+    assert shapely.intersects(box, huc_range) == True # noqa
 
-    gdf = gpd.read_file("data/hu02.gpkg")
+    gdf = gpd.read_file(get_test_file_path("data/hu02.gpkg"))
     box = shapely.box(minx, miny, maxx, maxy)
     gdf = gdf[gdf["geometry"].intersects(box)]
 
     assert len(gdf) == 1
+
 
 def test_gpkg_bbox_query(gpkg_config):
     p = GeoPandasProvider(gpkg_config)
@@ -196,11 +202,12 @@ def test_gpkg_bbox_query(gpkg_config):
     assert len(results['features']) == 1
     assert results['features'][0]['properties']['uri'] == 'https://geoconnex.us/ref/hu02/07'
 
-    results = p.query(bbox=(0, 0, 0, 0), properties=[('uri', 'https://geoconnex.us/ref/hu02/07')])
+    results = p.query(bbox=(0, 0, 0, 0), properties=[
+                      ('uri', 'https://geoconnex.us/ref/hu02/07')])
     assert len(results['features']) == 0
 
     # Should intersect with New England
-    results = p.query(bbox=( -70.5, 43.0, -70.0, 43.3))
+    results = p.query(bbox=(-70.5, 43.0, -70.0, 43.3))
     assert len(results['features']) == 1
     assert results['features'][0]['id'] == '01'
 
@@ -220,7 +227,7 @@ def test_gpkg_date_query(gpkg_config):
 
     results = p.query(datetime_='../1900-09-18T17:34:02.666+00:00')
     assert len(results['features']) == 0
-    
+
     results = p.query(datetime_='2900-09-18/..')
     assert len(results['features']) == 0
 
@@ -241,7 +248,8 @@ def test_gpkg_date_query(gpkg_config):
     assert len(results['features']) == 2
     assert results['features'][0]['properties']['LOADDATE'] == '2016-10-11 21:37:03+00:00'
     assert results['features'][1]['properties']['LOADDATE'] == '2016-09-22 06:01:28+00:00'
-    
+
+
 def test_gpkg_sort_query(gpkg_config):
     p = GeoPandasProvider(gpkg_config)
 
@@ -251,18 +259,67 @@ def test_gpkg_sort_query(gpkg_config):
 
     # Create a dummy row In order to test breaking ties
     dummy_row = {
-        'uri'    : '_',
-        'NAME'   : 'AAAAAAA_THIS_KEY_SHOULD_BE_SORTED_TO_BE_FIRST',
+        'uri': '_',
+        'NAME': 'AAAAAAA_THIS_KEY_SHOULD_BE_SORTED_TO_BE_FIRST',
         'gnis_url': '_',
         'GNIS_ID': '_',
-        'HUC2'   : '_',
+        'HUC2': '_',
         # Tie for the latest date in the dataset
         'LOADDATE': datetime.datetime.fromisoformat('2019-10-31T16:20:07+00:00'),
         'geometry': shapely.box(0, 0, 0, 0)
     }
-    
-    p.gdf = p.gdf._append(dummy_row, ignore_index=True)
-    assert(len(p.gdf)) == 23
 
-    results = p.query(sortby=[{'property': 'LOADDATE', 'order': '-'}, {'property': 'NAME', 'order': '+'}])
+    p.gdf = p.gdf._append(dummy_row, ignore_index=True)
+    assert (len(p.gdf)) == 23
+
+    results = p.query(sortby=[
+                      {'property': 'LOADDATE', 'order': '-'}, {'property': 'NAME', 'order': '+'}])
     assert results['features'][0]['properties']['NAME'] == 'AAAAAAA_THIS_KEY_SHOULD_BE_SORTED_TO_BE_FIRST'
+
+
+def test_transaction(gpkg_config):
+    p = GeoPandasProvider(gpkg_config)
+
+    dummy_row = {
+        'uri': '_',
+        'NAME': '_',
+        'gnis_url': '_',
+        'GNIS_ID': '',
+        'HUC2': '1111',
+        'LOADDATE': datetime.datetime.fromisoformat('2019-10-31T16:20:07+00:00'),
+        'geometry': shapely.box(0, 0, 0, 0)
+    }
+
+    id = p.create(dummy_row)
+
+    assert id == '1111'
+
+    assert len(p.gdf) == 23
+
+    dummy_row_updated = {
+        'uri': '_',
+        'NAME': 'TEST_NAME',
+        'gnis_url': '_',
+        'GNIS_ID': '',
+        'HUC2': '1111',
+        'LOADDATE': datetime.datetime.fromisoformat('2019-10-31T16:20:08+00:00'),
+        'geometry': shapely.box(0, 0, 0, 0)
+    }
+
+    success = p.update(dummy_row_updated['HUC2'], dummy_row_updated)
+
+    assert len(p.gdf) == 23
+
+    assert success
+
+    res = p.get('1111')
+
+    assert res['properties']['NAME'] == 'TEST_NAME'
+
+    success = p.delete('1111')
+
+    assert len(p.gdf) == 22
+    assert success
+
+    with pytest.raises(ProviderItemNotFoundError):
+        res = p.get('1111')

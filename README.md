@@ -11,7 +11,7 @@ Additional OGC API - Feature providers are listed below, along with a matrix of 
 | `CKAN`             | ✅/✅                    | results/hits | ❌   | ❌       | ✅      | ✅            | ❌  | ❌           | ✅  |
 | `PsuedoPostgreSQL` | ✅/✅                    | results/hits | ✅   | ✅       | ✅      | ✅            | ✅  | ❌           | ✅  |
 | `SPARQL`           | ❌/✅                    | results/hits | ❌   | ❌       | ❌      | ❌            | ❌  | ❌           | ❌  |
-| `GeoPandas`        | ✅/✅                    | results/hits | ✅   | ✅       | ✅      | ✅            | ❌  | ❌           | ❌  |
+| `GeoPandas`        | ✅/✅                    | results/hits | ✅   | ✅       | ✅      | ✅            | ❌  | ✅           | ✅  |
 
 The provider names listed in the table are only accessible in [internetofwater/pygeoapi](https://github.com/internetofwater/pygeoapi), otherwise the full python path is required.
 
@@ -83,11 +83,18 @@ The SPARQL Provider only uses variables prefixed with sparql\_ in the configurat
 
 The GeoPandas Provider enables OGC API - Feature support using GeoPandas as the backend. This integration can read in data files in [any of the geospatial formats supported by GeoPandas](https://geopandas.org/en/stable/docs/user_guide/io.html#supported-drivers-file-formats).
 
-`id_field` and `geometry` are the only two special columns required. 
+`id_field` is the only field that is required to be labelled. 
+
+```yaml
+    providers:
+      - type: feature
+        name: pygeoapi_plugins.provider.geopandas_.GeoPandasProvider
+        # Example data
+        data: 'https://www.hydroshare.org/resource/3295a17b4cc24d34bd6a5c5aaf753c50/data/contents/hu02.gpkg',
+        id_field: id
+```
 
 You can also use plain CSV and read in points by providing an `x_field` and `y_field` in the config the [same way you would with the default pygeoapi CSV provider](https://github.com/geopython/pygeoapi/blob/510875027e8483ce2916e7cf315fb6a7f6105807/pygeoapi-config.yml#L137).
-
-
 
 ## OGC API - Processes
 
