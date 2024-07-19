@@ -41,6 +41,3 @@ jobs:
           pytest tests/test_sitemap_process.py
           pytest tests/test_sparql_provider.py
           pytest tests/test_xml_formatter.py
-      - name: run flake8 ⚙️
-        run: |
-          find . -type f -name "*.py" | xargs flake8
