@@ -33,11 +33,6 @@ repos:
     rev: "v4.0.0-alpha.8"
     hooks:
       - id: prettier
-  - repo: https://github.com/ikamensh/flynt
-    rev: "1.0.1"
-    hooks:
-      - id: flynt
-      - args: [--verbose]
   - repo: https://github.com/astral-sh/ruff-pre-commit
     # Ruff version.
     rev: v0.5.3
