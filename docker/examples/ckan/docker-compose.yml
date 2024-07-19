@@ -30,7 +30,6 @@
 version: "3"
 
 services:
-
   pygeoapi:
     container_name: pygeoapi-ckan
     build:
