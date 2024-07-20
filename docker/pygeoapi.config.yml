@@ -155,7 +155,7 @@ resources:
         table: states
         sparql_provider: SQLiteGPKG
         sparql_endpoint: https://dbpedia.org/sparql
-        sparql_subject: " :NAME"
+        sparql_subject: ' :NAME'
         sparql_predicates:
           senator: dbp:senators
           motto: dbo:motto|dbp:motto
