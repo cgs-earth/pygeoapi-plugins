@@ -27,16 +27,15 @@
 #
 # =================================================================
 
-version: "3"
+version: '3'
 
 services:
-
   pygeoapi:
     container_name: pygeoapi-sparql
     build:
       context: ../../..
     ports:
-      - "5001:80"
+      - '5001:80'
     environment:
       - PYGEOAPI_URL=http://localhost:5001
     volumes:
