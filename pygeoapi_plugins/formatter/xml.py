@@ -32,21 +32,20 @@ import io
 import logging
 import xml.etree.ElementTree as ET
 
-from pygeoapi.formatter.base import (
-    BaseFormatter, FormatterSerializationError)
+from pygeoapi.formatter.base import BaseFormatter, FormatterSerializationError
 
 LOGGER = logging.getLogger(__name__)
 
-URLSET = '''<?xml version="1.0"?>
+URLSET = """<?xml version="1.0"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
 </urlset>
-'''
-URLSET_FOREACH = '''
+"""
+URLSET_FOREACH = """
 <url>
     <loc>{}</loc>
     <lastmod>{}</lastmod>
 </url>
-'''
+"""
 
 
 class XMLFormatter(BaseFormatter):
@@ -62,9 +61,9 @@ class XMLFormatter(BaseFormatter):
         """
 
         geom = False
-        self.uri_field = formatter_def.get('uri_field')
-        super().__init__({'name': 'xml', 'geom': geom})
-        self.mimetype = 'application/xml; charset=utf-8'
+        self.uri_field = formatter_def.get("uri_field")
+        super().__init__({"name": "xml", "geom": geom})
+        self.mimetype = "application/xml; charset=utf-8"
 
     def write(self, options: dict = {}, data: dict = None) -> str:
         """
@@ -77,40 +76,40 @@ class XMLFormatter(BaseFormatter):
         """
 
         try:
-            feature = list(data['features'][0])
+            feature = list(data["features"][0])
         except IndexError:
-            LOGGER.error('no features')
+            LOGGER.error("no features")
             return str()
 
-        lastmod = datetime.now().strftime('%Y-%m-%dT%H:%M:%SZ')
+        lastmod = datetime.now().strftime("%Y-%m-%dT%H:%M:%SZ")
         root = ET.fromstring(URLSET)
         tree = ET.ElementTree(root)
         try:
             ET.indent(tree)
         except AttributeError:
-            LOGGER.warning('Unable to indent')
+            LOGGER.warning("Unable to indent")
 
         try:
-            for i, feature in enumerate(data['features']):
+            for i, feature in enumerate(data["features"]):
                 if i >= 50000:
-                    LOGGER.warning('Maximum size of sitemap reached')
+                    LOGGER.warning("Maximum size of sitemap reached")
                     break
 
                 try:
-                    loc = feature['properties'][self.uri_field]
+                    loc = feature["properties"][self.uri_field]
                 except KeyError:
-                    loc = feature['@id']
+                    loc = feature["@id"]
 
                 _ = URLSET_FOREACH.format(loc, lastmod)
                 root.append(ET.fromstring(_))
 
         except ValueError as err:
             LOGGER.error(err)
-            raise FormatterSerializationError('Error writing XML output')
+            raise FormatterSerializationError("Error writing XML output")
 
         output = io.BytesIO()
-        tree.write(output, encoding='utf-8', xml_declaration=True)
+        tree.write(output, encoding="utf-8", xml_declaration=True)
         return output.getvalue()
 
     def __repr__(self):
-        return f'<XMLFormatter> {self.name}'
+        return f"<XMLFormatter> {self.name}"

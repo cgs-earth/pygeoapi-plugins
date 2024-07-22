@@ -32,8 +32,7 @@ from SPARQLWrapper import SPARQLWrapper, JSON
 import logging
 
 from pygeoapi.plugin import load_plugin
-from pygeoapi.provider.base import (ProviderQueryError,
-                                    ProviderNoDataError, BaseProvider)
+from pygeoapi.provider.base import ProviderQueryError, ProviderNoDataError, BaseProvider
 from pygeoapi.util import is_url
 
 
@@ -53,7 +52,7 @@ PREFIX dbo: <http://dbpedia.org/ontology/>
 PREFIX skos: <http://www.w3.org/2004/02/skos/core#>
 """
 
-_SELECT = 'SELECT DISTINCT *'
+_SELECT = "SELECT DISTINCT *"
 
 _WHERE = """
 WHERE {{
@@ -77,16 +76,27 @@ class SPARQLProvider(BaseProvider):
         """
         super().__init__(provider_def)
         _provider_def = provider_def.copy()
-        _provider_def['name'] = _provider_def.pop('sparql_provider')
+        _provider_def["name"] = _provider_def.pop("sparql_provider")
 
-        self.p = load_plugin('provider', _provider_def)
-        self.sparql_endpoint = provider_def.get('sparql_endpoint')
-        self.subj = provider_def.get('sparql_subject')
-        self.predicates = provider_def.get('sparql_predicates')
+        self.p = load_plugin("provider", _provider_def)
+        self.sparql_endpoint = provider_def.get("sparql_endpoint")
+        self.subj = provider_def.get("sparql_subject")
+        self.predicates = provider_def.get("sparql_predicates")
 
-    def query(self, offset=0, limit=10, resulttype='results',
-              bbox=[], datetime_=None, properties=[], sortby=[],
-              select_properties=[], skip_geometry=False, q=None, **kwargs):
+    def query(
+        self,
+        offset=0,
+        limit=10,
+        resulttype="results",
+        bbox=[],
+        datetime_=None,
+        properties=[],
+        sortby=[],
+        select_properties=[],
+        skip_geometry=False,
+        q=None,
+        **kwargs,
+    ):
         """
         SPARQL query
 
@@ -103,24 +113,32 @@ class SPARQLProvider(BaseProvider):
 
         :returns: dict of GeoJSON FeatureCollection
         """
-        content = self.p.query(offset, limit, resulttype, bbox,
-                               datetime_, properties, sortby,
-                               select_properties, skip_geometry, q, **kwargs)
+        content = self.p.query(
+            offset,
+            limit,
+            resulttype,
+            bbox,
+            datetime_,
+            properties,
+            sortby,
+            select_properties,
+            skip_geometry,
+            q,
+            **kwargs,
+        )
 
         v = []
-        for c in content['features']:
-            subj, _ = self._clean_subj(c['properties'], self.subj)
+        for c in content["features"]:
+            subj, _ = self._clean_subj(c["properties"], self.subj)
             v.append(subj)
 
-        search = ' '.join(v)
+        search = " ".join(v)
         values = self._sparql(search)
 
-        for item in content['features']:
-            _, _subj = self._clean_subj(item['properties'], self.subj)
+        for item in content["features"]:
+            _, _subj = self._clean_subj(item["properties"], self.subj)
 
-            item['properties'] = self._combine(
-                item['properties'], values.get(_subj)
-            )
+            item["properties"] = self._combine(item["properties"], values.get(_subj))
 
         return content
 
@@ -132,15 +150,13 @@ class SPARQLProvider(BaseProvider):
 
         :returns: dict of single GeoJSON fea
         """
-        LOGGER.debug(f'SPARQL for: {identifier}')
+        LOGGER.debug(f"SPARQL for: {identifier}")
         feature = self.p.get(identifier)
 
-        subj, _subj = self._clean_subj(feature['properties'], self.subj)
+        subj, _subj = self._clean_subj(feature["properties"], self.subj)
 
         values = self._sparql(subj)
-        feature['properties'] = self._combine(
-            feature['properties'], values.get(_subj)
-        )
+        feature["properties"] = self._combine(feature["properties"], values.get(_subj))
 
         return feature
 
@@ -152,11 +168,13 @@ class SPARQLProvider(BaseProvider):
 
         :returns: dict of SPARQL feature data
         """
-        LOGGER.debug('Requesting SPARQL data')
+        LOGGER.debug("Requesting SPARQL data")
 
-        w = ['OPTIONAL {{?v {p} ?{o} .}}'.format(p=v, o=k)
-             for k, v in self.predicates.items()]
-        where = ' '.join(w)
+        w = [
+            "OPTIONAL {{?v {p} ?{o} .}}".format(p=v, o=k)
+            for k, v in self.predicates.items()
+        ]
+        where = " ".join(w)
 
         qs = self._makeQuery(value, where)
         result = self._sendQuery(qs)
@@ -174,21 +192,21 @@ class SPARQLProvider(BaseProvider):
         :returns: subject value for properties block & SPARQL
         """
         if ":" in _subject:
-            (_pref, _subject) = _subject.split(':')
+            (_pref, _subject) = _subject.split(":")
         else:
-            _pref = ''
+            _pref = ""
 
         _subj = properties[_subject]
         if is_url(_subj):
-            subj = f'<{_subj}>'
+            subj = f"<{_subj}>"
         elif is_url(_subj[1:-1]):
             subj = _subj
             _subj = subj[1:-1]
         elif _pref:
-            __subj = _subj.replace(' ', '_')
-            subj = f'{_pref}:{__subj}'
-            if _pref == ' ':
-                _subj = f'http://dbpedia.org/resource/{__subj}'
+            __subj = _subj.replace(" ", "_")
+            subj = f"{_pref}:{__subj}"
+            if _pref == " ":
+                _subj = f"http://dbpedia.org/resource/{__subj}"
 
         return subj, _subj
 
@@ -201,17 +219,19 @@ class SPARQLProvider(BaseProvider):
 
         :returns: dict of SPARQL feature results
         """
-        for v in result['results']['bindings']:
-            _id = v.pop('v').get('value')
+        for v in result["results"]["bindings"]:
+            _id = v.pop("v").get("value")
 
-            if not ret.get(_id, ''):
+            if not ret.get(_id, ""):
                 ret[_id] = v
 
             for _k, _v in v.items():
                 if not isinstance(ret[_id][_k], list):
-                    ret[_id][_k] = [ret[_id][_k], ]
+                    ret[_id][_k] = [
+                        ret[_id][_k],
+                    ]
 
-                _ = [_['value'] == _v['value'] for _ in ret[_id][_k]]
+                _ = [_["value"] == _v["value"] for _ in ret[_id][_k]]
                 if True not in _:
                     ret[_id][_k].append(_v)
 
@@ -228,10 +248,10 @@ class SPARQLProvider(BaseProvider):
         """
         try:
             for r in results:
-                all_r = [_.get('value') for _ in results[r]]
+                all_r = [_.get("value") for _ in results[r]]
                 properties[r] = all_r[-1] if len(all_r) == 1 else all_r
         except TypeError as err:
-            LOGGER.error('Error SPARQL data: {}'.format(err))
+            LOGGER.error("Error SPARQL data: {}".format(err))
             raise ProviderNoDataError(err)
         return properties
 
@@ -246,10 +266,8 @@ class SPARQLProvider(BaseProvider):
 
         :returns: str, SPARQL query
         """
-        querystring = ''.join([
-            prefix, select, _WHERE.format(value=value, where=where)
-        ])
-        LOGGER.debug('SPARQL query: {}'.format(querystring))
+        querystring = "".join([prefix, select, _WHERE.format(value=value, where=where)])
+        LOGGER.debug("SPARQL query: {}".format(querystring))
 
         return querystring
 
@@ -261,16 +279,16 @@ class SPARQLProvider(BaseProvider):
 
         :returns: SPARQL query results
         """
-        LOGGER.debug('Sending SPARQL query')
+        LOGGER.debug("Sending SPARQL query")
         sparql = SPARQLWrapper(self.sparql_endpoint)
         sparql.setQuery(query)
         sparql.setReturnFormat(JSON)
 
         try:
             results = sparql.query().convert()
-            LOGGER.debug('Received SPARQL results')
+            LOGGER.debug("Received SPARQL results")
         except Exception as err:
-            LOGGER.error('Error in SPARQL query: {}'.format(err))
+            LOGGER.error("Error in SPARQL query: {}".format(err))
             raise ProviderQueryError(err)
 
         return results
@@ -278,7 +296,7 @@ class SPARQLProvider(BaseProvider):
     def get_fields(self):
         self.fields = self.p.get_fields()
         for prop in self.predicates:
-            self.fields.update({prop: {'type': 'string'}})
+            self.fields.update({prop: {"type": "string"}})
 
         return self.fields
 
@@ -304,4 +322,4 @@ class SPARQLProvider(BaseProvider):
         return self.p.delete(identifier)
 
     def __repr__(self):
-        return '<SPARQLProvider> {}'.format(self.data)
+        return "<SPARQLProvider> {}".format(self.data)
