@@ -55,10 +55,10 @@ class CKANProvider(BaseProvider):
 
         :returns: pygeoapi_plugins.provider.ckan.CKANProvider
         """
-        LOGGER.debug("Logger CKAN init")
+        LOGGER.debug('Logger CKAN init')
 
         super().__init__(provider_def)
-        self.resource_id = provider_def["resource_id"]
+        self.resource_id = provider_def['resource_id']
 
         self.http = Session()
         self.get_fields()
@@ -77,10 +77,10 @@ class CKANProvider(BaseProvider):
                 self.properties = set(self.properties) | set(
                     [self.id_field, self.x_field, self.y_field]
                 )
-                params["fields"] = ",".join(self.properties)
+                params['fields'] = ','.join(self.properties)
 
             r = self._get_response(self.data)
-            self.fields = {field.pop("id"): field for field in r["fields"]}
+            self.fields = {field.pop('id'): field for field in r['fields']}
 
         return self.fields
 
@@ -89,7 +89,7 @@ class CKANProvider(BaseProvider):
         self,
         offset=0,
         limit=10,
-        resulttype="results",
+        resulttype='results',
         bbox=[],
         datetime_=None,
         properties=[],
@@ -141,16 +141,16 @@ class CKANProvider(BaseProvider):
         properties = [
             (self.id_field, identifier),
         ]
-        params = {"filters": self._make_where(properties)}
+        params = {'filters': self._make_where(properties)}
         response = self._get_response(self.data, params)
-        [feature] = [self._make_feature(f, False) for f in response["records"]]
+        [feature] = [self._make_feature(f, False) for f in response['records']]
         return feature
 
     def _load(
         self,
         offset=0,
         limit=10,
-        resulttype="results",
+        resulttype='results',
         bbox=[],
         datetime_=None,
         properties=[],
@@ -177,60 +177,60 @@ class CKANProvider(BaseProvider):
         """
 
         # Default feature collection and request parameters
-        fc = {"type": "FeatureCollection", "features": []}
+        fc = {'type': 'FeatureCollection', 'features': []}
 
-        params = {"offset": offset, "limit": limit}
+        params = {'offset': offset, 'limit': limit}
 
         if self.properties or select_properties:
             required = [self.id_field, self.x_field, self.y_field]
             select_properties.extend(required)
 
-            params["fields"] = ",".join(set(self.properties) | set(select_properties))
+            params['fields'] = ','.join(set(self.properties) | set(select_properties))
 
         # Add queryables to request params
         if properties:
-            params["filters"] = self._make_where(properties)
+            params['filters'] = self._make_where(properties)
 
-        if resulttype == "hits":
-            params["include_total"] = "true"
+        if resulttype == 'hits':
+            params['include_total'] = 'true'
 
         if sortby:
-            params["sort"] = self._make_orderby(sortby)
+            params['sort'] = self._make_orderby(sortby)
 
         if q:
-            params["q"] = q
+            params['q'] = q
 
         # Form URL for GET request
-        LOGGER.debug("Sending query")
+        LOGGER.debug('Sending query')
         response = self._get_response(self.data, params)
 
-        if response.get("total"):
-            fc["numberMatched"] = response["total"]
+        if response.get('total'):
+            fc['numberMatched'] = response['total']
 
-        if resulttype == "hits":
+        if resulttype == 'hits':
             # Return hits
-            LOGGER.debug("Returning hits")
+            LOGGER.debug('Returning hits')
             return fc
 
         # Return feature collection
-        v = [self._make_feature(f, skip_geometry) for f in response["records"]]
+        v = [self._make_feature(f, skip_geometry) for f in response['records']]
 
         step = len(v)
 
         # Query if values are less than expected
         while len(v) < limit:
-            LOGGER.debug("Fetching next set of values")
-            params["offset"] += step
+            LOGGER.debug('Fetching next set of values')
+            params['offset'] += step
             response = self._get_response(self.data, params)
 
-            if len(response["records"]) == 0:
+            if len(response['records']) == 0:
                 break
             else:
-                _ = [self._make_feature(f, skip_geometry) for f in response["records"]]
+                _ = [self._make_feature(f, skip_geometry) for f in response['records']]
                 v.extend(_)
 
-        fc["features"] = v
-        fc["numberReturned"] = len(v)
+        fc['features'] = v
+        fc['numberReturned'] = len(v)
 
         return fc
 
@@ -243,26 +243,26 @@ class CKANProvider(BaseProvider):
 
         :returns: STA response
         """
-        params.update({"resource_id": self.resource_id})
+        params.update({'resource_id': self.resource_id})
 
         r = self.http.get(url, params=params)
 
         if not r.ok:
-            LOGGER.error("Bad http response code")
-            raise ProviderConnectionError("Bad http response code")
+            LOGGER.error('Bad http response code')
+            raise ProviderConnectionError('Bad http response code')
 
         print(r.url)
         try:
             response = r.json()
         except JSONDecodeError as err:
-            LOGGER.error("JSON decode error")
+            LOGGER.error('JSON decode error')
             raise ProviderQueryError(err)
 
-        if not response["success"]:
-            LOGGER.error("Bad CKAN response")
-            raise ProviderConnectionError("Bad CKAN response")
+        if not response['success']:
+            LOGGER.error('Bad CKAN response')
+            raise ProviderConnectionError('Bad CKAN response')
 
-        return response["result"]
+        return response['result']
 
     def _make_feature(self, feature, skip_geometry):
         """
@@ -273,18 +273,18 @@ class CKANProvider(BaseProvider):
 
         :returns: STA response
         """
-        f = {"type": "Feature", "id": feature.pop(self.id_field), "geometry": None}
+        f = {'type': 'Feature', 'id': feature.pop(self.id_field), 'geometry': None}
 
         if not skip_geometry:
-            f["geometry"] = {
-                "type": "Point",
-                "coordinates": [
+            f['geometry'] = {
+                'type': 'Point',
+                'coordinates': [
                     float(feature.pop(self.x_field)),
                     float(feature.pop(self.y_field)),
                 ],
             }
 
-        f["properties"] = feature
+        f['properties'] = feature
 
         return f
 
@@ -297,10 +297,10 @@ class CKANProvider(BaseProvider):
 
         :returns: CKAN query `order` clause
         """
-        __ = {"+": "asc", "-": "desc"}
+        __ = {'+': 'asc', '-': 'desc'}
         ret = [f"{_['property']} {__[_['order']]}" for _ in sortby]
 
-        return ",".join(ret)
+        return ','.join(ret)
 
     def _make_where(self, properties, bbox=[]):
         """
@@ -320,4 +320,4 @@ class CKANProvider(BaseProvider):
         return json.dumps(p)
 
     def __repr__(self):
-        return f"<CKANProvider> {self.data}"
+        return f'<CKANProvider> {self.data}'

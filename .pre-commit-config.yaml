@@ -42,4 +42,4 @@ repos:
         args: [--fix]
       # Run the formatter.
       - id: ruff-format
-        args: ["--config", "format.quote-style = 'single'"]
+        args: ['--config', "format.quote-style = 'single'"]

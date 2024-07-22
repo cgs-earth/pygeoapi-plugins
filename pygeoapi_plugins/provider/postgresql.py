@@ -44,7 +44,7 @@ from sqlalchemy.orm import Session
 from pygeoapi.provider.postgresql import PostgreSQLProvider
 from pygeoapi.provider.base import ProviderQueryError
 
-PSUEDO_COUNT_LIMIT = os.getenv("PSUEDO_COUNT_LIMIT", 5000000)
+PSUEDO_COUNT_LIMIT = os.getenv('PSUEDO_COUNT_LIMIT', 5000000)
 COUNT_FUNCTION = """
 DROP FUNCTION IF EXISTS count_estimate;
 CREATE FUNCTION count_estimate(query text)
@@ -85,14 +85,14 @@ class PseudoPostgreSQLProvider(PostgreSQLProvider):
 
         :returns: pygeoapi.provider.base.PostgreSQLProvider
         """
-        LOGGER.debug("Initialising Pseudo-count PostgreSQL provider.")
+        LOGGER.debug('Initialising Pseudo-count PostgreSQL provider.')
         super().__init__(provider_def)
 
     def query(
         self,
         offset=0,
         limit=10,
-        resulttype="results",
+        resulttype='results',
         bbox=[],
         datetime_=None,
         properties=[],
@@ -125,7 +125,7 @@ class PseudoPostgreSQLProvider(PostgreSQLProvider):
         :returns: GeoJSON FeatureCollection
         """
 
-        LOGGER.debug("Preparing filters")
+        LOGGER.debug('Preparing filters')
         property_filters = self._get_property_filters(properties)
         cql_filters = self._get_cql_filters(filterq)
         bbox_filter = self._get_bbox_filter(bbox)
@@ -135,7 +135,7 @@ class PseudoPostgreSQLProvider(PostgreSQLProvider):
             select_properties, skip_geometry
         )
 
-        LOGGER.debug("Querying PostGIS")
+        LOGGER.debug('Querying PostGIS')
         # Execute query within self-closing database Session context
         with Session(self._engine) as session:
             results = (
@@ -149,38 +149,38 @@ class PseudoPostgreSQLProvider(PostgreSQLProvider):
 
             try:
                 if filterq:
-                    raise ProviderQueryError("No Pseudo-count during CQL")
-                elif resulttype == "hits":
-                    raise ProviderQueryError("No Pseudo-count during hits")
+                    raise ProviderQueryError('No Pseudo-count during CQL')
+                elif resulttype == 'hits':
+                    raise ProviderQueryError('No Pseudo-count during hits')
 
                 matched = self._get_pseudo_count(results)
 
             except ProviderQueryError as err:
-                LOGGER.warning(f"Warning during psuedo-count {err}")
+                LOGGER.warning(f'Warning during psuedo-count {err}')
                 matched = results.count()
 
             except Exception as err:
-                LOGGER.warning(f"Error during psuedo-count {err}")
+                LOGGER.warning(f'Error during psuedo-count {err}')
                 matched = results.count()
 
-            LOGGER.debug(f"Found {matched} result(s)")
+            LOGGER.debug(f'Found {matched} result(s)')
 
-            LOGGER.debug("Preparing response")
+            LOGGER.debug('Preparing response')
             response = {
-                "type": "FeatureCollection",
-                "features": [],
-                "numberMatched": matched,
-                "numberReturned": 0,
+                'type': 'FeatureCollection',
+                'features': [],
+                'numberMatched': matched,
+                'numberReturned': 0,
             }
 
-            if resulttype == "hits" or not results:
+            if resulttype == 'hits' or not results:
                 return response
 
             crs_transform_out = self._get_crs_transform(crs_transform_spec)
 
             for item in results.order_by(*order_by_clauses).offset(offset).limit(limit):  # noqa
-                response["numberReturned"] += 1
-                response["features"].append(
+                response['numberReturned'] += 1
+                response['features'].append(
                     self._sqlalchemy_to_feature(item, crs_transform_out)
                 )
 
@@ -196,9 +196,9 @@ class PseudoPostgreSQLProvider(PostgreSQLProvider):
 
         :returns matched: `int` of the pseudo-count for the given results
         """
-        LOGGER.debug("Getting pseudo-count")
+        LOGGER.debug('Getting pseudo-count')
         compiled = results.statement.compile(
-            self._engine, compile_kwargs={"literal_binds": True}
+            self._engine, compile_kwargs={'literal_binds': True}
         )
 
         with Session(self._engine) as s:
@@ -207,10 +207,10 @@ class PseudoPostgreSQLProvider(PostgreSQLProvider):
             matched = s.execute(compiled_query).scalar()
 
         if matched < PSUEDO_COUNT_LIMIT:
-            LOGGER.debug("Using precise count")
+            LOGGER.debug('Using precise count')
             matched = results.count()
 
         return matched
 
     def __repr__(self):
-        return f"<PseudoPostgreSQLProvider> {self.table}"
+        return f'<PseudoPostgreSQLProvider> {self.table}'
