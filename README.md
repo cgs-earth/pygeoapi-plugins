@@ -83,7 +83,7 @@ The SPARQL Provider only uses variables prefixed with sparql\_ in the configurat
 
 The GeoPandas Provider enables OGC API - Feature support using GeoPandas as the backend. This integration can read in data files in [any of the geospatial formats supported by GeoPandas](https://geopandas.org/en/stable/docs/user_guide/io.html#supported-drivers-file-formats).
 
-`id_field` is the only field that is required to be labelled. 
+`id_field` is the only field that is required to be labelled.
 
 ```yaml
     providers:

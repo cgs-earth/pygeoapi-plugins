@@ -42,7 +42,7 @@ from pygeoapi.provider.base import (
     ProviderInvalidDataError,
     ProviderItemNotFoundError,
     ProviderNoDataError,
-    ProviderQueryError
+    ProviderQueryError,
 )
 from pygeoapi.util import crs_transform
 
@@ -76,7 +76,7 @@ class FeatureProperties(TypedDict):
 
 
 class Feature(TypedDict):
-    type: Literal["Feature"]
+    type: Literal['Feature']
     # Optional if skipping geometry
     geometry: Optional[PossibleGeometries]
     properties: FeatureProperties
@@ -85,11 +85,11 @@ class Feature(TypedDict):
 
 class SortDict(TypedDict):
     property: str
-    order: Literal["+", "-"]
+    order: Literal['+', '-']
 
 
 class FeatureCollection(TypedDict):
-    type: Literal["FeatureCollection"]
+    type: Literal['FeatureCollection']
     features: list[Feature]
     numberMatched: int
     numberReturned: int
@@ -104,11 +104,11 @@ class GeoPandasProvider(BaseProvider):
         """
         Set time field and check if there is a specific "LOADDATE" column or not
         """
-        if "time_field" in provider_def:
-            self.time_field = provider_def["time_field"]
+        if 'time_field' in provider_def:
+            self.time_field = provider_def['time_field']
         # else look for a column named LOADDATE
-        elif "LOADDATE" in self.gdf.columns:
-            self.time_field = "LOADDATE"
+        elif 'LOADDATE' in self.gdf.columns:
+            self.time_field = 'LOADDATE'
         else:
             for col in self.gdf.columns:
                 if isinstance(
@@ -117,7 +117,7 @@ class GeoPandasProvider(BaseProvider):
                     self.time_field = col
                     break
             else:
-                LOGGER.warning("No time field found")
+                LOGGER.warning('No time field found')
                 return
 
         self.gdf[self.time_field] = pandas.to_datetime(self.gdf[self.time_field])
@@ -128,26 +128,26 @@ class GeoPandasProvider(BaseProvider):
         """
         Filter by date
         """
-        dateRange = datetime_.split("/")
+        dateRange = datetime_.split('/')
 
-        if _START_AND_END := len(dateRange) == 2: # noqa F841
+        if _START_AND_END := len(dateRange) == 2:  # noqa F841
             start, end = dateRange
 
             # python does not accept Z at the end of the datetime even though that is a valid ISO 8601 datetime
-            if start.endswith("Z"):
-                start = start.replace("Z", "+00:00")
+            if start.endswith('Z'):
+                start = start.replace('Z', '+00:00')
 
-            if end.endswith("Z"):
-                end = end.replace("Z", "+00:00")
+            if end.endswith('Z'):
+                end = end.replace('Z', '+00:00')
 
             start = (
                 datetime.datetime.min
-                if start == ".."
+                if start == '..'
                 else datetime.datetime.fromisoformat(start)
             )
             end = (
                 datetime.datetime.max
-                if end == ".."
+                if end == '..'
                 else datetime.datetime.fromisoformat(end)
             )
             start, end = (
@@ -157,7 +157,7 @@ class GeoPandasProvider(BaseProvider):
 
             if start > end:
                 raise ProviderQueryError(
-                    "Start date must be before end date but got {} and {}".format(
+                    'Start date must be before end date but got {} and {}'.format(
                         start, end
                     )
                 )
@@ -166,7 +166,7 @@ class GeoPandasProvider(BaseProvider):
             # since the iso format will create the start as 2019-01-01
             return df[(df[self.time_field] >= start) & (df[self.time_field] <= end)]
 
-        elif _ONLY_MATCH_ONE_DATE := len(dateRange) == 1: # noqa 
+        elif _ONLY_MATCH_ONE_DATE := len(dateRange) == 1:  # noqa
             dates: geopandas.GeoSeries = df[self.time_field]
 
             # By casting to a string we can use .str.contains to coarsely check.
@@ -184,13 +184,13 @@ class GeoPandasProvider(BaseProvider):
         Set geometry fields and check both if there is a point-based csv or a shapely geometry column
         """
         # Check if it was specified in the config, try the CSV geo style and otherwise use the standard shapely geo format
-        if "geometry" in provider_def:
+        if 'geometry' in provider_def:
             if (
-                provider_def["geometry"]["x_field"]
-                and provider_def["geometry"]["y_field"]
+                provider_def['geometry']['x_field']
+                and provider_def['geometry']['y_field']
             ):
-                self.geometry_x = provider_def["geometry"]["x_field"]
-                self.geometry_y = provider_def["geometry"]["y_field"]
+                self.geometry_x = provider_def['geometry']['x_field']
+                self.geometry_y = provider_def['geometry']['y_field']
                 self._exclude_from_fields.append(self.geometry_x)
                 self._exclude_from_fields.append(self.geometry_y)
 
@@ -201,20 +201,20 @@ class GeoPandasProvider(BaseProvider):
             #     self._exclude_from_fields.append(self.geometry_col)
 
         # If we don't have x,y coords as separate columns then look for a geometry column
-        elif "geometry" in self.gdf.columns:
-            self.geometry_col = "geometry"
+        elif 'geometry' in self.gdf.columns:
+            self.geometry_col = 'geometry'
             self._exclude_from_fields.append(self.geometry_col)
 
         # If we don't have any of the above, find the first geometry column and assume that is where the geometry is
         else:
             for col in self.gdf.columns:
-                if hasattr(col, "geom_type"):
+                if hasattr(col, 'geom_type'):
                     self.geometry_col = col
                     self._exclude_from_fields.append(self.geometry_col)
                     break
             else:
                 # Assuming that there is no reason to read in geometric data without geometry
-                LOGGER.warning("No geometry column found")
+                LOGGER.warning('No geometry column found')
 
     def __init__(self, provider_def: dict):
         """
@@ -228,13 +228,13 @@ class GeoPandasProvider(BaseProvider):
         super().__init__(provider_def)
 
         try:
-            self.gdf = geopandas.read_file(provider_def["data"])
+            self.gdf = geopandas.read_file(provider_def['data'])
         except FileNotFoundError as ex:
             raise ProviderNoDataError(
-                f"Tried to read GeoDataFrame: {ex} but it does not exist"
+                f'Tried to read GeoDataFrame: {ex} but it does not exist'
             )
         except Exception as ex:
-            raise ProviderInvalidDataError(f"Failed to read GeoDataFrame: {ex}")
+            raise ProviderInvalidDataError(f'Failed to read GeoDataFrame: {ex}')
 
         # These fields should not be returned in the property list for a query
         self._exclude_from_fields: list[str] = []
@@ -247,10 +247,10 @@ class GeoPandasProvider(BaseProvider):
         # Without below, the CSV reads std_id as an object dtype
         # And fails the CSV provider tests. Maybe a way to do this better
         # that is more generalizable?
-        if "stn_id" in self.gdf.columns:
-            self.gdf["stn_id"] = self.gdf["stn_id"].astype("int64")
-        if "value" in self.gdf.columns:
-            self.gdf["value"] = self.gdf["value"].astype("float64")
+        if 'stn_id' in self.gdf.columns:
+            self.gdf['stn_id'] = self.gdf['stn_id'].astype('int64')
+        if 'value' in self.gdf.columns:
+            self.gdf['value'] = self.gdf['value'].astype('float64')
 
         self._exclude_from_properties: list[str] = self._exclude_from_fields + [
             self.id_field
@@ -267,7 +267,7 @@ class GeoPandasProvider(BaseProvider):
         :returns: dict of field names and their associated JSON Schema types
         """
         if len(self.gdf) == 0:
-            raise ProviderNoDataError("No data found to get fields from")
+            raise ProviderNoDataError('No data found to get fields from')
 
         field_mapper = {
             col: self.gdf[col].dtype.name
@@ -277,16 +277,16 @@ class GeoPandasProvider(BaseProvider):
 
         # Pandas has a different ãmes for types than the pygeoapi spec expects
         pandas_dtypes_to_ours = {
-            "float64": "number",
-            "int64": "integer",
-            "object": "string",
+            'float64': 'number',
+            'int64': 'integer',
+            'object': 'string',
         }
 
-        pandas_default = defaultdict(lambda: "string")
+        pandas_default = defaultdict(lambda: 'string')
         pandas_default.update(pandas_dtypes_to_ours)
 
         our_types_names = {
-            k: {"type": pandas_default[v]} for k, v in field_mapper.items()
+            k: {'type': pandas_default[v]} for k, v in field_mapper.items()
         }
 
         return our_types_names
@@ -296,7 +296,7 @@ class GeoPandasProvider(BaseProvider):
         self,
         offset=0,
         limit=10,
-        resulttype: Literal["results", "hits"] = "results",
+        resulttype: Literal['results', 'hits'] = 'results',
         identifier=None,
         bbox: list[float] = [],
         datetime_: Optional[str] = None,
@@ -325,20 +325,20 @@ class GeoPandasProvider(BaseProvider):
         """
 
         if q is not None:
-            raise NotImplementedError("q not implemented for GeoPandasProvider")
+            raise NotImplementedError('q not implemented for GeoPandasProvider')
 
         found, result = False, False
         feature_collection: FeatureCollection = {
-            "type": "FeatureCollection",
-            "features": [],
-            "numberMatched": 0,
-            "numberReturned": 0,
+            'type': 'FeatureCollection',
+            'features': [],
+            'numberMatched': 0,
+            'numberReturned': 0,
         }
 
         if identifier is not None:
             # If we are querying for just one feature, we may have a different limit than the default
             # TODO should this be min? So min or this limit and limit in the function call?
-            limit = self.query(resulttype="hits")["numberMatched"]
+            limit = self.query(resulttype='hits')['numberMatched']
 
         # Create a dummy backup that we can overwrite
         df: geopandas.GeoDataFrame = self.gdf
@@ -353,34 +353,34 @@ class GeoPandasProvider(BaseProvider):
                 # but our dataframe contains integers or floats
                 df = df[df[column_name].astype(str) == val_to_filter_by]
 
-        if resulttype == "hits":
+        if resulttype == 'hits':
             # If we are querying for just the number matched, we don't
             # datetime_obj to further process the df and can simply return len
-            feature_collection["numberMatched"] = len(df)
+            feature_collection['numberMatched'] = len(df)
             return feature_collection
 
-        if _BBOX_DEFINED := len(bbox) == 4: # noqa
-            minx, miny, maxx, maxy = bbox 
+        if _BBOX_DEFINED := len(bbox) == 4:  # noqa
+            minx, miny, maxx, maxy = bbox
             bbox_geom = box(minx, miny, maxx, maxy)
-            df = df[df["geometry"].intersects(bbox_geom)]
-        elif _INVALID_BBOX := (len(bbox) != 4 and len(bbox) != 0): # noqa
+            df = df[df['geometry'].intersects(bbox_geom)]
+        elif _INVALID_BBOX := (len(bbox) != 4 and len(bbox) != 0):  # noqa
             raise ProviderQueryError(
-                "bbox must be a list of 4 values got {}".format(len(bbox))
+                'bbox must be a list of 4 values got {}'.format(len(bbox))
             )
 
         if sortby:
-            sort_keys = [sort_key["property"] for sort_key in sortby]
+            sort_keys = [sort_key['property'] for sort_key in sortby]
 
             for sort_specifier in sortby:
-                if "+" != sort_specifier["order"] and "-" != sort_specifier["order"]:
+                if '+' != sort_specifier['order'] and '-' != sort_specifier['order']:
                     raise ProviderQueryError(
-                        "sortby order must be + or - got {}".format(
-                            sort_specifier["order"]
+                        'sortby order must be + or - got {}'.format(
+                            sort_specifier['order']
                         )
                     )
 
             sort_directions = [
-                True if sort_key["order"] == "+" else False for sort_key in sortby
+                True if sort_key['order'] == '+' else False for sort_key in sortby
             ]
 
             df = df.sort_values(by=sort_keys, ascending=sort_directions)
@@ -390,29 +390,29 @@ class GeoPandasProvider(BaseProvider):
 
         for _, row in df.iterrows():
             feature: Feature = {
-                "type": "Feature",
-                "id": str(row[self.id_field]),
-                "properties": OrderedDict(),
-                "geometry": {"type": None, "coordinates": None},
+                'type': 'Feature',
+                'id': str(row[self.id_field]),
+                'properties': OrderedDict(),
+                'geometry': {'type': None, 'coordinates': None},
             }
 
             if skip_geometry:
-                feature["geometry"] = None
+                feature['geometry'] = None
             else:
-                if hasattr(self, "geometry_x") and hasattr(self, "geometry_y"):
-                    feature["geometry"]["coordinates"] = [
+                if hasattr(self, 'geometry_x') and hasattr(self, 'geometry_y'):
+                    feature['geometry']['coordinates'] = [
                         float(row[self.geometry_x]),
                         float(row[self.geometry_y]),
                     ]
-                    feature["geometry"]["type"] = "Point"
-                elif hasattr(self, "geometry_col"):
-                    feature["geometry"]["coordinates"] = shapely.to_geojson(
+                    feature['geometry']['type'] = 'Point'
+                elif hasattr(self, 'geometry_col'):
+                    feature['geometry']['coordinates'] = shapely.to_geojson(
                         row[self.geometry_col]
                     )
-                    feature["geometry"]["type"] = row[self.geometry_col].geom_type
+                    feature['geometry']['type'] = row[self.geometry_col].geom_type
                 else:
                     raise ProviderQueryError(
-                        "The config passed in does not specify which geometry column to use"
+                        'The config passed in does not specify which geometry column to use'
                     )
 
             for key, value in row.items():
@@ -423,28 +423,28 @@ class GeoPandasProvider(BaseProvider):
 
                 if KEEP_ALL or key in properties_to_keep:
                     if key not in self._exclude_from_properties:
-                        feature["properties"][key] = value
+                        feature['properties'][key] = value
 
             if identifier and feature[self.id_field] == identifier:
                 found = True
                 result = feature
 
-            feature_collection["features"].append(feature)
-            feature_collection["numberMatched"] = len(feature_collection["features"])
+            feature_collection['features'].append(feature)
+            feature_collection['numberMatched'] = len(feature_collection['features'])
 
         if identifier:
             return None if not found else result
 
-        feature_collection["features"] = feature_collection["features"][
-            offset: offset + limit
+        feature_collection['features'] = feature_collection['features'][
+            offset : offset + limit
         ]
-        feature_collection["numberReturned"] = len(feature_collection["features"])
+        feature_collection['numberReturned'] = len(feature_collection['features'])
 
         # After we have used the timestamps for querying we need to convert them back to strings
-        for feature in feature_collection["features"]:
-            if self.time_field in feature["properties"]:
-                feature["properties"][self.time_field] = str(
-                    feature["properties"][self.time_field]
+        for feature in feature_collection['features']:
+            if self.time_field in feature['properties']:
+                feature['properties'][self.time_field] = str(
+                    feature['properties'][self.time_field]
                 )
 
         return feature_collection
@@ -463,14 +463,14 @@ class GeoPandasProvider(BaseProvider):
             self.gdf[self.id_field].astype(str) == identifier
         ].squeeze(axis=0)
         if res.empty:
-            err = f"item {identifier} not found"
+            err = f'item {identifier} not found'
             LOGGER.error(err)
             raise ProviderItemNotFoundError(err)
 
         feature: Feature = {}
-        feature["type"] = "Feature"
-        feature["id"] = res[self.id_field]
-        feature["properties"] = {k: v for k, v in res.items()}
+        feature['type'] = 'Feature'
+        feature['id'] = res[self.id_field]
+        feature['properties'] = {k: v for k, v in res.items()}
         return feature
 
     def create(self, item):
@@ -483,7 +483,7 @@ class GeoPandasProvider(BaseProvider):
         """
 
         if len(item) != len(self.gdf.columns):
-            raise ProviderQueryError("Item to update does not match dataframe shape")
+            raise ProviderQueryError('Item to update does not match dataframe shape')
 
         self.gdf = self.gdf._append(item, ignore_index=True)
 
@@ -500,10 +500,10 @@ class GeoPandasProvider(BaseProvider):
         """
 
         if len(self.gdf) == 0:
-            raise ProviderNoDataError("No data in provider")
+            raise ProviderNoDataError('No data in provider')
 
         if len(item) != len(self.gdf.columns):
-            raise ProviderQueryError("Item to update does not match dataframe shape")
+            raise ProviderQueryError('Item to update does not match dataframe shape')
 
         if identifier not in self.gdf[self.id_field].values:
             return False
@@ -534,4 +534,4 @@ class GeoPandasProvider(BaseProvider):
             return False
 
     def __repr__(self):
-        return f"<GeoPandasProvider> {self.type}"
+        return f'<GeoPandasProvider> {self.type}'

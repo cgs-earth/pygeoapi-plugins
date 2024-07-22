@@ -45,10 +45,7 @@ def config():
         'type': 'feature',
         'data': get_test_file_path('data/obs.csv'),
         'id_field': 'id',
-        'geometry': {
-            'x_field': 'long',
-            'y_field': 'lat'
-        }
+        'geometry': {'x_field': 'long', 'y_field': 'lat'},
     }
 
 
@@ -57,12 +54,9 @@ def station_config():
     return {
         'name': 'CSV',
         'type': 'feature',
-        'data': get_test_file_path("data/station_list.csv"),
+        'data': get_test_file_path('data/station_list.csv'),
         'id_field': 'wigos_station_identifier',
-        'geometry': {
-            'x_field': 'longitude',
-            'y_field': 'latitude'
-        }
+        'geometry': {'x_field': 'longitude', 'y_field': 'latitude'},
     }
 
 
@@ -72,7 +66,7 @@ def gpkg_config():
         'name': 'gpkg',
         'type': 'feature',
         'data': get_test_file_path('data/hu02.gpkg'),
-        'id_field': 'HUC2'
+        'id_field': 'HUC2',
     }
 
 
@@ -165,23 +159,24 @@ def test_csv_get_station(station_config):
 
 # Make sure the way we are filtering the dataframe works in general outside of the provider
 def test_intersection():
-    gdf = gpd.read_file(get_test_file_path("data/hu02.gpkg"))
+    gdf = gpd.read_file(get_test_file_path('data/hu02.gpkg'))
     gdf = gdf[gdf['HUC2'] == '01']
 
     minx, miny, maxx, maxy = -70.5, 43.0, -70.0, 43.3
     polygon = shapely.geometry.Polygon(
-        [(minx, miny), (minx, maxy), (maxx, maxy), (maxx, miny)])
+        [(minx, miny), (minx, maxy), (maxx, maxy), (maxx, miny)]
+    )
     box = shapely.box(minx, miny, maxx, maxy)
-    huc_range: shapely.geometry.MultiPolygon = gdf["geometry"].iloc[0]
+    huc_range: shapely.geometry.MultiPolygon = gdf['geometry'].iloc[0]
 
     assert isinstance(huc_range, shapely.geometry.MultiPolygon)
     assert isinstance(polygon, shapely.geometry.Polygon)
-    assert shapely.intersects(polygon, huc_range) == True # noqa
-    assert shapely.intersects(box, huc_range) == True # noqa
+    assert shapely.intersects(polygon, huc_range) == True  # noqa
+    assert shapely.intersects(box, huc_range) == True  # noqa
 
-    gdf = gpd.read_file(get_test_file_path("data/hu02.gpkg"))
+    gdf = gpd.read_file(get_test_file_path('data/hu02.gpkg'))
     box = shapely.box(minx, miny, maxx, maxy)
-    gdf = gdf[gdf["geometry"].intersects(box)]
+    gdf = gdf[gdf['geometry'].intersects(box)]
 
     assert len(gdf) == 1
 
@@ -200,10 +195,14 @@ def test_gpkg_bbox_query(gpkg_config):
 
     results = p.query(properties=[('uri', 'https://geoconnex.us/ref/hu02/07')])
     assert len(results['features']) == 1
-    assert results['features'][0]['properties']['uri'] == 'https://geoconnex.us/ref/hu02/07'
+    assert (
+        results['features'][0]['properties']['uri']
+        == 'https://geoconnex.us/ref/hu02/07'
+    )
 
-    results = p.query(bbox=(0, 0, 0, 0), properties=[
-                      ('uri', 'https://geoconnex.us/ref/hu02/07')])
+    results = p.query(
+        bbox=(0, 0, 0, 0), properties=[('uri', 'https://geoconnex.us/ref/hu02/07')]
+    )
     assert len(results['features']) == 0
 
     # Should intersect with New England
@@ -223,7 +222,9 @@ def test_gpkg_date_query(gpkg_config):
 
     results = p.query(datetime_='2019-10-10')
     assert len(results['features']) == 1
-    assert results['features'][0]['properties']['LOADDATE'] == '2019-10-10 20:08:56+00:00'
+    assert (
+        results['features'][0]['properties']['LOADDATE'] == '2019-10-10 20:08:56+00:00'
+    )
 
     results = p.query(datetime_='../1900-09-18T17:34:02.666+00:00')
     assert len(results['features']) == 0
@@ -236,18 +237,30 @@ def test_gpkg_date_query(gpkg_config):
 
     results = p.query(datetime_='2016-09-22/2016-11-23')
     assert len(results['features']) == 2
-    assert results['features'][0]['properties']['LOADDATE'] == '2016-10-11 21:37:03+00:00'
-    assert results['features'][1]['properties']['LOADDATE'] == '2016-09-22 06:01:28+00:00'
+    assert (
+        results['features'][0]['properties']['LOADDATE'] == '2016-10-11 21:37:03+00:00'
+    )
+    assert (
+        results['features'][1]['properties']['LOADDATE'] == '2016-09-22 06:01:28+00:00'
+    )
 
     results = p.query(datetime_='2000-01-01T00:00:00Z/2016-11-23')
     assert len(results['features']) == 2
-    assert results['features'][0]['properties']['LOADDATE'] == '2016-10-11 21:37:03+00:00'
-    assert results['features'][1]['properties']['LOADDATE'] == '2016-09-22 06:01:28+00:00'
+    assert (
+        results['features'][0]['properties']['LOADDATE'] == '2016-10-11 21:37:03+00:00'
+    )
+    assert (
+        results['features'][1]['properties']['LOADDATE'] == '2016-09-22 06:01:28+00:00'
+    )
 
     results = p.query(datetime_='2016')
     assert len(results['features']) == 2
-    assert results['features'][0]['properties']['LOADDATE'] == '2016-10-11 21:37:03+00:00'
-    assert results['features'][1]['properties']['LOADDATE'] == '2016-09-22 06:01:28+00:00'
+    assert (
+        results['features'][0]['properties']['LOADDATE'] == '2016-10-11 21:37:03+00:00'
+    )
+    assert (
+        results['features'][1]['properties']['LOADDATE'] == '2016-09-22 06:01:28+00:00'
+    )
 
 
 def test_gpkg_sort_query(gpkg_config):
@@ -255,7 +268,9 @@ def test_gpkg_sort_query(gpkg_config):
 
     results = p.query(sortby=[{'property': 'LOADDATE', 'order': '-'}])
     # Sort by descending so we expect the newest date first
-    assert results['features'][0]['properties']['LOADDATE'] == '2019-10-31 16:20:07+00:00'
+    assert (
+        results['features'][0]['properties']['LOADDATE'] == '2019-10-31 16:20:07+00:00'
+    )
 
     # Create a dummy row In order to test breaking ties
     dummy_row = {
@@ -266,15 +281,22 @@ def test_gpkg_sort_query(gpkg_config):
         'HUC2': '_',
         # Tie for the latest date in the dataset
         'LOADDATE': datetime.datetime.fromisoformat('2019-10-31T16:20:07+00:00'),
-        'geometry': shapely.box(0, 0, 0, 0)
+        'geometry': shapely.box(0, 0, 0, 0),
     }
 
     p.gdf = p.gdf._append(dummy_row, ignore_index=True)
     assert (len(p.gdf)) == 23
 
-    results = p.query(sortby=[
-                      {'property': 'LOADDATE', 'order': '-'}, {'property': 'NAME', 'order': '+'}])
-    assert results['features'][0]['properties']['NAME'] == 'AAAAAAA_THIS_KEY_SHOULD_BE_SORTED_TO_BE_FIRST'
+    results = p.query(
+        sortby=[
+            {'property': 'LOADDATE', 'order': '-'},
+            {'property': 'NAME', 'order': '+'},
+        ]
+    )
+    assert (
+        results['features'][0]['properties']['NAME']
+        == 'AAAAAAA_THIS_KEY_SHOULD_BE_SORTED_TO_BE_FIRST'
+    )
 
 
 def test_transaction(gpkg_config):
@@ -287,7 +309,7 @@ def test_transaction(gpkg_config):
         'GNIS_ID': '',
         'HUC2': '1111',
         'LOADDATE': datetime.datetime.fromisoformat('2019-10-31T16:20:07+00:00'),
-        'geometry': shapely.box(0, 0, 0, 0)
+        'geometry': shapely.box(0, 0, 0, 0),
     }
 
     id = p.create(dummy_row)
@@ -303,7 +325,7 @@ def test_transaction(gpkg_config):
         'GNIS_ID': '',
         'HUC2': '1111',
         'LOADDATE': datetime.datetime.fromisoformat('2019-10-31T16:20:08+00:00'),
-        'geometry': shapely.box(0, 0, 0, 0)
+        'geometry': shapely.box(0, 0, 0, 0),
     }
 
     success = p.update(dummy_row_updated['HUC2'], dummy_row_updated)
