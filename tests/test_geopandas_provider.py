@@ -34,8 +34,8 @@ import pytest
 import shapely
 
 from pygeoapi.provider.base import ProviderItemNotFoundError
-from pygeoapi.provider.geopandas_ import GeoPandasProvider
-from tests.util import get_test_file_path
+
+from pygeoapi_plugins.provider.geopandas_ import GeoPandasProvider
 
 
 @pytest.fixture()
@@ -43,7 +43,7 @@ def config():
     return {
         'name': 'CSV',
         'type': 'feature',
-        'data': get_test_file_path('data/obs.csv'),
+        'data': 'tests/data/obs.csv',
         'id_field': 'id',
         'geometry': {'x_field': 'long', 'y_field': 'lat'},
     }
@@ -54,7 +54,7 @@ def station_config():
     return {
         'name': 'CSV',
         'type': 'feature',
-        'data': get_test_file_path('data/station_list.csv'),
+        'data': 'tests/data/station_list.csv',
         'id_field': 'wigos_station_identifier',
         'geometry': {'x_field': 'longitude', 'y_field': 'latitude'},
     }
@@ -65,7 +65,7 @@ def gpkg_config():
     return {
         'name': 'gpkg',
         'type': 'feature',
-        'data': get_test_file_path('data/hu02.gpkg'),
+        'data': 'tests/data/hu02.gpkg',
         'id_field': 'HUC2',
     }
 
@@ -159,7 +159,7 @@ def test_csv_get_station(station_config):
 
 # Make sure the way we are filtering the dataframe works in general outside of the provider
 def test_intersection():
-    gdf = gpd.read_file(get_test_file_path('data/hu02.gpkg'))
+    gdf = gpd.read_file('tests/data/hu02.gpkg')
     gdf = gdf[gdf['HUC2'] == '01']
 
     minx, miny, maxx, maxy = -70.5, 43.0, -70.0, 43.3
@@ -174,7 +174,7 @@ def test_intersection():
     assert shapely.intersects(polygon, huc_range) == True  # noqa
     assert shapely.intersects(box, huc_range) == True  # noqa
 
-    gdf = gpd.read_file(get_test_file_path('data/hu02.gpkg'))
+    gdf = gpd.read_file('tests/data/hu02.gpkg')
     box = shapely.box(minx, miny, maxx, maxy)
     gdf = gdf[gdf['geometry'].intersects(box)]
 
