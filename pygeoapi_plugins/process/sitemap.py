@@ -37,8 +37,12 @@ from pygeoapi.plugin import load_plugin
 from pygeoapi.process.base import BaseProcessor
 from pygeoapi.linked_data import geojson2jsonld
 from pygeoapi.openapi import get_oas
-from pygeoapi.util import (yaml_load, get_provider_default, url_join,
-                           filter_dict_by_key_value)
+from pygeoapi.util import (
+    yaml_load,
+    get_provider_default,
+    url_join,
+    filter_dict_by_key_value,
+)
 
 from pygeoapi_plugins.formatter.xml import XMLFormatter
 
@@ -47,116 +51,83 @@ LOGGER = logging.getLogger(__name__)
 
 with open(os.getenv('PYGEOAPI_CONFIG'), encoding='utf8') as fh:
     CONFIG = yaml_load(fh)
-    COLLECTIONS = filter_dict_by_key_value(CONFIG['resources'],
-                                           'type', 'collection')
+    COLLECTIONS = filter_dict_by_key_value(CONFIG['resources'], 'type', 'collection')
     # TODO: Filter collections for those that support CQL
 
 
 PROCESS_DEF = CONFIG['resources']['sitemap-generator']
-PROCESS_DEF.update({
-    'version': '0.1.0',
-    'id': 'sitemap-generator',
-    'title': 'Sitemap Generator',
-    'description': ('A process that returns a sitemap of'
-                    'all pygeoapi endpoints.'),
-    'links': [{
-        'type': 'text/html',
-        'rel': 'about',
-        'title': 'information',
-        'href': 'https://developers.google.com/search/docs/crawling-indexing/sitemaps/overview',  # noqa
-        'hreflang': 'en-US'
-    }],
-    'inputs': {
-        'include-common': {
-            'title': {
-                'en': 'Include OGC API - Common'
-            },
-            'description': {
-                'en': 'Boolean value controlling the generation of a sitemap '
-                      'for OGC API - Common endpoints'
-            },
-            'keywords': {
-                'en': ['sitemap', 'ogc', 'OGC API - Common', 'pygeoapi']
-            },
-            'schema': {
-                'type': 'boolean',
-                'default': True
-            },
-            'minOccurs': 0,
-            'maxOccurs': 1,
-            'metadata': None,  # TODO how to use?
-        },
-        'include-features': {
-            'title': {
-                'en': 'Include OGC API - Features'
-            },
-            'description': {
-                'en': 'Boolean value controlling the generation of a sitemap '
-                      'for individual OGC API - Features endpoints'
-            },
-            'keywords': {
-                'en': ['sitemap', 'ogc', 'OGC API - Features', 'pygeoapi']
-            },
-            'schema': {
-                'type': 'boolean',
-                'default': True
-            },
-            'minOccurs': 0,
-            'maxOccurs': 1,
-            'metadata': None,  # TODO how to use?
-        },
-        'zip': {
-            'title': {
-                'en': 'ZIP response'
-            },
-            'description': {
-                'en': 'Boolean whether to ZIP the response'
-            },
-            'keywords': {
-                'en': ['sitemap', 'zip', 'pygeoapi']
-            },
-            'schema': {
-                'type': 'boolean',
-                'default': False
-            },
-            'minOccurs': 0,
-            'maxOccurs': 1,
-            'metadata': None,  # TODO how to use?
-        },
-    },
-    'outputs': {
-        'common.xml': {
-            'title': {
-                'en': 'OGC API - Common Sitemap'
-            },
-            'description': {
-                'en': 'A sitemap of the OGC API - Common end points for the '
-                      'pygeoapi instance.'
-            },
-            'schema': {
-                'type': 'object',
-                'contentMediaType': 'application/json'
+PROCESS_DEF.update(
+    {
+        'version': '0.1.0',
+        'id': 'sitemap-generator',
+        'title': 'Sitemap Generator',
+        'description': (
+            'A process that returns a sitemap of' 'all pygeoapi endpoints.'
+        ),
+        'links': [
+            {
+                'type': 'text/html',
+                'rel': 'about',
+                'title': 'information',
+                'href': 'https://developers.google.com/search/docs/crawling-indexing/sitemaps/overview',  # noqa
+                'hreflang': 'en-US',
             }
-        },
-        'sitemap.zip': {
-            'title': {
-                'en': 'Sitemap'
-            },
-            'description': {
-                'en': 'A sitemap of the pygeoapi instance'
-            },
-            'schema': {
-                'type': 'object',
-                'contentMediaType': 'application/zip'
-            }
-        }
-    },
-    'example': {
+        ],
         'inputs': {
-            'include-features': False
-        }
+            'include-common': {
+                'title': {'en': 'Include OGC API - Common'},
+                'description': {
+                    'en': 'Boolean value controlling the generation of a sitemap '
+                    'for OGC API - Common endpoints'
+                },
+                'keywords': {'en': ['sitemap', 'ogc', 'OGC API - Common', 'pygeoapi']},
+                'schema': {'type': 'boolean', 'default': True},
+                'minOccurs': 0,
+                'maxOccurs': 1,
+                'metadata': None,  # TODO how to use?
+            },
+            'include-features': {
+                'title': {'en': 'Include OGC API - Features'},
+                'description': {
+                    'en': 'Boolean value controlling the generation of a sitemap '
+                    'for individual OGC API - Features endpoints'
+                },
+                'keywords': {
+                    'en': ['sitemap', 'ogc', 'OGC API - Features', 'pygeoapi']
+                },
+                'schema': {'type': 'boolean', 'default': True},
+                'minOccurs': 0,
+                'maxOccurs': 1,
+                'metadata': None,  # TODO how to use?
+            },
+            'zip': {
+                'title': {'en': 'ZIP response'},
+                'description': {'en': 'Boolean whether to ZIP the response'},
+                'keywords': {'en': ['sitemap', 'zip', 'pygeoapi']},
+                'schema': {'type': 'boolean', 'default': False},
+                'minOccurs': 0,
+                'maxOccurs': 1,
+                'metadata': None,  # TODO how to use?
+            },
+        },
+        'outputs': {
+            'common.xml': {
+                'title': {'en': 'OGC API - Common Sitemap'},
+                'description': {
+                    'en': 'A sitemap of the OGC API - Common end points for the '
+                    'pygeoapi instance.'
+                },
+                'schema': {'type': 'object', 'contentMediaType': 'application/json'},
+            },
+            'sitemap.zip': {
+                'title': {'en': 'Sitemap'},
+                'description': {'en': 'A sitemap of the pygeoapi instance'},
+                'schema': {'type': 'object', 'contentMediaType': 'application/zip'},
+            },
+        },
+        'example': {'inputs': {'include-features': False}},
     }
-})
+)
 
 
 class SitemapProcessor(BaseProcessor):
@@ -226,8 +197,7 @@ class SitemapProcessor(BaseProcessor):
                 hits = provider.query(resulttype='hits').get('numberMatched')
                 iterations = range(math.ceil(hits / 50000))
                 for i in iterations:
-                    yield (f'{name}__{i}.xml',
-                           self._generate(i, name, provider))
+                    yield (f'{name}__{i}.xml', self._generate(i, name, provider))
 
     def _generate(self, index, dataset, provider, n=50000):
         """
@@ -241,7 +211,7 @@ class SitemapProcessor(BaseProcessor):
         :returns: List of GeoJSON Features
         """
 
-        content = provider.query(offset=(n*index), limit=n)
+        content = provider.query(offset=(n * index), limit=n)
         content['links'] = []
         content = geojson2jsonld(
             self, content, dataset, id_field=(provider.uri_field or 'id')

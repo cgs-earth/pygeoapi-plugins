@@ -32,21 +32,20 @@ import io
 import logging
 import xml.etree.ElementTree as ET
 
-from pygeoapi.formatter.base import (
-    BaseFormatter, FormatterSerializationError)
+from pygeoapi.formatter.base import BaseFormatter, FormatterSerializationError
 
 LOGGER = logging.getLogger(__name__)
 
-URLSET = '''<?xml version="1.0"?>
+URLSET = """<?xml version="1.0"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
 </urlset>
-'''
-URLSET_FOREACH = '''
+"""
+URLSET_FOREACH = """
 <url>
     <loc>{}</loc>
     <lastmod>{}</lastmod>
 </url>
-'''
+"""
 
 
 class XMLFormatter(BaseFormatter):

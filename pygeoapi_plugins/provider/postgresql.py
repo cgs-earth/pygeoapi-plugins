@@ -43,7 +43,6 @@ from sqlalchemy.orm import Session
 
 from pygeoapi.provider.postgresql import PostgreSQLProvider
 from pygeoapi.provider.base import ProviderQueryError
-from pygeoapi.util import crs_transform
 
 PSUEDO_COUNT_LIMIT = os.getenv('PSUEDO_COUNT_LIMIT', 5000000)
 COUNT_FUNCTION = """
@@ -89,11 +88,22 @@ class PseudoPostgreSQLProvider(PostgreSQLProvider):
         LOGGER.debug('Initialising Pseudo-count PostgreSQL provider.')
         super().__init__(provider_def)
 
-    @crs_transform
-    def query(self, offset=0, limit=10, resulttype='results',
-              bbox=[], datetime_=None, properties=[], sortby=[],
-              select_properties=[], skip_geometry=False, q=None,
-              filterq=None, crs_transform_spec=None, **kwargs):
+    def query(
+        self,
+        offset=0,
+        limit=10,
+        resulttype='results',
+        bbox=[],
+        datetime_=None,
+        properties=[],
+        sortby=[],
+        select_properties=[],
+        skip_geometry=False,
+        q=None,
+        filterq=None,
+        crs_transform_spec=None,
+        **kwargs,
+    ):
         """
         Query Postgis for all the content.
         e,g: http://localhost:5000/collections/hotosm_bdi_waterways/items?
@@ -121,20 +131,21 @@ class PseudoPostgreSQLProvider(PostgreSQLProvider):
         bbox_filter = self._get_bbox_filter(bbox)
         time_filter = self._get_datetime_filter(datetime_)
         order_by_clauses = self._get_order_by_clauses(sortby, self.table_model)
-        selected_properties = self._select_properties_clause(select_properties,
-                                                             skip_geometry)
+        selected_properties = self._select_properties_clause(
+            select_properties, skip_geometry
+        )
 
         LOGGER.debug('Querying PostGIS')
         # Execute query within self-closing database Session context
         with Session(self._engine) as session:
-            results = (session.query(self.table_model)
-                       .filter(property_filters)
-                       .filter(cql_filters)
-                       .filter(bbox_filter)
-                       .filter(time_filter)
-                       .order_by(*order_by_clauses)
-                       .options(selected_properties)
-                       .offset(offset))
+            results = (
+                session.query(self.table_model)
+                .filter(property_filters)
+                .filter(cql_filters)
+                .filter(bbox_filter)
+                .filter(time_filter)
+                .options(selected_properties)
+            )
 
             try:
                 if filterq:
@@ -152,11 +163,6 @@ class PseudoPostgreSQLProvider(PostgreSQLProvider):
                 LOGGER.warning(f'Error during psuedo-count {err}')
                 matched = results.count()
 
-            if limit < matched:
-                returned = limit
-            else:
-                returned = matched
-
             LOGGER.debug(f'Found {matched} result(s)')
 
             LOGGER.debug('Preparing response')
@@ -164,14 +170,16 @@ class PseudoPostgreSQLProvider(PostgreSQLProvider):
                 'type': 'FeatureCollection',
                 'features': [],
                 'numberMatched': matched,
-                'numberReturned': returned
+                'numberReturned': 0,
             }
 
-            if resulttype == "hits" or not results:
-                response['numberReturned'] = 0
+            if resulttype == 'hits' or not results:
                 return response
+
             crs_transform_out = self._get_crs_transform(crs_transform_spec)
-            for item in results.limit(limit):
+
+            for item in results.order_by(*order_by_clauses).offset(offset).limit(limit):  # noqa
+                response['numberReturned'] += 1
                 response['features'].append(
                     self._sqlalchemy_to_feature(item, crs_transform_out)
                 )
@@ -190,13 +198,13 @@ class PseudoPostgreSQLProvider(PostgreSQLProvider):
         """
         LOGGER.debug('Getting pseudo-count')
         compiled = results.statement.compile(
-            self._engine, compile_kwargs={"literal_binds": True})
+            self._engine, compile_kwargs={'literal_binds': True}
+        )
 
         with Session(self._engine) as s:
             s.execute(COUNT_FUNCTION)
             compiled_query = select(text(f"count_estimate('{compiled}')"))
-            matched = (s.execute(compiled_query)
-                       .scalar())
+            matched = s.execute(compiled_query).scalar()
 
         if matched < PSUEDO_COUNT_LIMIT:
             LOGGER.debug('Using precise count')

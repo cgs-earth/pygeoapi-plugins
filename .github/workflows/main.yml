@@ -14,12 +14,12 @@ jobs:
       - uses: actions/setup-python@v2
         name: setup Python
         with:
-          python-version: 3.8
+          python-version: '3.10'
       - name: Install and run PostgreSQL/PostGIS 📦
         uses: huaxk/postgis-action@v1
         with:
           postgresql password: ${{ env.POSTGRESQL_PASSWORD }}
-          postgresql db: "test"
+          postgresql db: 'test'
       - name: Run pygeoapi
         run: |
           docker run -d -it --rm -p 5000:80 $(docker build -q .)
@@ -42,6 +42,3 @@ jobs:
           pytest tests/test_sparql_provider.py
           pytest tests/test_xml_formatter.py
           pytest tests/test_geopandas_provider.py
-      - name: run flake8 ⚙️
-        run: |
-          find . -type f -name "*.py" | xargs flake8

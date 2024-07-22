@@ -27,16 +27,15 @@
 #
 # =================================================================
 
-version: "3"
+version: '3'
 
 services:
-
   pygeoapi:
     container_name: pygeoapi-ckan
     build:
       context: ../../..
     ports:
-      - "5000:80"
+      - '5000:80'
     environment:
       - PYGEOAPI_URL=http://localhost:5000
     volumes:

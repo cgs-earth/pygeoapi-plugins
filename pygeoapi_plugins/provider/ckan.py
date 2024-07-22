@@ -33,8 +33,11 @@ from requests import Session
 
 import logging
 
-from pygeoapi.provider.base import (BaseProvider, ProviderQueryError,
-                                    ProviderConnectionError)
+from pygeoapi.provider.base import (
+    BaseProvider,
+    ProviderQueryError,
+    ProviderConnectionError,
+)
 from pygeoapi.util import crs_transform
 
 LOGGER = logging.getLogger(__name__)
@@ -71,22 +74,31 @@ class CKANProvider(BaseProvider):
             params = {}
 
             if self.properties:
-                self.properties = \
-                    set(self.properties) \
-                    | set([self.id_field, self.x_field, self.y_field])
+                self.properties = set(self.properties) | set(
+                    [self.id_field, self.x_field, self.y_field]
+                )
                 params['fields'] = ','.join(self.properties)
 
             r = self._get_response(self.data)
-            self.fields = {
-                field.pop('id'): field for field in r['fields']
-            }
+            self.fields = {field.pop('id'): field for field in r['fields']}
 
         return self.fields
 
     @crs_transform
-    def query(self, offset=0, limit=10, resulttype='results',
-              bbox=[], datetime_=None, properties=[], sortby=[],
-              select_properties=[], skip_geometry=False, q=None, **kwargs):
+    def query(
+        self,
+        offset=0,
+        limit=10,
+        resulttype='results',
+        bbox=[],
+        datetime_=None,
+        properties=[],
+        sortby=[],
+        select_properties=[],
+        skip_geometry=False,
+        q=None,
+        **kwargs,
+    ):
         """
         CKAN query
 
@@ -104,10 +116,18 @@ class CKANProvider(BaseProvider):
         :returns: dict of GeoJSON FeatureCollection
         """
 
-        return self._load(offset, limit, resulttype, bbox=bbox,
-                          datetime_=datetime_, properties=properties,
-                          sortby=sortby, select_properties=select_properties,
-                          skip_geometry=skip_geometry, q=q)
+        return self._load(
+            offset,
+            limit,
+            resulttype,
+            bbox=bbox,
+            datetime_=datetime_,
+            properties=properties,
+            sortby=sortby,
+            select_properties=select_properties,
+            skip_geometry=skip_geometry,
+            q=q,
+        )
 
     @crs_transform
     def get(self, identifier, **kwargs):
@@ -118,18 +138,27 @@ class CKANProvider(BaseProvider):
 
         :returns: dict of single GeoJSON feature
         """
-        properties = [(self.id_field, identifier), ]
-        params = {
-            'filters': self._make_where(properties)
-        }
+        properties = [
+            (self.id_field, identifier),
+        ]
+        params = {'filters': self._make_where(properties)}
         response = self._get_response(self.data, params)
-        [feature] = [self._make_feature(f, False)
-                     for f in response['records']]
+        [feature] = [self._make_feature(f, False) for f in response['records']]
         return feature
 
-    def _load(self, offset=0, limit=10, resulttype='results',
-              bbox=[], datetime_=None, properties=[], sortby=[],
-              select_properties=[], skip_geometry=False, q=None):
+    def _load(
+        self,
+        offset=0,
+        limit=10,
+        resulttype='results',
+        bbox=[],
+        datetime_=None,
+        properties=[],
+        sortby=[],
+        select_properties=[],
+        skip_geometry=False,
+        q=None,
+    ):
         """
         Private function: Load CKAN data
 
@@ -148,22 +177,15 @@ class CKANProvider(BaseProvider):
         """
 
         # Default feature collection and request parameters
-        fc = {
-            'type': 'FeatureCollection',
-            'features': []
-        }
+        fc = {'type': 'FeatureCollection', 'features': []}
 
-        params = {
-            'offset': offset,
-            'limit': limit
-        }
+        params = {'offset': offset, 'limit': limit}
 
         if self.properties or select_properties:
             required = [self.id_field, self.x_field, self.y_field]
             select_properties.extend(required)
 
-            params['fields'] = ','.join(
-                set(self.properties) | set(select_properties))
+            params['fields'] = ','.join(set(self.properties) | set(select_properties))
 
         # Add queryables to request params
         if properties:
@@ -191,8 +213,7 @@ class CKANProvider(BaseProvider):
             return fc
 
         # Return feature collection
-        v = [self._make_feature(f, skip_geometry)
-             for f in response['records']]
+        v = [self._make_feature(f, skip_geometry) for f in response['records']]
 
         step = len(v)
 
@@ -205,8 +226,7 @@ class CKANProvider(BaseProvider):
             if len(response['records']) == 0:
                 break
             else:
-                _ = [self._make_feature(f, skip_geometry)
-                     for f in response['records']]
+                _ = [self._make_feature(f, skip_geometry) for f in response['records']]
                 v.extend(_)
 
         fc['features'] = v
@@ -253,19 +273,15 @@ class CKANProvider(BaseProvider):
 
         :returns: STA response
         """
-        f = {
-            'type': 'Feature',
-            'id': feature.pop(self.id_field),
-            'geometry': None
-        }
+        f = {'type': 'Feature', 'id': feature.pop(self.id_field), 'geometry': None}
 
         if not skip_geometry:
             f['geometry'] = {
                 'type': 'Point',
                 'coordinates': [
                     float(feature.pop(self.x_field)),
-                    float(feature.pop(self.y_field))
-                ]
+                    float(feature.pop(self.y_field)),
+                ],
             }
 
         f['properties'] = feature
@@ -299,9 +315,7 @@ class CKANProvider(BaseProvider):
         p = {}
 
         if properties:
-            p.update(
-                {k: v for (k, v) in properties}
-            )
+            p.update({k: v for (k, v) in properties})
 
         return json.dumps(p)
 

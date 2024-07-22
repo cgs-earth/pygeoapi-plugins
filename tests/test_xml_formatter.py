@@ -44,10 +44,7 @@ def config():
         'data': 'tests/data/places.csv',
         'id_field': 'index',
         'uri_field': 'uri',
-        'geometry': {
-            'x_field': 'lon',
-            'y_field': 'lat'
-        }
+        'geometry': {'x_field': 'lon', 'y_field': 'lat'},
     }
 
 

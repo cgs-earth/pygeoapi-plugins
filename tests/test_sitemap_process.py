@@ -42,13 +42,7 @@ HTTP = Session()
 
 @pytest.fixture
 def body():
-    return {
-        'inputs': {
-            'include-common': True,
-            'include-features': False,
-            'zip': False
-        }
-    }
+    return {'inputs': {'include-common': True, 'include-features': False, 'zip': False}}
 
 
 def test_sitemap_generator(body):

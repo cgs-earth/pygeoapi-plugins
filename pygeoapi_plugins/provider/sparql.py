@@ -32,8 +32,7 @@ from SPARQLWrapper import SPARQLWrapper, JSON
 import logging
 
 from pygeoapi.plugin import load_plugin
-from pygeoapi.provider.base import (ProviderQueryError,
-                                    ProviderNoDataError, BaseProvider)
+from pygeoapi.provider.base import ProviderQueryError, ProviderNoDataError, BaseProvider
 from pygeoapi.util import is_url
 
 
@@ -84,9 +83,20 @@ class SPARQLProvider(BaseProvider):
         self.subj = provider_def.get('sparql_subject')
         self.predicates = provider_def.get('sparql_predicates')
 
-    def query(self, offset=0, limit=10, resulttype='results',
-              bbox=[], datetime_=None, properties=[], sortby=[],
-              select_properties=[], skip_geometry=False, q=None, **kwargs):
+    def query(
+        self,
+        offset=0,
+        limit=10,
+        resulttype='results',
+        bbox=[],
+        datetime_=None,
+        properties=[],
+        sortby=[],
+        select_properties=[],
+        skip_geometry=False,
+        q=None,
+        **kwargs,
+    ):
         """
         SPARQL query
 
@@ -103,9 +113,19 @@ class SPARQLProvider(BaseProvider):
 
         :returns: dict of GeoJSON FeatureCollection
         """
-        content = self.p.query(offset, limit, resulttype, bbox,
-                               datetime_, properties, sortby,
-                               select_properties, skip_geometry, q, **kwargs)
+        content = self.p.query(
+            offset,
+            limit,
+            resulttype,
+            bbox,
+            datetime_,
+            properties,
+            sortby,
+            select_properties,
+            skip_geometry,
+            q,
+            **kwargs,
+        )
 
         v = []
         for c in content['features']:
@@ -118,9 +138,7 @@ class SPARQLProvider(BaseProvider):
         for item in content['features']:
             _, _subj = self._clean_subj(item['properties'], self.subj)
 
-            item['properties'] = self._combine(
-                item['properties'], values.get(_subj)
-            )
+            item['properties'] = self._combine(item['properties'], values.get(_subj))
 
         return content
 
@@ -138,9 +156,7 @@ class SPARQLProvider(BaseProvider):
         subj, _subj = self._clean_subj(feature['properties'], self.subj)
 
         values = self._sparql(subj)
-        feature['properties'] = self._combine(
-            feature['properties'], values.get(_subj)
-        )
+        feature['properties'] = self._combine(feature['properties'], values.get(_subj))
 
         return feature
 
@@ -154,8 +170,10 @@ class SPARQLProvider(BaseProvider):
         """
         LOGGER.debug('Requesting SPARQL data')
 
-        w = ['OPTIONAL {{?v {p} ?{o} .}}'.format(p=v, o=k)
-             for k, v in self.predicates.items()]
+        w = [
+            'OPTIONAL {{?v {p} ?{o} .}}'.format(p=v, o=k)
+            for k, v in self.predicates.items()
+        ]
         where = ' '.join(w)
 
         qs = self._makeQuery(value, where)
@@ -173,7 +191,7 @@ class SPARQLProvider(BaseProvider):
 
         :returns: subject value for properties block & SPARQL
         """
-        if ":" in _subject:
+        if ':' in _subject:
             (_pref, _subject) = _subject.split(':')
         else:
             _pref = ''
@@ -209,7 +227,9 @@ class SPARQLProvider(BaseProvider):
 
             for _k, _v in v.items():
                 if not isinstance(ret[_id][_k], list):
-                    ret[_id][_k] = [ret[_id][_k], ]
+                    ret[_id][_k] = [
+                        ret[_id][_k],
+                    ]
 
                 _ = [_['value'] == _v['value'] for _ in ret[_id][_k]]
                 if True not in _:
@@ -246,9 +266,7 @@ class SPARQLProvider(BaseProvider):
 
         :returns: str, SPARQL query
         """
-        querystring = ''.join([
-            prefix, select, _WHERE.format(value=value, where=where)
-        ])
+        querystring = ''.join([prefix, select, _WHERE.format(value=value, where=where)])
         LOGGER.debug('SPARQL query: {}'.format(querystring))
 
         return querystring

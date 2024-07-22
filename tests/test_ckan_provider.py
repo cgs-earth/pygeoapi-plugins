@@ -43,7 +43,7 @@ def config():
         'resource_id': '08369d21-520b-439e-97e3-5ecb50737887',
         'id_field': '_id',
         'x_field': 'LONDD',
-        'y_field': 'LATDD'
+        'y_field': 'LATDD',
     }
 
 

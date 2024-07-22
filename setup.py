@@ -44,6 +44,7 @@ class PyTest(Command):
 
     def run(self):
         import subprocess
+
         errno = subprocess.call(['pytest'])
         raise SystemExit(errno)
 
@@ -59,17 +60,16 @@ def read(filename, encoding='utf-8'):
 def get_package_version():
     """get version from top-level package init"""
     version_file = read('pygeoapi_plugins/__init__.py')
-    version_match = re.search(r"^__version__ = ['\"]([^'\"]*)['\"]",
-                              version_file, re.M)
+    version_match = re.search(r"^__version__ = ['\"]([^'\"]*)['\"]", version_file, re.M)
     if version_match:
         return version_match.group(1)
-    raise RuntimeError("Unable to find version string.")
+    raise RuntimeError('Unable to find version string.')
 
 
 DESCRIPTION = 'pygeoapi plugins'
 
 # ensure a fresh MANIFEST file is generated
-if (os.path.exists('MANIFEST')):
+if os.path.exists('MANIFEST'):
     os.unlink('MANIFEST')
 
 setup(
@@ -80,11 +80,7 @@ setup(
     long_description_content_type='text/markdown',
     license='MIT',
     platforms='all',
-    keywords=' '.join([
-        'cgs',
-        'pygeoapi',
-        'geopython'
-    ]),
+    keywords=' '.join(['cgs', 'pygeoapi', 'geopython']),
     author='Benjamin Webb',
     author_email='bwebb@lincolninst.edu',
     maintainer='Benjamin Webb',
@@ -101,9 +97,7 @@ setup(
         'License :: OSI Approved :: MIT License',
         'Operating System :: OS Independent',
         'Programming Language :: Python',
-        'Topic :: Scientific/Engineering :: GIS'
+        'Topic :: Scientific/Engineering :: GIS',
     ],
-    cmdclass={
-        'test': PyTest
-    }
+    cmdclass={'test': PyTest},
 )
