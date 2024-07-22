@@ -35,35 +35,35 @@ import zipfile
 
 from pygeoapi.util import url_join
 
-PYGEOAPI_URL = "http://localhost:5000"
-PROCESS_URL = url_join(PYGEOAPI_URL, "processes/sitemap-generator/execution")
+PYGEOAPI_URL = 'http://localhost:5000'
+PROCESS_URL = url_join(PYGEOAPI_URL, 'processes/sitemap-generator/execution')
 HTTP = Session()
 
 
 @pytest.fixture
 def body():
-    return {"inputs": {"include-common": True, "include-features": False, "zip": False}}
+    return {'inputs': {'include-common': True, 'include-features': False, 'zip': False}}
 
 
 def test_sitemap_generator(body):
-    body["inputs"]["include-features"] = True
+    body['inputs']['include-features'] = True
     r = HTTP.post(PROCESS_URL, json=body)
     assert r.status_code == 200
 
     sitemap = r.json()
     assert len(sitemap) == 5
 
-    common = sitemap.pop("common.xml")
+    common = sitemap.pop('common.xml')
     assert len(common) == 2402
 
     root = xml.etree.ElementTree.fromstring(common)
-    assert all(i.tag == j.tag for (i, j) in zip(root, root.findall("url")))
+    assert all(i.tag == j.tag for (i, j) in zip(root, root.findall('url')))
 
-    assert all(f.endswith("__0.xml") for f in sitemap)
+    assert all(f.endswith('__0.xml') for f in sitemap)
 
 
 def test_sitemap_no_common(body):
-    body["inputs"]["include-common"] = False
+    body['inputs']['include-common'] = False
     r = HTTP.post(PROCESS_URL, json=body)
     assert r.status_code == 200
 
@@ -78,12 +78,12 @@ def test_sitemap_no_features(body):
     sitemap = r.json()
     assert len(sitemap) == 1
 
-    common = sitemap.pop("common.xml")
+    common = sitemap.pop('common.xml')
     assert len(common) == 2402
 
 
 def test_sitemap_zip(body):
-    body["inputs"]["zip"] = True
+    body['inputs']['zip'] = True
     r = HTTP.post(PROCESS_URL, json=body)
     assert r.status_code == 200
 

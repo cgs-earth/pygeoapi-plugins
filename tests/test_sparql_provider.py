@@ -35,18 +35,18 @@ from pygeoapi_plugins.provider.sparql import SPARQLProvider
 @pytest.fixture()
 def config():
     return {
-        "name": "pygeoapi_plugins.provider.sparql.SPARQLProvider",
-        "type": "feature",
-        "data": "tests/data/places.csv",
-        "id_field": "index",
-        "geometry": {"x_field": "lon", "y_field": "lat"},
-        "sparql_provider": "CSV",
-        "sparql_endpoint": "https://dbpedia.org/sparql",
-        "sparql_subject": "uri",
-        "sparql_predicates": {
-            "population": "dbo:populationTotal",
-            "country": "<http://dbpedia.org/ontology/country>",
-            "leader": "dbpedia2:leaderName",
+        'name': 'pygeoapi_plugins.provider.sparql.SPARQLProvider',
+        'type': 'feature',
+        'data': 'tests/data/places.csv',
+        'id_field': 'index',
+        'geometry': {'x_field': 'lon', 'y_field': 'lat'},
+        'sparql_provider': 'CSV',
+        'sparql_endpoint': 'https://dbpedia.org/sparql',
+        'sparql_subject': 'uri',
+        'sparql_predicates': {
+            'population': 'dbo:populationTotal',
+            'country': '<http://dbpedia.org/ontology/country>',
+            'leader': 'dbpedia2:leaderName',
         },
     }
 
@@ -56,32 +56,32 @@ def test_query(config):
 
     base_fields = p.p.get_fields()
     assert len(base_fields) == 3
-    assert base_fields["city"]["type"] == "string"
-    assert base_fields["uri"]["type"] == "string"
+    assert base_fields['city']['type'] == 'string'
+    assert base_fields['uri']['type'] == 'string'
 
     fields = p.get_fields()
     assert len(fields) == 6
     for field in base_fields:
         assert field in fields
-    assert fields["country"]["type"] == "string"
-    assert fields["leader"]["type"] == "string"
+    assert fields['country']['type'] == 'string'
+    assert fields['leader']['type'] == 'string'
 
     results = p.query()
-    assert len(results["features"]) == 8
+    assert len(results['features']) == 8
 
-    assert results["features"][0]["id"] == "0"
-    assert results["features"][0]["properties"]["city"] == "Berlin"
-    assert results["features"][0]["properties"]["population"] == "3677472"
+    assert results['features'][0]['id'] == '0'
+    assert results['features'][0]['properties']['city'] == 'Berlin'
+    assert results['features'][0]['properties']['population'] == '3677472'
     assert (
-        results["features"][0]["properties"]["country"]
-        == "http://dbpedia.org/resource/Germany"
+        results['features'][0]['properties']['country']
+        == 'http://dbpedia.org/resource/Germany'
     )  # noqa
-    assert results["features"][0]["geometry"]["coordinates"][0] == 13.405
-    assert results["features"][0]["geometry"]["coordinates"][1] == 52.52
+    assert results['features'][0]['geometry']['coordinates'][0] == 13.405
+    assert results['features'][0]['geometry']['coordinates'][1] == 52.52
 
-    assert results["features"][2]["properties"]["city"] == "New York"
+    assert results['features'][2]['properties']['city'] == 'New York'
     assert (
-        results["features"][2]["properties"]["country"]
-        == "http://dbpedia.org/resource/United_States"
+        results['features'][2]['properties']['country']
+        == 'http://dbpedia.org/resource/United_States'
     )  # noqa
-    assert results["features"][2]["properties"]["leader"] == "Eric Adams"
+    assert results['features'][2]['properties']['leader'] == 'Eric Adams'

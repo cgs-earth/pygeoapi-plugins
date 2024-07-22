@@ -39,12 +39,12 @@ from pygeoapi_plugins.formatter.xml import XMLFormatter
 @pytest.fixture()
 def config():
     return {
-        "name": "CSV",
-        "type": "feature",
-        "data": "tests/data/places.csv",
-        "id_field": "index",
-        "uri_field": "uri",
-        "geometry": {"x_field": "lon", "y_field": "lat"},
+        'name': 'CSV',
+        'type': 'feature',
+        'data': 'tests/data/places.csv',
+        'id_field': 'index',
+        'uri_field': 'uri',
+        'geometry': {'x_field': 'lon', 'y_field': 'lat'},
     }
 
 
@@ -54,17 +54,17 @@ def test_xml_formatter(config):
     fc = p.query()
     f_xml = f.write(data=fc)
 
-    assert f.mimetype == "application/xml; charset=utf-8"
+    assert f.mimetype == 'application/xml; charset=utf-8'
 
     root = ET.fromstring(f_xml)
-    assert all(i.tag == j.tag for (i, j) in zip(root, root.findall("url")))
+    assert all(i.tag == j.tag for (i, j) in zip(root, root.findall('url')))
 
-    node = root.find("url")
-    assert node.find("loc").text == "http://dbpedia.org/resource/Berlin"
+    node = root.find('url')
+    assert node.find('loc').text == 'http://dbpedia.org/resource/Berlin'
 
-    lastmod = node.find("lastmod").text
-    strptime = datetime.strptime(lastmod, "%Y-%m-%dT%H:%M:%SZ")
+    lastmod = node.find('lastmod').text
+    strptime = datetime.strptime(lastmod, '%Y-%m-%dT%H:%M:%SZ')
     assert isinstance(strptime, datetime)
 
-    now = datetime.now().strftime("%Y-%m-%dT%H:%M")
+    now = datetime.now().strftime('%Y-%m-%dT%H:%M')
     assert now in lastmod
