@@ -266,30 +266,31 @@ class GeoPandasProvider(BaseProvider):
 
         :returns: dict of field names and their associated JSON Schema types
         """
-        if len(self.gdf) == 0:
-            raise ProviderNoDataError('No data found to get fields from')
+        if not self._fields:
+            if len(self.gdf) == 0:
+                raise ProviderNoDataError('No data found to get fields from')
 
-        field_mapper = {
-            col: self.gdf[col].dtype.name
-            for col in self.gdf.columns
-            if col not in self._exclude_from_fields
-        }
+            field_mapper = {
+                col: self.gdf[col].dtype.name
+                for col in self.gdf.columns
+                if col not in self._exclude_from_fields
+            }
 
-        # Pandas has a different ãmes for types than the pygeoapi spec expects
-        pandas_dtypes_to_ours = {
-            'float64': 'number',
-            'int64': 'integer',
-            'object': 'string',
-        }
+            # Pandas has a different names for types than the OAF spec
+            pandas_dtypes_to_ours = {
+                'float64': 'number',
+                'int64': 'integer',
+                'object': 'string',
+            }
 
-        pandas_default = defaultdict(lambda: 'string')
-        pandas_default.update(pandas_dtypes_to_ours)
+            pandas_default = defaultdict(lambda: 'string')
+            pandas_default.update(pandas_dtypes_to_ours)
 
-        our_types_names = {
-            k: {'type': pandas_default[v]} for k, v in field_mapper.items()
-        }
+            self._fields = {
+                k: {'type': pandas_default[v]} for k, v in field_mapper.items()
+            }
 
-        return our_types_names
+        return self._fields
 
     @crs_transform
     def query(

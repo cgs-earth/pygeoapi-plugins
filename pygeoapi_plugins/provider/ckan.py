@@ -70,7 +70,7 @@ class CKANProvider(BaseProvider):
         :returns: dict of fields
         """
 
-        if not self.fields:
+        if not self._fields:
             params = {}
 
             if self.properties:
@@ -80,9 +80,9 @@ class CKANProvider(BaseProvider):
                 params['fields'] = ','.join(self.properties)
 
             r = self._get_response(self.data)
-            self.fields = {field.pop('id'): field for field in r['fields']}
+            self._fields = {field.pop('id'): field for field in r['fields']}
 
-        return self.fields
+        return self._fields
 
     @crs_transform
     def query(
