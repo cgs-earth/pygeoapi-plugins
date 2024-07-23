@@ -260,7 +260,6 @@ class GeoPandasProvider(BaseProvider):
 
         self.fields = self.get_fields()  # Assign initial fields using get_fields()
 
-
     def get_fields(self) -> dict[str, any]:
         """
         Get provider field information (names, types)
