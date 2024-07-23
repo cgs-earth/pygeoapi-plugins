@@ -256,7 +256,10 @@ class GeoPandasProvider(BaseProvider):
             self.id_field
         ]
 
-        self.fields = self.get_fields()
+        self._fields = None  # Initialize _fields attribute before it is set
+
+        self.fields = self.get_fields()  # Assign initial fields using get_fields()
+
 
     def get_fields(self) -> dict[str, any]:
         """
@@ -291,6 +294,19 @@ class GeoPandasProvider(BaseProvider):
             }
 
         return self._fields
+
+    @property
+    def fields(self) -> dict[str, any]:
+        """Return the private _fields attribute if it exists, otherwise set it"""
+        if hasattr(self, '_fields'):
+            return self._fields
+        else:
+            return self.get_fields()
+
+    @fields.setter
+    def fields(self, fields_dict: dict[str, any]):
+        """Set the fields attribute"""
+        self._fields = fields_dict
 
     @crs_transform
     def query(
