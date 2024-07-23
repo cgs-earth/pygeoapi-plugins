@@ -6,4 +6,6 @@ ADD . /pygeoapi_plugins
 
 RUN pip3 install -e /pygeoapi_plugins
 
+RUN pip3 list
+
 ENTRYPOINT [ "/entrypoint.sh" ]

@@ -20,9 +20,14 @@ jobs:
         with:
           postgresql password: ${{ env.POSTGRESQL_PASSWORD }}
           postgresql db: 'test'
+      - name: show build
+        run: |
+          docker build .
       - name: Run pygeoapi
         run: |
-          docker run -d -it --rm -p 5000:80 $(docker build -q .)
+          docker run -d -it --name pygeoapi -p 5000:80 $(docker build -q .)
+          sleep 10
+          docker logs pygeoapi
       - name: Install requirements 📦
         run: |
           pip3 install https://github.com/geopython/pygeoapi/archive/refs/heads/master.zip
