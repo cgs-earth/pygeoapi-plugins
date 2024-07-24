@@ -83,6 +83,14 @@ class SPARQLProvider(BaseProvider):
         self.subj = provider_def.get('sparql_subject')
         self.predicates = provider_def.get('sparql_predicates')
 
+    def get_fields(self):
+        if not self._fields:
+            self._fields = self.p.get_fields()
+            for prop in self.predicates:
+                self._fields.update({prop: {'type': 'string'}})
+
+        return self._fields
+
     def query(
         self,
         offset=0,
@@ -292,13 +300,6 @@ class SPARQLProvider(BaseProvider):
             raise ProviderQueryError(err)
 
         return results
-
-    def get_fields(self):
-        self.fields = self.p.get_fields()
-        for prop in self.predicates:
-            self.fields.update({prop: {'type': 'string'}})
-
-        return self.fields
 
     def get_data_path(self, baseurl, urlpath, dirpath):
         return self.p.get_data_path(baseurl, urlpath, dirpath)
