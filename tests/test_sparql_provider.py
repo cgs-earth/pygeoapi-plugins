@@ -82,19 +82,21 @@ def test_query(config):
     results = p.query()
     assert len(results['features']) == 8
 
-    assert results['features'][0]['id'] == '0'
-    assert results['features'][0]['properties']['city'] == 'Berlin'
-    assert results['features'][0]['properties']['population'] == '3677472'
+    feature = p.get('0')
+    assert feature['id'] == '0'
+    assert feature['properties']['city'] == 'Berlin'
+    assert feature['properties']['datasets'][0]['population'] == '3677472'
     assert (
-        results['features'][0]['properties']['country']
+        feature['properties']['datasets'][0]['country']
         == 'http://dbpedia.org/resource/Germany'
     )  # noqa
-    assert results['features'][0]['geometry']['coordinates'][0] == 13.405
-    assert results['features'][0]['geometry']['coordinates'][1] == 52.52
+    assert feature['geometry']['coordinates'][0] == 13.405
+    assert feature['geometry']['coordinates'][1] == 52.52
 
-    assert results['features'][2]['properties']['city'] == 'New York'
+    feature2 = p.get('2')
+    assert feature2['properties']['city'] == 'New York'
     assert (
-        results['features'][2]['properties']['country']
+        feature2['properties']['country']
         == 'http://dbpedia.org/resource/United_States'
     )  # noqa
-    assert results['features'][2]['properties']['leader'] == 'Eric Adams'
+    assert feature2['properties']['leader'] == 'Eric Adams'
