@@ -41,13 +41,26 @@ def config():
         'id_field': 'index',
         'geometry': {'x_field': 'lon', 'y_field': 'lat'},
         'sparql_provider': 'CSV',
-        'sparql_endpoint': 'https://dbpedia.org/sparql',
-        'sparql_subject': 'uri',
-        'sparql_predicates': {
-            'population': 'dbo:populationTotal',
-            'country': '<http://dbpedia.org/ontology/country>',
-            'leader': 'dbpedia2:leaderName',
-        },
+        'sparql_query': {
+            'endpoint': 'https://dbpedia.org/sparql',
+            'bind': {
+                'name': 'uri',
+                'variable': '?subject'
+            },
+            'where': [
+                {
+                    'subject': '?subject',
+                    'predicate': 'dbo:populationTotal',
+                    'object': '?population'
+                }, {
+                    'predicate': '<http://dbpedia.org/ontology/country>',
+                    'object': '?country'
+                }, {
+                    'predicate': 'dbpedia2:leaderName',
+                    'object': '?leader'
+                }
+            ]
+        }
     }
 
 

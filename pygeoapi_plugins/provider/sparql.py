@@ -34,7 +34,7 @@ import logging
 from pygeoapi.plugin import load_plugin
 from pygeoapi.provider.base import (ProviderQueryError, ProviderNoDataError,
                                     BaseProvider)
-from pygeoapi.util import is_url
+from pygeoapi.util import is_url, to_json
 
 
 LOGGER = logging.getLogger(__name__)
@@ -250,32 +250,23 @@ class SPARQLProvider(BaseProvider):
 
         return subj, _subj
 
-    def _clean_result(self, result, ret={}):
-        """
-        Private function to clean SPARQL JSON result
-
-        :param result: SPARQL response JSON
-        :param ret: parsed return JSON
-
-        :returns: dict of SPARQL feature results
-        """
+    def _clean_result(self, result):
+        """Clean SPARQL JSON result ensuring list lengths are consistent"""
+        ret = {}
 
         for v in result['results']['bindings']:
-            _id = v.pop(self.alias).get('value')
-
-            if not ret.get(_id, ''):
-                ret[_id] = v
-
-            for _k, _v in v.items():
-                if not isinstance(ret[_id][_k], list):
-                    ret[_id][_k] = [
-                        ret[_id][_k],
-                    ]
-
-                _ = [_['value'] == _v['value'] for _ in ret[_id][_k]]
-                if True not in _:
-                    ret[_id][_k].append(_v)
-
+            _id = v.pop(self.alias, {}).get('value')
+            
+            if _id not in ret:
+                ret[_id] = {k: [] for k in v.keys()}
+            
+            for k, value in v.items():
+                if not isinstance(ret[_id][k], list):
+                    ret[_id][k] = [ret[_id][k]]
+                
+                if value not in [item['value'] for item in ret[_id][k]]:
+                    ret[_id][k].append(value)
+        
         return ret
 
     def _combine(self, properties, results):
@@ -291,18 +282,20 @@ class SPARQLProvider(BaseProvider):
             return value.split(',') if ',' in value else value
 
         def combine_lists(dict_data):
-            LOGGER.error(dict_data)
+            # Extract keys from the dictionary
             keys = list(dict_data.keys())
             
-            # Ensure both lists have the same length
-            if len(dict_data[keys[0]]) != len(dict_data[keys[1]]):
+            # Ensure all lists have the same length
+            length = len(dict_data[keys[0]])
+            if not all(len(dict_data[key]) == length for key in keys):
                 return dict_data
             
             # Combine the items into a list of dictionaries
             combined_list = [
-                {keys[0]: dict_data[keys[0]][i], keys[1]: dict_data[keys[1]][i]}
-                for i in range(len(dict_data[keys[0]]))
+                {key: dict_data[key][i] for key in keys}
+                for i in range(length)
             ]
+    
             return {'datasets': combined_list}
 
         try:
