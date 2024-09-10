@@ -43,27 +43,23 @@ def config():
         'sparql_provider': 'CSV',
         'sparql_query': {
             'endpoint': 'https://dbpedia.org/sparql',
-            'bind': {
-                'name': 'uri',
-                'variable': '?subject'
-            },
+            'bind': {'name': 'uri', 'variable': '?subject'},
             'where': [
                 {
                     'subject': '?subject',
                     'predicate': 'dbo:populationTotal',
-                    'object': '?population'
-                }, {
+                    'object': '?population',
+                },
+                {
                     'predicate': '<http://dbpedia.org/ontology/country>',
-                    'object': '?country'
-                }, {
-                    'predicate': 'dbpedia2:leaderName',
-                    'object': '?leader'
-                }
+                    'object': '?country',
+                },
+                {'predicate': 'dbpedia2:leaderName', 'object': '?leader'},
             ],
             'filter': [
                 'FILTER (isIRI(?leader) || (isLiteral(?leader) && (!bound(datatype(?leader)) || datatype(?leader) = xsd:string)))'
-            ]
-        }
+            ],
+        },
     }
 
 
@@ -89,17 +85,13 @@ def test_query(config):
     assert feature['id'] == '0'
     assert feature['properties']['city'] == 'Berlin'
     assert feature['properties']['population'] == '3677472'
-    assert (
-        feature['properties']['country']
-        == 'http://dbpedia.org/resource/Germany'
-    )  # noqa
+    assert feature['properties']['country'] == 'http://dbpedia.org/resource/Germany'  # noqa
     assert feature['geometry']['coordinates'][0] == 13.405
     assert feature['geometry']['coordinates'][1] == 52.52
 
     feature2 = p.get('2')
     assert feature2['properties']['city'] == 'New York'
     assert (
-        feature2['properties']['country']
-        == 'http://dbpedia.org/resource/United_States'
+        feature2['properties']['country'] == 'http://dbpedia.org/resource/United_States'
     )  # noqa
     assert feature2['properties']['leader'] == 'Eric Adams'

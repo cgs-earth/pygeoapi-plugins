@@ -32,9 +32,8 @@ from SPARQLWrapper import SPARQLWrapper, JSON
 import logging
 
 from pygeoapi.plugin import load_plugin
-from pygeoapi.provider.base import (ProviderQueryError, ProviderNoDataError,
-                                    BaseProvider)
-from pygeoapi.util import is_url, to_json
+from pygeoapi.provider.base import ProviderQueryError, ProviderNoDataError, BaseProvider
+from pygeoapi.util import is_url
 
 
 LOGGER = logging.getLogger(__name__)
@@ -68,6 +67,7 @@ WHERE {{
 
 class SPARQLProvider(BaseProvider):
     """SPARQL Wrapper API Provider"""
+
     prefix = _PREFIX
 
     def __init__(self, provider_def):
@@ -93,10 +93,9 @@ class SPARQLProvider(BaseProvider):
         self.select = _SELECT.format(select=select)
 
         if query.get('prefixes'):
-            self.prefix = ' '.join([
-                f'PREFIX {k}: {v}'
-                for k, v in query.get('prefixes').items()
-            ])
+            self.prefix = ' '.join(
+                [f'PREFIX {k}: {v}' for k, v in query.get('prefixes').items()]
+            )
 
         bind = query.get('bind')
         self.bind = bind.get('name')
@@ -193,7 +192,8 @@ class SPARQLProvider(BaseProvider):
         values = self._sparql(subj)
         try:
             feature['properties'] = self._combine(
-                feature['properties'], values.get(_subj))
+                feature['properties'], values.get(_subj)
+            )
         except AttributeError:
             LOGGER.warning('Unable to add SPARQL context')
 
@@ -209,16 +209,18 @@ class SPARQLProvider(BaseProvider):
         """
         LOGGER.debug('Requesting SPARQL data')
 
-        where = ' '.join([
-            '{s} {p} {o} .\n'.format(
-                s=q.get('subject', f'?{self.alias}'),
-                p=q.get('predicate'),
-                o=q.get('object')
-            ) for q in self.where
-        ])
+        where = ' '.join(
+            [
+                '{s} {p} {o} .\n'.format(
+                    s=q.get('subject', f'?{self.alias}'),
+                    p=q.get('predicate'),
+                    o=q.get('object'),
+                )
+                for q in self.where
+            ]
+        )
 
-        qs = self._makeQuery(value, where, self.prefix,
-                             self.select, self.filter)
+        qs = self._makeQuery(value, where, self.prefix, self.select, self.filter)
 
         result = self._sendQuery(qs)
 
@@ -259,17 +261,17 @@ class SPARQLProvider(BaseProvider):
 
         for v in result['results']['bindings']:
             _id = v.pop(self.alias, {}).get('value')
-            
+
             if _id not in ret:
                 ret[_id] = {k: [] for k in v.keys()}
-            
+
             for k, value in v.items():
                 if not isinstance(ret[_id][k], list):
                     ret[_id][k] = [ret[_id][k]]
-                
+
                 if value not in [item['value'] for item in ret[_id][k]]:
                     ret[_id][k].append(value)
-        
+
         return ret
 
     def _combine(self, properties, results):
@@ -281,28 +283,27 @@ class SPARQLProvider(BaseProvider):
 
         :returns: dict of feature properties with SPARQL data
         """
+
         def parse(value):
             return value.split(',') if ',' in value else value
 
         def combine_lists(dict_data):
             # Extract keys from the dictionary
             keys = list(dict_data.keys())
-            
+
             # Ensure all lists have the same length
             length = len(dict_data[keys[0]])
             if not all(len(dict_data[key]) == length for key in keys):
                 return dict_data
-            
+
             # Combine the items into a list of dictionaries
             combined_list = [
-                {key: dict_data[key][i] for key in keys}
-                for i in range(length)
+                {key: dict_data[key][i] for key in keys} for i in range(length)
             ]
-    
+
             return {'datasets': combined_list}
 
         try:
-            
             # Create a new dictionary for the updated properties
             tmp_props = {}
 
@@ -322,9 +323,7 @@ class SPARQLProvider(BaseProvider):
 
         return properties
 
-
-    def _makeQuery(self, value, where, prefix=_PREFIX,
-                   select=_SELECT, filter=''):
+    def _makeQuery(self, value, where, prefix=_PREFIX, select=_SELECT, filter=''):
         """
         Private function to make SPARQL querystring
 
@@ -338,7 +337,8 @@ class SPARQLProvider(BaseProvider):
         """
 
         _where = _WHERE.format(
-            alias=self.alias, value=value, where=where, filter=filter)
+            alias=self.alias, value=value, where=where, filter=filter
+        )
         querystring = ''.join([prefix, select, _where, self.groupby])
 
         LOGGER.debug(f'SPARQL query: {querystring}')

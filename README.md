@@ -56,38 +56,38 @@ The provider definition for the SPARQL Provider is similar to that of the wrappe
 To use the SPARQL Provider, you need to specify `pygeoapi_plugins.provider.sparql.SPARQLProvider` as the provider's name.
 
 ```yaml
-    providers:
-      - # Normal pygeoapi provider configuration
-        type: feature
-        data: /pygeoapi_plugins/tests/data/places.csv
-        id_field: index
-        geometry:
-          x_field: lon
-          y_field: lat
-        # 
-        name: pygeoapi_plugins.provider.sparql.SPARQLProvider
-        sparql_provider: CSV # Name of provider SPARQL is wrapping
-        sparql_query:
-          endpoint: https://dbpedia.org/sparql
-          bind:
-            name: uri
-            variable: '?subject'
-          prefixes:
-            '': <http://dbpedia.org/resource/>
-            dbpedia2: <http://dbpedia.org/property/>
-            dbo: <http://dbpedia.org/ontology/>
-          where:
-            - subject: '?subject'
-              predicate: dbo:populationTotal
-              object: '?population'
-            - subject: '?subject'
-              predicate: dbo:country
-              object: '?country'
-            - subject: '?subject'
-              predicate: '<http://dbpedia.org/property/leaderName>'
-              object: '?leader'
-          filter:
-            - 'FILTER (isIRI(?leader) || isLiteral(?leader))'
+providers:
+  - # Normal pygeoapi provider configuration
+    type: feature
+    data: /pygeoapi_plugins/tests/data/places.csv
+    id_field: index
+    geometry:
+      x_field: lon
+      y_field: lat
+    #
+    name: pygeoapi_plugins.provider.sparql.SPARQLProvider
+    sparql_provider: CSV # Name of provider SPARQL is wrapping
+    sparql_query:
+      endpoint: https://dbpedia.org/sparql
+      bind:
+        name: uri
+        variable: '?subject'
+      prefixes:
+        '': <http://dbpedia.org/resource/>
+        dbpedia2: <http://dbpedia.org/property/>
+        dbo: <http://dbpedia.org/ontology/>
+      where:
+        - subject: '?subject'
+          predicate: dbo:populationTotal
+          object: '?population'
+        - subject: '?subject'
+          predicate: dbo:country
+          object: '?country'
+        - subject: '?subject'
+          predicate: '<http://dbpedia.org/property/leaderName>'
+          object: '?leader'
+      filter:
+        - 'FILTER (isIRI(?leader) || isLiteral(?leader))'
 ```
 
 In this example, the SPARQL Provider wraps the GeoJSON Provider.
@@ -100,15 +100,14 @@ The SPARQL Provider only uses variables prefixed with sparql\_ in the configurat
   - `endpoint`: The SPARQL variable representing the graph IRI in the query.
   - `bind`:
     - `name`: Field in the wrapped properties block to query the graph with
-    - `variable`:  The SPARQL variable used for querying (e.g., ?subject).
-          prefixes:
+    - `variable`: The SPARQL variable used for querying (e.g., ?subject).
+      prefixes:
   - `prefixes`: Optional dictionary defining the prefixes used in the SPARQL query.
   - `where`: A list of mappings that define the WHERE clause of the SPARQL query. Each mapping includes:
     - `subject`: The subject of the triple pattern.
     - `predicate`: The predicate of the triple pattern.
     - `object`: The object of the triple pattern.
   - `filter`: A list of SPARQL filter expressions to apply to the results.
-
 
 ### GeoPandas
 
