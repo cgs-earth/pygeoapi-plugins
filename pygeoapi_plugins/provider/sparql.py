@@ -191,8 +191,11 @@ class SPARQLProvider(BaseProvider):
         subj, _subj = self._clean_subj(feature['properties'], self.bind)
 
         values = self._sparql(subj)
-        feature['properties'] = self._combine(feature['properties'],
-                                              values.get(_subj))
+        try:
+            feature['properties'] = self._combine(
+                feature['properties'], values.get(_subj))
+        except AttributeError:
+            LOGGER.warning('Unable to add SPARQL context')
 
         return feature
 

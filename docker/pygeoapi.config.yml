@@ -107,6 +107,8 @@ resources:
             - subject: '?subject'
               predicate: '<http://dbpedia.org/property/leaderName>'
               object: '?leader'
+          filter:
+            - 'FILTER (isIRI(?leader) || (isLiteral(?leader) && (!bound(datatype(?leader)) || datatype(?leader) = xsd:string)))'
 
   populated:
     type: collection

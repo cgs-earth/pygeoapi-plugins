@@ -59,6 +59,9 @@ def config():
                     'predicate': 'dbpedia2:leaderName',
                     'object': '?leader'
                 }
+            ],
+            'filter': [
+                'FILTER (isIRI(?leader) || (isLiteral(?leader) && (!bound(datatype(?leader)) || datatype(?leader) = xsd:string)))'
             ]
         }
     }
@@ -85,9 +88,9 @@ def test_query(config):
     feature = p.get('0')
     assert feature['id'] == '0'
     assert feature['properties']['city'] == 'Berlin'
-    assert feature['properties']['datasets'][0]['population'] == '3677472'
+    assert feature['properties']['population'] == '3677472'
     assert (
-        feature['properties']['datasets'][0]['country']
+        feature['properties']['country']
         == 'http://dbpedia.org/resource/Germany'
     )  # noqa
     assert feature['geometry']['coordinates'][0] == 13.405
