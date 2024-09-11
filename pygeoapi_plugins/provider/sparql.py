@@ -32,7 +32,8 @@ from SPARQLWrapper import SPARQLWrapper, JSON
 import logging
 
 from pygeoapi.plugin import load_plugin
-from pygeoapi.provider.base import ProviderQueryError, ProviderNoDataError, BaseProvider
+from pygeoapi.provider.base import (ProviderQueryError,
+                                    ProviderNoDataError, BaseProvider)
 from pygeoapi.util import is_url
 
 
@@ -80,11 +81,13 @@ class SPARQLProvider(BaseProvider):
         :returns: pygeoapi_plugins.provider.sparql.SPARQLProvider
         """
         super().__init__(provider_def)
+
+        # Load Provider to class property
         _provider_def = provider_def.copy()
         _provider_def['name'] = _provider_def.pop('sparql_provider')
-
         self.p = load_plugin('provider', _provider_def)
 
+        # Set SPARQL query parameters
         query = provider_def.get('sparql_query', {})
         self.convert = query.get('convert', True)
         self.sparql_endpoint = query.get('endpoint')
@@ -104,9 +107,16 @@ class SPARQLProvider(BaseProvider):
         self.where = query.get('where')
 
         self.filter = ' '.join(query.get('filter', []))
-        self.groupby = f'GROUP BY {query["groupby"]}' if query.get('groupby') else ''
+        self.groupby = (f'GROUP BY {query["groupby"]}'
+                        if query.get('groupby') else '')
 
     def get_fields(self):
+        """
+        Get fields of CKAN Provider
+
+        :returns: dict of fields
+        """
+
         if not self._fields:
             self._fields = self.p.get_fields()
 
@@ -160,6 +170,7 @@ class SPARQLProvider(BaseProvider):
             **kwargs,
         )
 
+        # TODO: Determine if we want to run SPARQL on /items queries
         # v = []
         # for c in content['features']:
         #     subj, _ = self._clean_subj(c['properties'], self.bind)
@@ -184,11 +195,10 @@ class SPARQLProvider(BaseProvider):
 
         :returns: dict of single GeoJSON fea
         """
-        LOGGER.debug(f'SPARQL for: {identifier}')
         feature = self.p.get(identifier)
 
         subj, _subj = self._clean_subj(feature['properties'], self.bind)
-
+        LOGGER.debug(f'SPARQL for: {identifier}')
         values = self._sparql(subj)
         try:
             feature['properties'] = self._combine(
@@ -220,7 +230,8 @@ class SPARQLProvider(BaseProvider):
             ]
         )
 
-        qs = self._makeQuery(value, where, self.prefix, self.select, self.filter)
+        qs = self._makeQuery(value, where, self.prefix,
+                             self.select, self.filter)
 
         result = self._sendQuery(qs)
 
@@ -241,36 +252,54 @@ class SPARQLProvider(BaseProvider):
         else:
             _pref = ''
 
+        # Fetch subject for query
         _subj = properties[_subject]
         if is_url(_subj):
+            # if URI, encase in <>
             subj = f'<{_subj}>'
         elif is_url(_subj[1:-1]):
+            # if already encased URI
             subj = _subj
             _subj = subj[1:-1]
         elif _pref:
+            # if subject is not URI, join namespace
             __subj = _subj.replace(' ', '_')
             subj = f'{_pref}:{__subj}'
+
+            # last guess for subject
             if _pref == ' ':
                 _subj = f'http://dbpedia.org/resource/{__subj}'
 
         return subj, _subj
 
     def _clean_result(self, result):
-        """Clean SPARQL JSON result ensuring list lengths are consistent"""
+        """
+        Clean SPARQL JSON result ensuring list lengths are consistent
+
+        :param result: `dict` representing a result row from the SPARQL query.
+
+        :returns: `dict` where each key corresponds to a subject.
+        """
         ret = {}
 
+        # Iterate over each binding (result row) in the SPARQL result
         for v in result['results']['bindings']:
+            # Pop subject from response body (this is already a property)
             _id = v.pop(self.alias, {}).get('value')
 
+            # If this is a new subject, initialize its entry in the result dict
             if _id not in ret:
                 ret[_id] = {k: [] for k in v.keys()}
 
-            for k, value in v.items():
+                # Iterate over each property-value pair for this binding
+            for k, v in v.items():
+                # Ensure the property's entry is always a list
                 if not isinstance(ret[_id][k], list):
                     ret[_id][k] = [ret[_id][k]]
 
-                if value not in [item['value'] for item in ret[_id][k]]:
-                    ret[_id][k].append(value)
+                # If the current value is not already in the list, append it
+                if v not in [item['value'] for item in ret[_id][k]]:
+                    ret[_id][k].append(v)
 
         return ret
 
@@ -278,44 +307,26 @@ class SPARQLProvider(BaseProvider):
         """
         Private function to add SPARQL context to feature properties.
 
-        :param properties: dict of feature properties
-        :param results: SPARQL data of feature
+        :param properties: `dict` of feature properties
+        :param results: `dict` of SPARQL data of feature
 
         :returns: dict of feature properties with SPARQL data
         """
-
-        def parse(value):
-            return value.split(',') if ',' in value else value
-
-        def combine_lists(dict_data):
-            # Extract keys from the dictionary
-            keys = list(dict_data.keys())
-
-            # Ensure all lists have the same length
-            length = len(dict_data[keys[0]])
-            if not all(len(dict_data[key]) == length for key in keys):
-                return dict_data
-
-            # Combine the items into a list of dictionaries
-            combined_list = [
-                {key: dict_data[key][i] for key in keys} for i in range(length)
-            ]
-
-            return {'datasets': combined_list}
-
+        # Create a new dictionary for the updated properties
+        tmp_props = {}
         try:
-            # Create a new dictionary for the updated properties
-            tmp_props = {}
-
-            # Iterate over the results and process them
             for k, v in results.items():
+                # Join query results by key
                 values = [
-                    parse(item.get('value') if isinstance(item, dict) else item)
+                    self.parse(item.get('value')
+                               if isinstance(item, dict) else item)
                     for item in (v if isinstance(v, list) else [v])
                 ]
+                # Return item or list of items
                 tmp_props[k] = values[-1] if len(values) == 1 else values
 
-            properties.update(combine_lists(tmp_props))
+            # Apply changes to properties block
+            properties.update(self.combine_lists(tmp_props))
 
         except TypeError as err:
             LOGGER.error(f'Error processing SPARQL data: {err}')
@@ -323,7 +334,8 @@ class SPARQLProvider(BaseProvider):
 
         return properties
 
-    def _makeQuery(self, value, where, prefix=_PREFIX, select=_SELECT, filter=''):
+    def _makeQuery(self, value, where, prefix=_PREFIX,
+                   select=_SELECT, filter=''):
         """
         Private function to make SPARQL querystring
 
@@ -390,3 +402,39 @@ class SPARQLProvider(BaseProvider):
 
     def __repr__(self):
         return f'<SPARQLProvider> {self.data}'
+
+    @staticmethod
+    def parse(value: str) -> list:
+        """
+        Parse a string by splitting it on commas.
+
+        :param value: `str` to be parsed.
+
+        :returns: A `list` of strings if commas are present,
+                  otherwise the original string.
+        """
+        return value.split(',') if ',' in value else value
+
+    @staticmethod
+    def combine_lists(dict_data: dict):
+        """
+        Combine lists from a dictionary into a list of dictionaries.
+
+        :param dict_data: `dict` where each key maps to a list of values.
+
+        :returns: dict
+        """
+        # Extract keys from the dictionary
+        keys = list(dict_data.keys())
+
+        # Ensure all lists have the same length
+        length = len(dict_data[keys[0]])
+        if not all(len(dict_data[key]) == length for key in keys):
+            return dict_data
+
+        # Combine the items into a list of dictionaries
+        combined_list = [
+            {key: dict_data[key][i] for key in keys} for i in range(length)
+        ]
+
+        return {'datasets': combined_list}
