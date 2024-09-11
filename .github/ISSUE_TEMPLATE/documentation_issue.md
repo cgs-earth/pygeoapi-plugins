@@ -4,7 +4,6 @@ about: Create a report to improve documenation
 title: ''
 labels: documentation
 assignees: ''
-
 ---
 
 **Description**
