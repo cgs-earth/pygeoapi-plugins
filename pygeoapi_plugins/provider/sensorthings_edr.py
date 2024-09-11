@@ -40,7 +40,7 @@ GEOGRAPHIC_CRS = {
     'system': {
         'type': 'GeographicCRS',
         'id': 'http://www.opengis.net/def/crs/OGC/1.3/CRS84',  # noqa
-    }
+    },
 }
 
 TEMPORAL_RS = {
@@ -110,8 +110,7 @@ class SensorThingsEDRProvider(BaseEDRProvider, SensorThingsProvider):
 
     @BaseEDRProvider.register()
     def locations(
-        self, select_properties=[], bbox=[], datetime_=None,
-        location_id=None, **kwargs
+        self, select_properties=[], bbox=[], datetime_=None, location_id=None, **kwargs
     ):
         """
         Extract and return location data from ObservedProperties.
@@ -144,10 +143,10 @@ class SensorThingsEDRProvider(BaseEDRProvider, SensorThingsProvider):
         filter = f'$filter={self._make_dtf(datetime_)};' if datetime_ else ''
         if location_id:
             expand[0] = (
-                f'Datastreams($filter=Thing/@iot.id eq {location_id};$select=description,name,unitOfMeasurement)' # noqa
+                f'Datastreams($filter=Thing/@iot.id eq {location_id};$select=description,name,unitOfMeasurement)'  # noqa
             )
             expand.append(
-                f'Datastreams/Observations({filter}$orderby=phenomenonTime;$select=result,phenomenonTime,resultTime)' # noqa
+                f'Datastreams/Observations({filter}$orderby=phenomenonTime;$select=result,phenomenonTime,resultTime)'  # noqa
             )
         else:
             expand.append(f'Datastreams/Observations({filter}$select=result;$top=1)')  # noqa
@@ -158,8 +157,7 @@ class SensorThingsEDRProvider(BaseEDRProvider, SensorThingsProvider):
 
         expand = ','.join(expand)
         response = self._get_response(
-            url=self._url, params=params,
-            entity='ObservedProperties', expand=expand
+            url=self._url, params=params, entity='ObservedProperties', expand=expand
         )
 
         if location_id:
@@ -206,13 +204,12 @@ class SensorThingsEDRProvider(BaseEDRProvider, SensorThingsProvider):
 
         filter = f'$filter={self._make_dtf(datetime_)};' if datetime_ else ''
         expand.append(
-            f'Datastreams/Observations({filter}$orderby=phenomenonTime;$select=result,phenomenonTime,resultTime)' # noqa
+            f'Datastreams/Observations({filter}$orderby=phenomenonTime;$select=result,phenomenonTime,resultTime)'  # noqa
         )
 
         expand = ','.join(expand)
         response = self._get_response(
-            url=self._url, params=params,
-            entity='ObservedProperties', expand=expand
+            url=self._url, params=params, entity='ObservedProperties', expand=expand
         )
 
         return self._make_coverage_collection(response)
@@ -254,8 +251,7 @@ class SensorThingsEDRProvider(BaseEDRProvider, SensorThingsProvider):
 
         expand = ','.join(expand)
         response = self._get_response(
-            url=self._url, params=params,
-            entity='ObservedProperties', expand=expand
+            url=self._url, params=params, entity='ObservedProperties', expand=expand
         )
 
         return self._make_coverage_collection(response)
@@ -285,9 +281,7 @@ class SensorThingsEDRProvider(BaseEDRProvider, SensorThingsProvider):
                     'y': {'values': [coords[1]]},
                     't': {'values': times},
                 },
-                'referencing': [
-                   GEOGRAPHIC_CRS, TEMPORAL_RS
-                ],
+                'referencing': [GEOGRAPHIC_CRS, TEMPORAL_RS],
             },
             'ranges': {
                 id: {
