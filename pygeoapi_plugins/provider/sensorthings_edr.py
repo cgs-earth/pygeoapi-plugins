@@ -68,7 +68,7 @@ class SensorThingsEDRProvider(BaseEDRProvider, SensorThingsProvider):
                 return {}
 
             for feature in r['value']:
-                id = feature['@iot.id']
+                id = str(feature['@iot.id'])
                 key = feature['name']
                 try:
                     UoM = feature['Datastreams'][0]['unitOfMeasurement']
@@ -120,7 +120,7 @@ class SensorThingsEDRProvider(BaseEDRProvider, SensorThingsProvider):
         ]
 
         if select_properties:
-            properties = [['@iot.id', f"'{p}'"] for p in select_properties]
+            properties = [['@iot.id', f"'{p}'" if isinstance(p, str) else p] for p in select_properties]
             ret = [f'{name} eq {value}' for (name, value) in properties]
             params['$filter'] = ' or '.join(ret)
 
@@ -186,7 +186,7 @@ class SensorThingsEDRProvider(BaseEDRProvider, SensorThingsProvider):
         ]
 
         if select_properties:
-            properties = [['@iot.id', f"'{p}'"] for p in select_properties]
+            properties = [['@iot.id', f"'{p}'" if isinstance(p, str) else p] for p in select_properties]
             ret = [f'{name} eq {value}' for (name, value) in properties]
             params['$filter'] = ' or '.join(ret)
 
@@ -230,7 +230,7 @@ class SensorThingsEDRProvider(BaseEDRProvider, SensorThingsProvider):
         ]
 
         if select_properties:
-            properties = [['@iot.id', f"'{p}'"] for p in select_properties]
+            properties = [['@iot.id', f"'{p}'" if isinstance(p, str) else p] for p in select_properties]
             ret = [f'{name} eq {value}' for (name, value) in properties]
             params['$filter'] = ' or '.join(ret)
 
@@ -255,7 +255,6 @@ class SensorThingsEDRProvider(BaseEDRProvider, SensorThingsProvider):
         """
         times, values = \
             self._expand_observations(datastream)
-        LOGGER.error(datastream)
         thing = datastream['Thing']
         coords = thing['Locations'][0]['location']['coordinates']
         length = len(values)
