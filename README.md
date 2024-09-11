@@ -120,7 +120,7 @@ providers:
   - type: feature
     name: pygeoapi_plugins.provider.geopandas_.GeoPandasProvider
     # Example data
-    data: 'https://www.hydroshare.org/resource/3295a17b4cc24d34bd6a5c5aaf753c50/data/contents/hu02.gpkg',
+    data: 'https://www.hydroshare.org/resource/3295a17b4cc24d34bd6a5c5aaf753c50/data/contents/hu02.gpkg'
     id_field: id
 ```
 
