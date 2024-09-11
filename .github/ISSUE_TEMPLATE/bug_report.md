@@ -4,9 +4,7 @@ about: Create a report to help us improve
 title: ''
 labels: bug
 assignees: ''
-
 ---
-
 
 **Description**
 A clear and concise description of what the bug is.
@@ -21,9 +19,10 @@ A clear and concise description of what you expected to happen.
 If applicable, add screenshots to help explain your problem.
 
 **Environment**
- - OS:
- - Python version:
- - Python env/venv: 
+
+- OS:
+- Python version:
+- Python env/venv:
 
 **Additional context**
 Add any other context about the problem here.

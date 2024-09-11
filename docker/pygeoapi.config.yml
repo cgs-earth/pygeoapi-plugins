@@ -88,12 +88,28 @@ resources:
           x_field: lon
           y_field: lat
         sparql_provider: CSV
-        sparql_endpoint: https://dbpedia.org/sparql
-        sparql_subject: uri
-        sparql_predicates:
-          population: dbo:populationTotal
-          country: <http://dbpedia.org/ontology/country>
-          leader: dbpedia2:leaderName
+        sparql_query:
+          endpoint: https://dbpedia.org/sparql
+          bind:
+            name: uri
+            variable: '?subject'
+          prefixes:
+            '': <http://dbpedia.org/resource/>
+            dbpedia2: <http://dbpedia.org/property/>
+            dbo: <http://dbpedia.org/ontology/>
+          where:
+            - subject: '?subject'
+              predicate: dbo:populationTotal
+              object: '?population'
+            - subject: '?subject'
+              predicate: dbo:country
+              object: '?country'
+            - subject: '?subject'
+              predicate: '<http://dbpedia.org/property/leaderName>'
+              object: '?leader'
+          filter:
+            - 'FILTER (isIRI(?leader) || (isLiteral(?leader) && (!bound(datatype(?leader)) || datatype(?leader) = xsd:string)))'
+
   populated:
     type: collection
     title: Populated Places
@@ -121,11 +137,16 @@ resources:
         data: /pygeoapi_plugins/tests/data/ne_110m_populated_places_simple.geojson
         id_field: id
         sparql_provider: GeoJSON
-        sparql_endpoint: https://dbpedia.org/sparql
-        sparql_subject: uri
-        sparql_predicates:
-          leader: dbpedia2:leaderName|dbp:leaderName
-          population: dbo:populationTotal|dbp:populationCensus
+        sparql_query:
+          endpoint: https://dbpedia.org/sparql
+          bind:
+            name: uri
+            variable: '?subject'
+          where:
+            - predicate: 'dbo:populationTotal|dbp:populationCensus'
+              object: '?population'
+            - predicate: 'dbpedia2:leaderName|dbp:leaderName'
+              object: '?leader'
   states:
     type: collection
     title: States
@@ -154,15 +175,25 @@ resources:
         id_field: GEOID
         table: states
         sparql_provider: SQLiteGPKG
-        sparql_endpoint: https://dbpedia.org/sparql
-        sparql_subject: ' :NAME'
-        sparql_predicates:
-          senator: dbp:senators
-          motto: dbo:motto|dbp:motto
-          capital: dbo:capital
-          homepage: foaf:homepage
-          wikipedia_link: foaf:isPrimaryTopicOf
-          time_zone: dbp:timezone
+        sparql_query:
+          endpoint: https://dbpedia.org/sparql
+          bind:
+            name: ' :NAME'
+            variable: '?subject'
+          where:
+            - predicate: dbp:senators
+              object: '?senators'
+            - predicate: 'dbo:motto|dbp:motto'
+              object: '?motto'
+            - predicate: dbo:capital
+              object: '?capital'
+            - predicate: foaf:homepage
+              object: '?homepage'
+            - predicate: foaf:isPrimaryTopicOf
+              object: '?wikipedia_link'
+            - predicate: dbp:timezone
+              object: '?time_zone'
+
   reservoirs:
     type: collection
     title: New Mexico Reservoirs
@@ -196,10 +227,12 @@ resources:
         id_field: _id
         x_field: LONDD
         y_field: LATDD
+
   intersector:
     type: process
     processor:
       name: pygeoapi_plugins.process.intersect.IntersectionProcessor
+
   sitemap-generator:
     type: process
     processor:
