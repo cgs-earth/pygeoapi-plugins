@@ -83,7 +83,7 @@ class SensorThingsEDRProvider(BaseEDRProvider, SensorThingsProvider):
 
         return self._fields
 
-    @BaseEDRProvider.register(output_formats=['GeoJSON'])
+    @BaseEDRProvider.register()
     def items(self, **kwargs):
         """
         Retrieve a collection of items.
@@ -93,7 +93,7 @@ class SensorThingsEDRProvider(BaseEDRProvider, SensorThingsProvider):
         """
         pass
 
-    @BaseEDRProvider.register(output_formats=['GeoJSON'])
+    @BaseEDRProvider.register()
     def locations(self, select_properties=[], bbox=[],
                   datetime_=None, location_id=None, **kwargs):
         """
@@ -119,16 +119,17 @@ class SensorThingsEDRProvider(BaseEDRProvider, SensorThingsProvider):
             'Datastreams/Thing/Locations($select=location)'
         ]
 
-        if location_id:
-            return self.get(location_id)
-
         if select_properties:
             properties = [['@iot.id', f"'{p}'"] for p in select_properties]
             ret = [f'{name} eq {value}' for (name, value) in properties]
             params['$filter'] = ' or '.join(ret)
 
         filter = f'$filter={self._make_dtf(datetime_)};' if datetime_ else ''
-        expand.append(f'Datastreams/Observations({filter}$select=result;$top=1)') # noqa
+        if location_id:
+            expand[0] = f"Datastreams($filter=Thing/@iot.id eq {location_id};$select=description,name,unitOfMeasurement)"
+            expand.append(f'Datastreams/Observations({filter}$orderby=phenomenonTime;$select=result,phenomenonTime,resultTime)') # noqa
+        else:
+            expand.append(f'Datastreams/Observations({filter}$select=result;$top=1)') # noqa
 
         if bbox:
             geom_filter = self._make_bbox(bbox, 'Datastreams')
@@ -138,6 +139,9 @@ class SensorThingsEDRProvider(BaseEDRProvider, SensorThingsProvider):
         response = self._get_response(url=self._url, params=params,
                                       entity='ObservedProperties',
                                       expand=expand)
+        
+        if location_id:
+            return self._make_coverage_collection(response)
 
         for property in response['value']:
             for datastream in property['Datastreams']:
@@ -151,12 +155,9 @@ class SensorThingsEDRProvider(BaseEDRProvider, SensorThingsProvider):
                     )
                 )
 
-        if location_id:
-            return fc['features'][0]
-        else:
-            return fc
+        return fc
 
-    @BaseEDRProvider.register(output_formats=['CoverageJSON'])
+    @BaseEDRProvider.register()
     def cube(self, select_properties=[], bbox=[],
              datetime_=None, **kwargs):
         """
@@ -197,21 +198,9 @@ class SensorThingsEDRProvider(BaseEDRProvider, SensorThingsProvider):
                                       entity='ObservedProperties',
                                       expand=expand)
 
-        for feature in response['value']:
-            try:
-                _ = feature['Datastreams'][0]
-                self._make_coverage_collection(feature, cc)
-            except IndexError:
-                continue
+        return self._make_coverage_collection(response)
 
-        if cc['parameters'] == {} or cc['coverages'] == []:
-            msg = 'No data found'
-            LOGGER.warning(msg)
-            raise ProviderNoDataError(msg)
-
-        return cc
-
-    @BaseEDRProvider.register(output_formats=['CoverageJSON'])
+    @BaseEDRProvider.register()
     def area(self, wkt, select_properties=[],
              datetime_=None, **kwargs):
         """
@@ -253,19 +242,7 @@ class SensorThingsEDRProvider(BaseEDRProvider, SensorThingsProvider):
                                       entity='ObservedProperties',
                                       expand=expand)
 
-        for feature in response['value']:
-            try:
-                _ = feature['Datastreams'][0]
-                self._make_coverage_collection(feature, cc)
-            except IndexError:
-                continue
-
-        if cc['parameters'] == {} or cc['coverages'] == []:
-            msg = 'No data found'
-            LOGGER.warning(msg)
-            raise ProviderNoDataError(msg)
-
-        return cc
+        return self._make_coverage_collection(response)
 
     def _generate_coverage(self, datastream, id):
         """
@@ -278,13 +255,14 @@ class SensorThingsEDRProvider(BaseEDRProvider, SensorThingsProvider):
         """
         times, values = \
             self._expand_observations(datastream)
+        LOGGER.error(datastream)
         thing = datastream['Thing']
         coords = thing['Locations'][0]['location']['coordinates']
         length = len(values)
 
         return {
             'type': 'Coverage',
-            'id': thing['@iot.id'],
+            'id': str(thing['@iot.id']),
             'domain': {
                 'type': 'Domain',
                 'domainType': 'PointSeries',
@@ -366,25 +344,40 @@ class SensorThingsEDRProvider(BaseEDRProvider, SensorThingsProvider):
 
         return ' and '.join(dtf_r)
 
-    def _make_coverage_collection(self, feature, cc):
+    def _make_coverage_collection(self, response):
         """
-        Build a CoverageCollection from a feature.
+        Build a CoverageCollection from the SensorThings API response.
 
-        :param feature: source feature from sensorthings.
-        :param cc: The CoverageCollection object to populate.
+        :param response: source response from SensorThings (a list of features).
 
         :returns: The updated CoverageCollection object.
         """
-        id = feature['name'].replace(' ', '+')
+        cc = {
+            'type': 'CoverageCollection',
+            'domainType': 'PointSeries',
+            'parameters': {},
+            'coverages': []
+        }
 
-        for datastream in feature['Datastreams']:
-            coverage, length = self._generate_coverage(datastream, id)
-            if length > 0:
-                cc['coverages'].append(coverage)
-                cc['parameters'][id] = \
-                    self._generate_paramters(
-                        datastream, feature['name']
-                    )
+        for feature in response['value']:
+            try:
+                _ = feature['Datastreams'][0]
+            except IndexError:
+                continue
+
+            id = feature['name'].replace(' ', '+')
+
+            for datastream in feature['Datastreams']:
+                coverage, length = self._generate_coverage(datastream, id)
+                if length > 0:
+                    cc['coverages'].append(coverage)
+                    cc['parameters'][id] = \
+                        self._generate_paramters(datastream, feature['name'])
+
+        if cc['parameters'] == {} or cc['coverages'] == []:
+            msg = 'No data found'
+            LOGGER.warning(msg)
+            raise ProviderNoDataError(msg)
 
         return cc
 
