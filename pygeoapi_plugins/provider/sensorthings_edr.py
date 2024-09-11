@@ -35,6 +35,19 @@ from pygeoapi.provider.sensorthings import SensorThingsProvider
 
 LOGGER = logging.getLogger(__name__)
 
+GEOGRAPHIC_CRS = {
+    'coordinates': ['x', 'y'],
+    'system': {
+        'type': 'GeographicCRS',
+        'id': 'http://www.opengis.net/def/crs/OGC/1.3/CRS84',  # noqa
+    }
+}
+
+TEMPORAL_RS = {
+    'coordinates': ['t'],
+    'system': {'type': 'TemporalRS', 'calendar': 'Gregorian'},
+}
+
 
 class SensorThingsEDRProvider(BaseEDRProvider, SensorThingsProvider):
     def __init__(self, provider_def):
@@ -97,7 +110,8 @@ class SensorThingsEDRProvider(BaseEDRProvider, SensorThingsProvider):
 
     @BaseEDRProvider.register()
     def locations(
-        self, select_properties=[], bbox=[], datetime_=None, location_id=None, **kwargs
+        self, select_properties=[], bbox=[], datetime_=None,
+        location_id=None, **kwargs
     ):
         """
         Extract and return location data from ObservedProperties.
@@ -130,11 +144,11 @@ class SensorThingsEDRProvider(BaseEDRProvider, SensorThingsProvider):
         filter = f'$filter={self._make_dtf(datetime_)};' if datetime_ else ''
         if location_id:
             expand[0] = (
-                f'Datastreams($filter=Thing/@iot.id eq {location_id};$select=description,name,unitOfMeasurement)'
+                f'Datastreams($filter=Thing/@iot.id eq {location_id};$select=description,name,unitOfMeasurement)' # noqa
             )
             expand.append(
-                f'Datastreams/Observations({filter}$orderby=phenomenonTime;$select=result,phenomenonTime,resultTime)'
-            )  # noqa
+                f'Datastreams/Observations({filter}$orderby=phenomenonTime;$select=result,phenomenonTime,resultTime)' # noqa
+            )
         else:
             expand.append(f'Datastreams/Observations({filter}$select=result;$top=1)')  # noqa
 
@@ -144,7 +158,8 @@ class SensorThingsEDRProvider(BaseEDRProvider, SensorThingsProvider):
 
         expand = ','.join(expand)
         response = self._get_response(
-            url=self._url, params=params, entity='ObservedProperties', expand=expand
+            url=self._url, params=params,
+            entity='ObservedProperties', expand=expand
         )
 
         if location_id:
@@ -172,13 +187,6 @@ class SensorThingsEDRProvider(BaseEDRProvider, SensorThingsProvider):
 
         :returns: A CovJSON CoverageCollection.
         """
-        cc = {
-            'type': 'CoverageCollection',
-            'domainType': 'PointSeries',
-            'parameters': {},
-            'coverages': [],
-        }
-
         params = {}
 
         geom_filter = self._make_bbox(bbox, 'Datastreams')
@@ -198,12 +206,13 @@ class SensorThingsEDRProvider(BaseEDRProvider, SensorThingsProvider):
 
         filter = f'$filter={self._make_dtf(datetime_)};' if datetime_ else ''
         expand.append(
-            f'Datastreams/Observations({filter}$orderby=phenomenonTime;$select=result,phenomenonTime,resultTime)'
-        )  # noqa
+            f'Datastreams/Observations({filter}$orderby=phenomenonTime;$select=result,phenomenonTime,resultTime)' # noqa
+        )
 
         expand = ','.join(expand)
         response = self._get_response(
-            url=self._url, params=params, entity='ObservedProperties', expand=expand
+            url=self._url, params=params,
+            entity='ObservedProperties', expand=expand
         )
 
         return self._make_coverage_collection(response)
@@ -221,12 +230,6 @@ class SensorThingsEDRProvider(BaseEDRProvider, SensorThingsProvider):
 
         :returns: A CovJSON CoverageCollection.
         """
-        cc = {
-            'type': 'CoverageCollection',
-            'domainType': 'PointSeries',
-            'parameters': {},
-            'coverages': [],
-        }
 
         params = {}
 
@@ -246,12 +249,13 @@ class SensorThingsEDRProvider(BaseEDRProvider, SensorThingsProvider):
 
         filter = f'$filter={self._make_dtf(datetime_)};' if datetime_ else ''
         expand.append(
-            f'Datastreams/Observations({filter}$orderby=phenomenonTime;$select=result,phenomenonTime,resultTime)'
-        )  # noqa
+            f'Datastreams/Observations({filter}$orderby=phenomenonTime;$select=result,phenomenonTime,resultTime)'  # noqa
+        )
 
         expand = ','.join(expand)
         response = self._get_response(
-            url=self._url, params=params, entity='ObservedProperties', expand=expand
+            url=self._url, params=params,
+            entity='ObservedProperties', expand=expand
         )
 
         return self._make_coverage_collection(response)
@@ -282,17 +286,7 @@ class SensorThingsEDRProvider(BaseEDRProvider, SensorThingsProvider):
                     't': {'values': times},
                 },
                 'referencing': [
-                    {
-                        'coordinates': ['x', 'y'],
-                        'system': {
-                            'type': 'GeographicCRS',
-                            'id': 'http://www.opengis.net/def/crs/OGC/1.3/CRS84',  # noqa
-                        },
-                    },
-                    {
-                        'coordinates': ['t'],
-                        'system': {'type': 'TemporalRS', 'calendar': 'Gregorian'},
-                    },
+                   GEOGRAPHIC_CRS, TEMPORAL_RS
                 ],
             },
             'ranges': {
@@ -353,7 +347,7 @@ class SensorThingsEDRProvider(BaseEDRProvider, SensorThingsProvider):
         """
         Build a CoverageCollection from the SensorThings API response.
 
-        :param response: source response from SensorThings (a list of features).
+        :param response: source response from SensorThings.
 
         :returns: The updated CoverageCollection object.
         """
