@@ -22,15 +22,15 @@ It allows you to integrate CKAN resources into your pygeoapi instance.
 The provider definition for the CKAN Provider includes configuration options specific to CKAN.
 To use the CKAN Provider, you need to specify `pygeoapi_plugins.provider.ckan.CKANProvider` as the provider's name.
 
-```
-    providers:
-      - type: feature
-        name: pygeoapi_plugins.provider.ckan.CKANProvider
-        data: https://catalog.newmexicowaterdata.org/api/3/action/datastore_search
-        resource_id: 08369d21-520b-439e-97e3-5ecb50737887
-        id_field: _id
-        x_field: LONDD
-        y_field: LATDD
+```yaml
+providers:
+  - type: feature
+    name: pygeoapi_plugins.provider.ckan.CKANProvider
+    data: https://catalog.newmexicowaterdata.org/api/3/action/datastore_search
+    resource_id: 08369d21-520b-439e-97e3-5ecb50737887
+    id_field: _id
+    x_field: LONDD
+    y_field: LATDD
 ```
 
 In this example, the CKAN Provider is configured to work with the specified CKAN resource.
@@ -116,12 +116,12 @@ The GeoPandas Provider enables OGC API - Feature support using GeoPandas as the 
 `id_field` is the only field that is required to be labelled.
 
 ```yaml
-    providers:
-      - type: feature
-        name: pygeoapi_plugins.provider.geopandas_.GeoPandasProvider
-        # Example data
-        data: 'https://www.hydroshare.org/resource/3295a17b4cc24d34bd6a5c5aaf753c50/data/contents/hu02.gpkg',
-        id_field: id
+providers:
+  - type: feature
+    name: pygeoapi_plugins.provider.geopandas_.GeoPandasProvider
+    # Example data
+    data: 'https://www.hydroshare.org/resource/3295a17b4cc24d34bd6a5c5aaf753c50/data/contents/hu02.gpkg',
+    id_field: id
 ```
 
 You can also use plain CSV and read in points by providing an `x_field` and `y_field` in the config the [same way you would with the default pygeoapi CSV provider](https://github.com/geopython/pygeoapi/blob/510875027e8483ce2916e7cf315fb6a7f6105807/pygeoapi-config.yml#L137).
@@ -135,11 +135,11 @@ Additional OGC API - Process are listed below
 The intersection process uses OGC API - Features Part 3: Filtering to return CQL intersections of features.
 An example configuration in a pygeoapi configuration is below.
 
-```
-  intersector:
-    type: process
-    processor:
-      name: pygeoapi_plugins.process.intersect.IntersectionProcessor
+```yaml
+intersector:
+  type: process
+  processor:
+    name: pygeoapi_plugins.process.intersect.IntersectionProcessor
 ```
 
 This plugin is used in https:/reference.geoconnex.us/.
@@ -150,9 +150,34 @@ The Sitemap Generator process makes use of the XML formatter and OGC API - Featu
 This can be used with the python package [sitemap-generator](https://github.com/cgs-earth/sitemap-generator) to generate a sitemap index.
 An example configuration in a pygeoapi configuration is below.
 
+```yaml
+sitemap-generator:
+  type: process
+  processor:
+    name: pygeoapi_plugins.process.sitemap.SitemapProcessor
 ```
-  sitemap-generator:
-    type: process
-    processor:
-      name: pygeoapi_plugins.process.sitemap.SitemapProcessor
+
+## OGC API - Environmental Data Retrieval
+
+### Sensorthings API
+
+The EDR provider is implemented as the default for retrieving environmental data in a compliant manner with the OGC API - EDR specification. This ensures that spatial and temporal queries can be efficiently performed on the sensor data. Additionally, the OGC API - Features (OAF) provider is used to fill in the /items component of the API, allowing access to the Things (sensor devices) from the SensorThings API.
+
+Both providers are configured together to offer a unified interface for sensor data access, while maintaining compliance with OGC standards. The EDR provider is responsible for the core environmental data retrieval, while the OAF provider exposes the sensor entities.
+
+> **Note:** For more information on configuring the OAF provider, refer to the [SensorThings API](https://docs.pygeoapi.io/en/latest/data-publishing/ogcapi-features.html#sensorthings-api) documentation.
+
+```yaml
+providers:
+  # EDR Provider for environmental data retrieval
+  - type: edr
+    name: pygeoapi_plugins.provider.sensorthings_edr.SensorThingsEDRProvider
+    data: https://labs.waterdata.usgs.gov/sta/v1.1/
+    
+  # OAF Provider for exposing sensor entities (Things)
+  - type: feature
+    name: pygeoapi.provider.sensorthings.SensorThingsProvider
+    data: https://labs.waterdata.usgs.gov/sta/v1.1/
+    entity: Things
+    title_field: name
 ```
