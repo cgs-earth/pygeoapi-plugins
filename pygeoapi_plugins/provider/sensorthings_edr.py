@@ -46,7 +46,9 @@ class SensorThingsEDRProvider(BaseEDRProvider, SensorThingsProvider):
         provider_def['entity'] = 'ObservedProperties'
         BaseEDRProvider.__init__(self, provider_def)
         SensorThingsProvider.__init__(self, provider_def)
-        self.expand['ObservedProperties'] = 'Datastreams/Thing/Locations,Datastreams/Observations' # noqa
+        self.expand['ObservedProperties'] = (
+            'Datastreams/Thing/Locations,Datastreams/Observations'  # noqa
+        )
         self.time_field = 'Datastreams/Observations/resultTime'
         self._fields = {}
         self.get_fields()
@@ -58,9 +60,9 @@ class SensorThingsEDRProvider(BaseEDRProvider, SensorThingsProvider):
         :returns: A dictionary mapping field IDs to their properties.
         """
         if not self._fields:
-            r = self._get_response(self._url,
-                                   entity='ObservedProperties',
-                                   expand='Datastreams')
+            r = self._get_response(
+                self._url, entity='ObservedProperties', expand='Datastreams'
+            )
             try:
                 _ = r['value'][0]
             except IndexError:
@@ -78,7 +80,7 @@ class SensorThingsEDRProvider(BaseEDRProvider, SensorThingsProvider):
                 self._fields[id] = {
                     'type': 'number',
                     'title': key,
-                    'x-ogc-unit': UoM['symbol']
+                    'x-ogc-unit': UoM['symbol'],
                 }
 
         return self._fields
@@ -94,8 +96,9 @@ class SensorThingsEDRProvider(BaseEDRProvider, SensorThingsProvider):
         pass
 
     @BaseEDRProvider.register()
-    def locations(self, select_properties=[], bbox=[],
-                  datetime_=None, location_id=None, **kwargs):
+    def locations(
+        self, select_properties=[], bbox=[], datetime_=None, location_id=None, **kwargs
+    ):
         """
         Extract and return location data from ObservedProperties.
 
@@ -106,40 +109,44 @@ class SensorThingsEDRProvider(BaseEDRProvider, SensorThingsProvider):
 
         :returns: A GeoJSON FeatureCollection of locations.
         """
-        fc = {
-            'type': 'FeatureCollection',
-            'features': []
-        }
+        fc = {'type': 'FeatureCollection', 'features': []}
 
         params = {}
         filter = ''
         expand = [
             'Datastreams($select=description,name,unitOfMeasurement)',
             'Datastreams/Thing($select=@iot.id)',
-            'Datastreams/Thing/Locations($select=location)'
+            'Datastreams/Thing/Locations($select=location)',
         ]
 
         if select_properties:
-            properties = [['@iot.id', f"'{p}'" if isinstance(p, str) else p] for p in select_properties]
+            properties = [
+                ['@iot.id', f"'{p}'" if isinstance(p, str) else p]
+                for p in select_properties
+            ]
             ret = [f'{name} eq {value}' for (name, value) in properties]
             params['$filter'] = ' or '.join(ret)
 
         filter = f'$filter={self._make_dtf(datetime_)};' if datetime_ else ''
         if location_id:
-            expand[0] = f"Datastreams($filter=Thing/@iot.id eq {location_id};$select=description,name,unitOfMeasurement)"
-            expand.append(f'Datastreams/Observations({filter}$orderby=phenomenonTime;$select=result,phenomenonTime,resultTime)') # noqa
+            expand[0] = (
+                f'Datastreams($filter=Thing/@iot.id eq {location_id};$select=description,name,unitOfMeasurement)'
+            )
+            expand.append(
+                f'Datastreams/Observations({filter}$orderby=phenomenonTime;$select=result,phenomenonTime,resultTime)'
+            )  # noqa
         else:
-            expand.append(f'Datastreams/Observations({filter}$select=result;$top=1)') # noqa
+            expand.append(f'Datastreams/Observations({filter}$select=result;$top=1)')  # noqa
 
         if bbox:
             geom_filter = self._make_bbox(bbox, 'Datastreams')
             expand[0] = f'Datastreams($filter={geom_filter})'
 
         expand = ','.join(expand)
-        response = self._get_response(url=self._url, params=params,
-                                      entity='ObservedProperties',
-                                      expand=expand)
-        
+        response = self._get_response(
+            url=self._url, params=params, entity='ObservedProperties', expand=expand
+        )
+
         if location_id:
             return self._make_coverage_collection(response)
 
@@ -149,17 +156,13 @@ class SensorThingsEDRProvider(BaseEDRProvider, SensorThingsProvider):
                     continue
 
                 fc['features'].append(
-                    self._make_feature(
-                        datastream['Thing'],
-                        entity='Things'
-                    )
+                    self._make_feature(datastream['Thing'], entity='Things')
                 )
 
         return fc
 
     @BaseEDRProvider.register()
-    def cube(self, select_properties=[], bbox=[],
-             datetime_=None, **kwargs):
+    def cube(self, select_properties=[], bbox=[], datetime_=None, **kwargs):
         """
         Extract and return coverage data from ObservedProperties.
 
@@ -173,36 +176,40 @@ class SensorThingsEDRProvider(BaseEDRProvider, SensorThingsProvider):
             'type': 'CoverageCollection',
             'domainType': 'PointSeries',
             'parameters': {},
-            'coverages': []
+            'coverages': [],
         }
 
         params = {}
 
         geom_filter = self._make_bbox(bbox, 'Datastreams')
         expand = [
-            f'Datastreams($filter={geom_filter};$select=description,name,unitOfMeasurement)', # noqa
+            f'Datastreams($filter={geom_filter};$select=description,name,unitOfMeasurement)',  # noqa
             'Datastreams/Thing($select=@iot.id)',
             'Datastreams/Thing/Locations($select=location)',
         ]
 
         if select_properties:
-            properties = [['@iot.id', f"'{p}'" if isinstance(p, str) else p] for p in select_properties]
+            properties = [
+                ['@iot.id', f"'{p}'" if isinstance(p, str) else p]
+                for p in select_properties
+            ]
             ret = [f'{name} eq {value}' for (name, value) in properties]
             params['$filter'] = ' or '.join(ret)
 
         filter = f'$filter={self._make_dtf(datetime_)};' if datetime_ else ''
-        expand.append(f'Datastreams/Observations({filter}$orderby=phenomenonTime;$select=result,phenomenonTime,resultTime)') # noqa
+        expand.append(
+            f'Datastreams/Observations({filter}$orderby=phenomenonTime;$select=result,phenomenonTime,resultTime)'
+        )  # noqa
 
         expand = ','.join(expand)
-        response = self._get_response(url=self._url, params=params,
-                                      entity='ObservedProperties',
-                                      expand=expand)
+        response = self._get_response(
+            url=self._url, params=params, entity='ObservedProperties', expand=expand
+        )
 
         return self._make_coverage_collection(response)
 
     @BaseEDRProvider.register()
-    def area(self, wkt, select_properties=[],
-             datetime_=None, **kwargs):
+    def area(self, wkt, select_properties=[], datetime_=None, **kwargs):
         """
         Extract and return coverage data from a specified area.
 
@@ -218,29 +225,34 @@ class SensorThingsEDRProvider(BaseEDRProvider, SensorThingsProvider):
             'type': 'CoverageCollection',
             'domainType': 'PointSeries',
             'parameters': {},
-            'coverages': []
+            'coverages': [],
         }
 
         params = {}
 
         expand = [
-            f"Datastreams($filter=st_within(Thing/Locations/location,geography'{wkt}');$select=description,name,unitOfMeasurement)", # noqa
+            f"Datastreams($filter=st_within(Thing/Locations/location,geography'{wkt}');$select=description,name,unitOfMeasurement)",  # noqa
             'Datastreams/Thing($select=@iot.id)',
             'Datastreams/Thing/Locations($select=location)',
         ]
 
         if select_properties:
-            properties = [['@iot.id', f"'{p}'" if isinstance(p, str) else p] for p in select_properties]
+            properties = [
+                ['@iot.id', f"'{p}'" if isinstance(p, str) else p]
+                for p in select_properties
+            ]
             ret = [f'{name} eq {value}' for (name, value) in properties]
             params['$filter'] = ' or '.join(ret)
 
         filter = f'$filter={self._make_dtf(datetime_)};' if datetime_ else ''
-        expand.append(f'Datastreams/Observations({filter}$orderby=phenomenonTime;$select=result,phenomenonTime,resultTime)') # noqa
+        expand.append(
+            f'Datastreams/Observations({filter}$orderby=phenomenonTime;$select=result,phenomenonTime,resultTime)'
+        )  # noqa
 
         expand = ','.join(expand)
-        response = self._get_response(url=self._url, params=params,
-                                      entity='ObservedProperties',
-                                      expand=expand)
+        response = self._get_response(
+            url=self._url, params=params, entity='ObservedProperties', expand=expand
+        )
 
         return self._make_coverage_collection(response)
 
@@ -253,8 +265,7 @@ class SensorThingsEDRProvider(BaseEDRProvider, SensorThingsProvider):
 
         :returns: A tuple containing the coverage object and size.
         """
-        times, values = \
-            self._expand_observations(datastream)
+        times, values = self._expand_observations(datastream)
         thing = datastream['Thing']
         coords = thing['Locations'][0]['location']['coordinates']
         length = len(values)
@@ -268,23 +279,21 @@ class SensorThingsEDRProvider(BaseEDRProvider, SensorThingsProvider):
                 'axes': {
                     'x': {'values': [coords[0]]},
                     'y': {'values': [coords[1]]},
-                    't': {'values': times}
+                    't': {'values': times},
                 },
                 'referencing': [
                     {
                         'coordinates': ['x', 'y'],
                         'system': {
                             'type': 'GeographicCRS',
-                            'id': 'http://www.opengis.net/def/crs/OGC/1.3/CRS84' # noqa
-                        }
-                    }, {
+                            'id': 'http://www.opengis.net/def/crs/OGC/1.3/CRS84',  # noqa
+                        },
+                    },
+                    {
                         'coordinates': ['t'],
-                        'system': {
-                            'type': 'TemporalRS',
-                            'calendar': 'Gregorian'
-                        }
-                    }
-                ]
+                        'system': {'type': 'TemporalRS', 'calendar': 'Gregorian'},
+                    },
+                ],
             },
             'ranges': {
                 id: {
@@ -292,9 +301,9 @@ class SensorThingsEDRProvider(BaseEDRProvider, SensorThingsProvider):
                     'dataType': 'float',
                     'axisNames': ['t'],
                     'shape': [length],
-                    'values': values
+                    'values': values,
                 }
-            }
+            },
         }, length
 
     @staticmethod
@@ -310,14 +319,11 @@ class SensorThingsEDRProvider(BaseEDRProvider, SensorThingsProvider):
         return {
             'type': 'Parameter',
             'description': {'en': datastream['description']},
-            'observedProperty': {
-                'id': label,
-                'label': {'en': label}
-            },
+            'observedProperty': {'id': label, 'label': {'en': label}},
             'unit': {
                 'label': {'en': datastream['unitOfMeasurement']['name']},
-                'symbol': datastream['unitOfMeasurement']['symbol']
-            }
+                'symbol': datastream['unitOfMeasurement']['symbol'],
+            },
         }
 
     @staticmethod
@@ -355,7 +361,7 @@ class SensorThingsEDRProvider(BaseEDRProvider, SensorThingsProvider):
             'type': 'CoverageCollection',
             'domainType': 'PointSeries',
             'parameters': {},
-            'coverages': []
+            'coverages': [],
         }
 
         for feature in response['value']:
@@ -370,8 +376,9 @@ class SensorThingsEDRProvider(BaseEDRProvider, SensorThingsProvider):
                 coverage, length = self._generate_coverage(datastream, id)
                 if length > 0:
                     cc['coverages'].append(coverage)
-                    cc['parameters'][id] = \
-                        self._generate_paramters(datastream, feature['name'])
+                    cc['parameters'][id] = self._generate_paramters(
+                        datastream, feature['name']
+                    )
 
         if cc['parameters'] == {} or cc['coverages'] == []:
             msg = 'No data found'

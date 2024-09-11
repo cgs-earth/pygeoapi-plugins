@@ -31,6 +31,7 @@ import pytest
 
 from pygeoapi_plugins.provider.sensorthings_edr import SensorThingsEDRProvider
 
+
 @pytest.fixture()
 def config():
     return {
@@ -38,6 +39,7 @@ def config():
         'type': 'edr',
         'data': 'http://localhost:8888/FROST-Server/v1.1',
     }
+
 
 def test_get_fields(config):
     p = SensorThingsEDRProvider(config)
@@ -60,6 +62,7 @@ def test_get_fields(config):
     assert fields['3']['title'] == 'Temperature'
     assert fields['3']['x-ogc-unit'] == 'C'
 
+
 def test_locations(config):
     p = SensorThingsEDRProvider(config)
     locations = p.locations()
@@ -73,8 +76,9 @@ def test_locations(config):
     locations = p.locations(select_properties=[1])
     assert len(locations['features']) == 44
 
-    locations = p.locations(select_properties=[1,2])
+    locations = p.locations(select_properties=[1, 2])
     assert len(locations['features']) == 88
+
 
 def test_get_location(config):
     p = SensorThingsEDRProvider(config)
@@ -101,7 +105,10 @@ def test_get_location(config):
     # Check parameter structure
     wl_below_ground = parameters['Water+Level+Below+Ground+Surface']
     assert wl_below_ground['type'] == 'Parameter'
-    assert wl_below_ground['description']['en'] == 'Estimated depth to water table below ground surface'
+    assert (
+        wl_below_ground['description']['en']
+        == 'Estimated depth to water table below ground surface'
+    )
     assert wl_below_ground['unit']['symbol'] == 'ft'
 
     # Validate 'coverages'
@@ -135,7 +142,10 @@ def test_get_location(config):
 
         # Validate 'ranges'
         ranges = coverage['ranges']
-        assert 'Water+Level+Below+Ground+Surface' in ranges or 'Water+Level+relative+to+datum' in ranges
+        assert (
+            'Water+Level+Below+Ground+Surface' in ranges
+            or 'Water+Level+relative+to+datum' in ranges
+        )
 
         # Validate range data
         if 'Water+Level+Below+Ground+Surface' in ranges:
@@ -230,14 +240,15 @@ def test_get_cube(config):
     assert temperature_range['values'][0] == 0.1696
     assert temperature_range['values'][-1] == 200
 
+
 def test_get_cube_time_filter(config):
     p = SensorThingsEDRProvider(config)
-    
+
     # Define the time range for filtering
-    time_start = "2021-01-31T14:57:00Z"
-    time_end = "2021-01-31T17:00:00Z"
-    datetime_ = f"{time_start}/{time_end}"
-    
+    time_start = '2021-01-31T14:57:00Z'
+    time_end = '2021-01-31T17:00:00Z'
+    datetime_ = f'{time_start}/{time_end}'
+
     # Call the cube method with the time filter
     response = p.cube(bbox=[-84, 32, -73, 38], datetime_=datetime_)
 
@@ -268,7 +279,7 @@ def test_get_cube_time_filter(config):
     # Validate 'coverages'
     coverages = response['coverages']
     assert isinstance(coverages, list)
-    
+
     # Check that the coverage entries are filtered by the specified time range
     coverage = coverages[0]
     assert 'type' in coverage
@@ -324,72 +335,87 @@ def test_get_cube_time_filter(config):
     assert temperature_range['values'][0] == 0.1696
     assert temperature_range['values'][-1] == 0.623
 
+
 def test_get_area(config):
     p = SensorThingsEDRProvider(config)
-    
+
     # Query the area with a sample WKT polygon
-    response = p.area(wkt="POLYGON ((-108 34, -108 35, -107 35, -107 34, -108 34))")
-    
+    response = p.area(wkt='POLYGON ((-108 34, -108 35, -107 35, -107 34, -108 34))')
+
     # Check the overall type
-    assert response.get("type") == "CoverageCollection"
-    
+    assert response.get('type') == 'CoverageCollection'
+
     # Check domain type
-    assert response.get("domainType") == "PointSeries"
-    
+    assert response.get('domainType') == 'PointSeries'
+
     # Check parameters
-    parameters = response.get("parameters")
+    parameters = response.get('parameters')
     assert parameters is not None
-    assert "Water+Level+Below+Ground+Surface" in parameters
-    assert parameters["Water+Level+Below+Ground+Surface"]["type"] == "Parameter"
-    assert parameters["Water+Level+Below+Ground+Surface"]["description"]["en"] == "Estimated depth to water table below ground surface"
-    assert parameters["Water+Level+Below+Ground+Surface"]["observedProperty"]["id"] == "Water Level Below Ground Surface"
-    assert parameters["Water+Level+Below+Ground+Surface"]["unit"]["label"]["en"] == "feet"
-    
-    assert "Water+Level+relative+to+datum" in parameters
-    assert parameters["Water+Level+relative+to+datum"]["type"] == "Parameter"
-    assert parameters["Water+Level+relative+to+datum"]["description"]["en"] == "Measured water level relative to National Geodetic Vertical Datum of 1929"
-    assert parameters["Water+Level+relative+to+datum"]["observedProperty"]["id"] == "Water Level relative to datum"
-    assert parameters["Water+Level+relative+to+datum"]["unit"]["label"]["en"] == "feet"
-    
+    assert 'Water+Level+Below+Ground+Surface' in parameters
+    assert parameters['Water+Level+Below+Ground+Surface']['type'] == 'Parameter'
+    assert (
+        parameters['Water+Level+Below+Ground+Surface']['description']['en']
+        == 'Estimated depth to water table below ground surface'
+    )
+    assert (
+        parameters['Water+Level+Below+Ground+Surface']['observedProperty']['id']
+        == 'Water Level Below Ground Surface'
+    )
+    assert (
+        parameters['Water+Level+Below+Ground+Surface']['unit']['label']['en'] == 'feet'
+    )
+
+    assert 'Water+Level+relative+to+datum' in parameters
+    assert parameters['Water+Level+relative+to+datum']['type'] == 'Parameter'
+    assert (
+        parameters['Water+Level+relative+to+datum']['description']['en']
+        == 'Measured water level relative to National Geodetic Vertical Datum of 1929'
+    )
+    assert (
+        parameters['Water+Level+relative+to+datum']['observedProperty']['id']
+        == 'Water Level relative to datum'
+    )
+    assert parameters['Water+Level+relative+to+datum']['unit']['label']['en'] == 'feet'
+
     # Check coverages
-    coverages = response.get("coverages")
+    coverages = response.get('coverages')
     assert coverages is not None
     assert len(coverages) == 10
 
     # Check Coverage 23
     coverage_23 = coverages[0]
-    assert coverage_23.get("type") == "Coverage"
-    assert coverage_23.get("id") == "23"
-    
-    domain_23 = coverage_23.get("domain")
-    assert domain_23.get("domainType") == "PointSeries"
-    
-    axes_23 = domain_23.get("axes")
-    assert axes_23["x"]["values"] == [-107.979]
-    assert axes_23["y"]["values"] == [34.0582]
-    assert len(axes_23["t"]["values"]) == 31
-    
-    ranges_23 = coverage_23.get("ranges")
-    assert "Water+Level+Below+Ground+Surface" in ranges_23
-    assert ranges_23["Water+Level+Below+Ground+Surface"]["type"] == "NdArray"
-    assert ranges_23["Water+Level+Below+Ground+Surface"]["dataType"] == "float"
-    assert ranges_23["Water+Level+Below+Ground+Surface"]["shape"] == [31]
-    
+    assert coverage_23.get('type') == 'Coverage'
+    assert coverage_23.get('id') == '23'
+
+    domain_23 = coverage_23.get('domain')
+    assert domain_23.get('domainType') == 'PointSeries'
+
+    axes_23 = domain_23.get('axes')
+    assert axes_23['x']['values'] == [-107.979]
+    assert axes_23['y']['values'] == [34.0582]
+    assert len(axes_23['t']['values']) == 31
+
+    ranges_23 = coverage_23.get('ranges')
+    assert 'Water+Level+Below+Ground+Surface' in ranges_23
+    assert ranges_23['Water+Level+Below+Ground+Surface']['type'] == 'NdArray'
+    assert ranges_23['Water+Level+Below+Ground+Surface']['dataType'] == 'float'
+    assert ranges_23['Water+Level+Below+Ground+Surface']['shape'] == [31]
+
     # Check Coverage 25
     coverage_25 = coverages[1]
-    assert coverage_25.get("type") == "Coverage"
-    assert coverage_25.get("id") == "25"
-    
-    domain_25 = coverage_25.get("domain")
-    assert domain_25.get("domainType") == "PointSeries"
-    
-    axes_25 = domain_25.get("axes")
-    assert axes_25["x"]["values"] == [-107.681]
-    assert axes_25["y"]["values"] == [34.2119]
-    assert len(axes_25["t"]["values"]) == 17
-    
-    ranges_25 = coverage_25.get("ranges")
-    assert "Water+Level+Below+Ground+Surface" in ranges_25
-    assert ranges_25["Water+Level+Below+Ground+Surface"]["type"] == "NdArray"
-    assert ranges_25["Water+Level+Below+Ground+Surface"]["dataType"] == "float"
-    assert ranges_25["Water+Level+Below+Ground+Surface"]["shape"] == [17]
+    assert coverage_25.get('type') == 'Coverage'
+    assert coverage_25.get('id') == '25'
+
+    domain_25 = coverage_25.get('domain')
+    assert domain_25.get('domainType') == 'PointSeries'
+
+    axes_25 = domain_25.get('axes')
+    assert axes_25['x']['values'] == [-107.681]
+    assert axes_25['y']['values'] == [34.2119]
+    assert len(axes_25['t']['values']) == 17
+
+    ranges_25 = coverage_25.get('ranges')
+    assert 'Water+Level+Below+Ground+Surface' in ranges_25
+    assert ranges_25['Water+Level+Below+Ground+Surface']['type'] == 'NdArray'
+    assert ranges_25['Water+Level+Below+Ground+Surface']['dataType'] == 'float'
+    assert ranges_25['Water+Level+Below+Ground+Surface']['shape'] == [17]

@@ -173,7 +173,7 @@ providers:
   - type: edr
     name: pygeoapi_plugins.provider.sensorthings_edr.SensorThingsEDRProvider
     data: https://labs.waterdata.usgs.gov/sta/v1.1/
-    
+
   # OAF Provider for exposing sensor entities (Things)
   - type: feature
     name: pygeoapi.provider.sensorthings.SensorThingsProvider
