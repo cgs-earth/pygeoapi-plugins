@@ -112,7 +112,12 @@ class SensorThingsEDRProvider(BaseEDRProvider, SensorThingsProvider):
 
     @BaseEDRProvider.register()
     def locations(
-        self, select_properties: list = [], bbox: list = [], datetime_: str = None, location_id: str = None, **kwargs
+        self,
+        select_properties: list = [],
+        bbox: list = [],
+        datetime_: str = None,
+        location_id: str = None,
+        **kwargs,
     ):
         """
         Extract and return location data from ObservedProperties.
@@ -177,7 +182,13 @@ class SensorThingsEDRProvider(BaseEDRProvider, SensorThingsProvider):
         return fc
 
     @BaseEDRProvider.register()
-    def cube(self, select_properties: list = [], bbox: list = [], datetime_: str = None, **kwargs):
+    def cube(
+        self,
+        select_properties: list = [],
+        bbox: list = [],
+        datetime_: str = None,
+        **kwargs,
+    ):
         """
         Extract and return coverage data from ObservedProperties.
 
@@ -217,7 +228,9 @@ class SensorThingsEDRProvider(BaseEDRProvider, SensorThingsProvider):
         return self._make_coverage_collection(response)
 
     @BaseEDRProvider.register()
-    def area(self, wkt: str, select_properties: list = [], datetime_: str = None, **kwargs):
+    def area(
+        self, wkt: str, select_properties: list = [], datetime_: str = None, **kwargs
+    ):
         """
         Extract and return coverage data from a specified area.
 
