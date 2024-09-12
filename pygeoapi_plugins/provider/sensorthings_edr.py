@@ -106,6 +106,8 @@ class SensorThingsEDRProvider(BaseEDRProvider, SensorThingsProvider):
         :param kwargs: Additional parameters for the request.
         :returns: A GeoJSON representation of the items.
         """
+        # This method is empty due to the way pygeoapi expects EDR providers. 
+        # We define this method and then implement `get` inside of the OAF provider
         pass
 
     @BaseEDRProvider.register()
