@@ -112,7 +112,7 @@ class SensorThingsEDRProvider(BaseEDRProvider, SensorThingsProvider):
 
     @BaseEDRProvider.register()
     def locations(
-        self, select_properties=[], bbox=[], datetime_=None, location_id=None, **kwargs
+        self, select_properties: list = [], bbox: list = [], datetime_: str = None, location_id: str = None, **kwargs
     ):
         """
         Extract and return location data from ObservedProperties.
@@ -177,7 +177,7 @@ class SensorThingsEDRProvider(BaseEDRProvider, SensorThingsProvider):
         return fc
 
     @BaseEDRProvider.register()
-    def cube(self, select_properties=[], bbox=[], datetime_=None, **kwargs):
+    def cube(self, select_properties: list = [], bbox: list = [], datetime_: str = None, **kwargs):
         """
         Extract and return coverage data from ObservedProperties.
 
@@ -217,7 +217,7 @@ class SensorThingsEDRProvider(BaseEDRProvider, SensorThingsProvider):
         return self._make_coverage_collection(response)
 
     @BaseEDRProvider.register()
-    def area(self, wkt, select_properties=[], datetime_=None, **kwargs):
+    def area(self, wkt: str, select_properties: list = [], datetime_: str = None, **kwargs):
         """
         Extract and return coverage data from a specified area.
 
@@ -258,14 +258,14 @@ class SensorThingsEDRProvider(BaseEDRProvider, SensorThingsProvider):
 
         return self._make_coverage_collection(response)
 
-    def _generate_coverage(self, datastream, id):
+    def _generate_coverage(self, datastream: dict, id: str) -> dict:
         """
         Generate a coverage object for a datastream.
 
         :param datastream: The datastream data to generate coverage for.
         :param id: The ID to use for the coverage.
 
-        :returns: A tuple containing the coverage object and size.
+        :returns: A dict containing the coverage object.
         """
         times, values = self._expand_observations(datastream)
         thing = datastream['Thing']
@@ -297,7 +297,7 @@ class SensorThingsEDRProvider(BaseEDRProvider, SensorThingsProvider):
         }, length
 
     @staticmethod
-    def _generate_paramters(datastream, label):
+    def _generate_paramters(datastream: dir, label: str) -> dict:
         """
         Generate parameters for a given datastream.
 
@@ -317,7 +317,7 @@ class SensorThingsEDRProvider(BaseEDRProvider, SensorThingsProvider):
         }
 
     @staticmethod
-    def _make_dtf(datetime_):
+    def _make_dtf(datetime_: str) -> str:
         """
         Create a Date-Time filter for querying.
 
@@ -355,9 +355,7 @@ class SensorThingsEDRProvider(BaseEDRProvider, SensorThingsProvider):
         }
 
         for feature in response['value']:
-            try:
-                _ = feature['Datastreams'][0]
-            except IndexError:
+            if len(feature['Datastreams']) == 0:
                 continue
 
             id = feature['name'].replace(' ', '+')
@@ -378,7 +376,7 @@ class SensorThingsEDRProvider(BaseEDRProvider, SensorThingsProvider):
         return cc
 
     @staticmethod
-    def _expand_observations(datastream):
+    def _expand_observations(datastream: dict):
         """
         Expand and extract observation times and values from a datastream.
 
