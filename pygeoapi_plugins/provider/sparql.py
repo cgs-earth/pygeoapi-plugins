@@ -411,7 +411,7 @@ class SPARQLProvider(BaseProvider):
         if '|' in value:
             return value.split('|')
         elif ', ' in value:
-            return value.split(', ') 
+            return value.split(', ')
         else:
             return value
 
