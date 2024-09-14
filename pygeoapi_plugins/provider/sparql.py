@@ -315,7 +315,7 @@ class SPARQLProvider(BaseProvider):
             for k, v in results.items():
                 # Join query results by key
                 values = [
-                    item.get('value') if isinstance(item, dict) else item
+                    self.parse(item.get('value') if isinstance(item, dict) else item)
                     for item in (v if isinstance(v, list) else [v])
                 ]
                 # Return item or list of items
@@ -397,6 +397,23 @@ class SPARQLProvider(BaseProvider):
 
     def __repr__(self):
         return f'<SPARQLProvider> {self.data}'
+
+    @staticmethod
+    def parse(value: str) -> list:
+        """
+        Parse a string by splitting it on commas.
+
+        :param value: `str` to be parsed.
+
+        :returns: A `list` of strings if commas are present,
+                  otherwise the original string.
+        """
+        if '|' in value:
+            return value.split('|')
+        elif ', ' in value:
+            return value.split(', ')
+        else:
+            return value
 
     @staticmethod
     def combine_lists(dict_data: dict):
