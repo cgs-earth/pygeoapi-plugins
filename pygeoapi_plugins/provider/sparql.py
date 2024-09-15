@@ -85,6 +85,8 @@ class SPARQLProvider(BaseProvider):
         _provider_def = provider_def.copy()
         _provider_def['name'] = _provider_def.pop('sparql_provider')
         self.p = load_plugin('provider', _provider_def)
+        self._fields = {}
+        self.get_fields()
 
         # Set SPARQL query parameters
         query = provider_def.get('sparql_query', {})
@@ -117,10 +119,6 @@ class SPARQLProvider(BaseProvider):
 
         if not self._fields:
             self._fields = self.p.get_fields()
-
-            for prop in self.where:
-                p = prop.get('object').lstrip('?')
-                self._fields.update({p: {'type': 'string'}})
 
         return self._fields
 
