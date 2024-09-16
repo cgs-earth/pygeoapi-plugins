@@ -289,15 +289,11 @@ class SPARQLProvider(BaseProvider):
             # Iterate over each property-value pair for this binding
             for k, v_ in v.items():
                 # Ensure the property's entry is always a list
-                if not v_:
-                    continue
-
-                if not isinstance(v_, list) and v_:
-                    ret[_id][k] = [v_]
-                    continue
+                if not isinstance(ret[_id][k], list):
+                    ret[_id][k] = [ret[_id][k]]
 
                 # If the current value is not already in the list, append it
-                if v_ not in [item['value'] for item in ret[_id][k]] and v_:
+                if v_ not in [item['value'] for item in ret[_id][k]]:
                     ret[_id][k].append(v_)
 
         return ret
@@ -319,7 +315,6 @@ class SPARQLProvider(BaseProvider):
                 values = [
                     self.parse(item.get('value') if isinstance(item, dict) else item)
                     for item in (v if isinstance(v, list) else [v])
-                    if item and (isinstance(item, dict) and 'value' in item or not isinstance(item, dict))
                 ]
                 # Return item or list of items
                 tmp_props[k] = values[-1] if len(values) == 1 else values
@@ -413,10 +408,10 @@ class SPARQLProvider(BaseProvider):
         """
         if '|' in value:
             LOGGER.debug('Splitting value by "|"')
-            return value.split('|')
+            return value.lstrip('|').rstrip('|').split('|')
         elif ', ' in value:
             LOGGER.debug('Splitting value by ", "')
-            return value.split(', ')
+            return value.lstrip(', ').rstrip(', ').split(', ')
         else:
             return value
 
@@ -431,14 +426,19 @@ class SPARQLProvider(BaseProvider):
         """
         # Extract keys from the dictionary
         keys = list(dict_data.keys())
+        if len(keys) == 1:
+            LOGGER.debug('Returning un-mondified data')
+            return dict_data
 
         # Ensure all lists have the same length
         length = len(dict_data[keys[0]])
-        if not all(len(dict_data[key]) == length for key in keys) and len(keys > 1):
+        LOGGER.debug(f'Number of keys: {length}')
+        if not all(len(dict_data[key]) == length for key in keys):
             LOGGER.debug('Returning un-mondified data')
             return dict_data
 
         # Combine the items into a list of dictionaries
+        LOGGER.debug(f'Extracting data for: {keys}')
         combined_list = [
             {key: dict_data[key][i] for key in keys} for i in range(length)
         ]
