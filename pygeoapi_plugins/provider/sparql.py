@@ -286,15 +286,19 @@ class SPARQLProvider(BaseProvider):
             if _id not in ret:
                 ret[_id] = {k: [] for k in v.keys()}
 
-                # Iterate over each property-value pair for this binding
-            for k, v in v.items():
+            # Iterate over each property-value pair for this binding
+            for k, v_ in v.items():
                 # Ensure the property's entry is always a list
-                if not isinstance(ret[_id][k], list):
-                    ret[_id][k] = [ret[_id][k]]
+                if not v_:
+                    continue
+
+                if not isinstance(v_, list) and v_:
+                    ret[_id][k] = [v_]
+                    continue
 
                 # If the current value is not already in the list, append it
-                if v not in [item['value'] for item in ret[_id][k]]:
-                    ret[_id][k].append(v)
+                if v_ not in [item['value'] for item in ret[_id][k]] and v_:
+                    ret[_id][k].append(v_)
 
         return ret
 
@@ -408,8 +412,10 @@ class SPARQLProvider(BaseProvider):
                   otherwise the original string.
         """
         if '|' in value:
+            LOGGER.debug('Splitting value by "|"')
             return value.split('|')
         elif ', ' in value:
+            LOGGER.debug('Splitting value by ", "')
             return value.split(', ')
         else:
             return value
@@ -428,7 +434,8 @@ class SPARQLProvider(BaseProvider):
 
         # Ensure all lists have the same length
         length = len(dict_data[keys[0]])
-        if not all(len(dict_data[key]) == length for key in keys):
+        if not all(len(dict_data[key]) == length for key in keys) and len(keys > 1):
+            LOGGER.debug('Returning un-mondified data')
             return dict_data
 
         # Combine the items into a list of dictionaries
