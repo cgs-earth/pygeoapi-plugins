@@ -315,6 +315,7 @@ class SPARQLProvider(BaseProvider):
                 values = [
                     self.parse(item.get('value') if isinstance(item, dict) else item)
                     for item in (v if isinstance(v, list) else [v])
+                    if item and (isinstance(item, dict) and 'value' in item or not isinstance(item, dict))
                 ]
                 # Return item or list of items
                 tmp_props[k] = values[-1] if len(values) == 1 else values
