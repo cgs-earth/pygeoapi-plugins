@@ -91,7 +91,9 @@ class SPARQLProvider(BaseProvider):
         # Set SPARQL query parameters
         query = provider_def.get('sparql_query', {})
         self.convert = query.get('convert', True)
-        self.sparql_endpoint = query.get('endpoint')
+        self.sparql = SPARQLWrapper(query.get('endpoint'))
+        self.sparql.setMethod('POST')
+        self.sparql.setReturnFormat(JSON)
 
         select = query.get('select', '*')
         self.select = _SELECT.format(select=select)
@@ -359,12 +361,10 @@ class SPARQLProvider(BaseProvider):
         :returns: SPARQL query results
         """
         LOGGER.debug('Sending SPARQL query')
-        sparql = SPARQLWrapper(self.sparql_endpoint)
-        sparql.setQuery(query)
-        sparql.setReturnFormat(JSON)
+        self.sparql.setQuery(query)
 
         try:
-            results = sparql.query().convert()
+            results = self.sparql.query().convert()
             LOGGER.debug('Received SPARQL results')
         except Exception as err:
             LOGGER.error(f'Error in SPARQL query: {err}')
