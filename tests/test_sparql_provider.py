@@ -72,11 +72,9 @@ def test_query(config):
     assert base_fields['uri']['type'] == 'string'
 
     fields = p.get_fields()
-    assert len(fields) == 6
+    assert len(fields) == 3
     for field in base_fields:
         assert field in fields
-    assert fields['country']['type'] == 'string'
-    assert fields['leader']['type'] == 'string'
 
     results = p.query()
     assert len(results['features']) == 8

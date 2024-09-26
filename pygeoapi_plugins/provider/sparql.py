@@ -91,7 +91,9 @@ class SPARQLProvider(BaseProvider):
         # Set SPARQL query parameters
         query = provider_def.get('sparql_query', {})
         self.convert = query.get('convert', True)
-        self.sparql_endpoint = query.get('endpoint')
+        self.sparql = SPARQLWrapper(query.get('endpoint'))
+        self.sparql.setMethod('POST')
+        self.sparql.setReturnFormat(JSON)
 
         select = query.get('select', '*')
         self.select = _SELECT.format(select=select)
@@ -286,15 +288,15 @@ class SPARQLProvider(BaseProvider):
             if _id not in ret:
                 ret[_id] = {k: [] for k in v.keys()}
 
-                # Iterate over each property-value pair for this binding
-            for k, v in v.items():
+            # Iterate over each property-value pair for this binding
+            for k, v_ in v.items():
                 # Ensure the property's entry is always a list
                 if not isinstance(ret[_id][k], list):
                     ret[_id][k] = [ret[_id][k]]
 
                 # If the current value is not already in the list, append it
-                if v not in [item['value'] for item in ret[_id][k]]:
-                    ret[_id][k].append(v)
+                if v_ not in [item['value'] for item in ret[_id][k]]:
+                    ret[_id][k].append(v_)
 
         return ret
 
@@ -359,12 +361,10 @@ class SPARQLProvider(BaseProvider):
         :returns: SPARQL query results
         """
         LOGGER.debug('Sending SPARQL query')
-        sparql = SPARQLWrapper(self.sparql_endpoint)
-        sparql.setQuery(query)
-        sparql.setReturnFormat(JSON)
+        self.sparql.setQuery(query)
 
         try:
-            results = sparql.query().convert()
+            results = self.sparql.query().convert()
             LOGGER.debug('Received SPARQL results')
         except Exception as err:
             LOGGER.error(f'Error in SPARQL query: {err}')
@@ -407,9 +407,11 @@ class SPARQLProvider(BaseProvider):
                   otherwise the original string.
         """
         if '|' in value:
-            return value.split('|')
+            LOGGER.debug('Splitting value by "|"')
+            return value.lstrip('|').rstrip('|').split('|')
         elif ', ' in value:
-            return value.split(', ')
+            LOGGER.debug('Splitting value by ", "')
+            return value.lstrip(', ').rstrip(', ').split(', ')
         else:
             return value
 
@@ -424,13 +426,19 @@ class SPARQLProvider(BaseProvider):
         """
         # Extract keys from the dictionary
         keys = list(dict_data.keys())
+        if len(keys) == 1:
+            LOGGER.debug('Returning un-mondified data')
+            return dict_data
 
         # Ensure all lists have the same length
         length = len(dict_data[keys[0]])
+        LOGGER.debug(f'Number of keys: {length}')
         if not all(len(dict_data[key]) == length for key in keys):
+            LOGGER.debug('Returning un-mondified data')
             return dict_data
 
         # Combine the items into a list of dictionaries
+        LOGGER.debug(f'Extracting data for: {keys}')
         combined_list = [
             {key: dict_data[key][i] for key in keys} for i in range(length)
         ]
