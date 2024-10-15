@@ -249,6 +249,7 @@ class CKANProvider(BaseProvider):
         """
         params.update({'resource_id': self.resource_id})
         r = self.http.get(url, params=params, headers=HEADERS)
+
         if not r.ok:
             LOGGER.error('Bad http response code')
             raise ProviderConnectionError('Bad http response code')

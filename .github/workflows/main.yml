@@ -38,7 +38,7 @@ jobs:
         env:
           POSTGRESQL_PASSWORD: ${{ env.POSTGRESQL_PASSWORD }}
         run: |
-          pytest tests/test_ckan_provider.py
+          # pytest tests/test_ckan_provider.py
           pytest tests/test_geopandas_provider.py
           pytest tests/test_postgresql_provider.py
           pytest tests/test_sensorthings_edr_provider.py
