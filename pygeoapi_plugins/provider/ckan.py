@@ -42,6 +42,10 @@ from pygeoapi.util import crs_transform
 
 LOGGER = logging.getLogger(__name__)
 
+HEADERS = {
+    'User-Agent': 'pygeoapi_plugins.ckan',
+    'Accept': 'application/json'
+}
 
 class CKANProvider(BaseProvider):
     """CKAN API Provider"""
@@ -244,13 +248,11 @@ class CKANProvider(BaseProvider):
         :returns: STA response
         """
         params.update({'resource_id': self.resource_id})
-        headers = {'User-Agent': 'pygeoapi_plugins.ckan'}
-        r = self.http.get(url, params=params, headers=headers)
+        r = self.http.get(url, params=params, headers=HEADERS)
         if not r.ok:
             LOGGER.error('Bad http response code')
             raise ProviderConnectionError('Bad http response code')
 
-        print(r.url)
         try:
             response = r.json()
         except JSONDecodeError as err:
