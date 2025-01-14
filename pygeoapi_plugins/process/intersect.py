@@ -2,7 +2,7 @@
 #
 # Author: Benjamin Webb <bwebb@lincolninst.edu>
 #
-# Copyright (c) 2023 Center for Geospatial Solutions
+# Copyright (c) 2025 Center for Geospatial Solutions
 #
 # Permission is hereby granted, free of charge, to any person
 # obtaining a copy of this software and associated documentation
@@ -131,11 +131,12 @@ class IntersectionProcessor(BaseProcessor):
         LOGGER.debug('IntersectionProcesser init')
         super().__init__(processor_def, PROCESS_DEF)
 
-    def execute(self, data):
+    def execute(self, data, outputs=None):
         """
         Execute Intersection Process
 
         :param data: processor arguments
+        :param outputs: processor outputs
 
         :returns: 'application/json'
         """

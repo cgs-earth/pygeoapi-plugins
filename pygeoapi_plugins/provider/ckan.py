@@ -251,7 +251,6 @@ class CKANProvider(BaseProvider):
             LOGGER.error('Bad http response code')
             raise ProviderConnectionError('Bad http response code')
 
-        print(r.url)
         try:
             response = r.json()
         except JSONDecodeError as err:

@@ -2,7 +2,7 @@
 #
 # Author: Benjamin Webb <bwebb@lincolninst.edu>
 #
-# Copyright (c) 2023 Center for Geospatial Solutions
+# Copyright (c) 2025 Center for Geospatial Solutions
 #
 # Permission is hereby granted, free of charge, to any person
 # obtaining a copy of this software and associated documentation
@@ -147,11 +147,12 @@ class SitemapProcessor(BaseProcessor):
         self.base_url = self.config['server']['url']
         self.xml = XMLFormatter({})
 
-    def execute(self, data):
+    def execute(self, data, outputs=None):
         """
         Execute Sitemap Process
 
         :param data: processor arguments
+        :param outputs: processor outputs
 
         :returns: 'application/json'
         """
