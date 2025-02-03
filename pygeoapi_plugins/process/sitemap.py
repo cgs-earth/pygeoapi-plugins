@@ -61,9 +61,7 @@ PROCESS_DEF.update(
         'version': '0.1.0',
         'id': 'sitemap-generator',
         'title': 'Sitemap Generator',
-        'description': (
-            'A process that returns a sitemap of' 'all pygeoapi endpoints.'
-        ),
+        'description': ('A process that returns a sitemap ofall pygeoapi endpoints.'),
         'links': [
             {
                 'type': 'text/html',

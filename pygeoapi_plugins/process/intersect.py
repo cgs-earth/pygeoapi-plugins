@@ -53,7 +53,7 @@ PROCESS_DEF.update(
         'id': 'intersector',
         'title': 'Intersector',
         'description': (
-            'A process that takes a URL of a geoJSON, ' 'and returns all intersections.'
+            'A process that takes a URL of a geoJSON, and returns all intersections.'
         ),
         'links': [
             {
