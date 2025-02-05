@@ -212,7 +212,7 @@ class SitemapProcessor(BaseProcessor):
         :returns: List of GeoJSON Features
         """
 
-        content = provider.query(offset=(n * index), limit=n)
+        content = provider.query(offset=(n * index), limit=n, skip_geometry=True)
         content['links'] = []
         content = geojson2jsonld(
             self, content, dataset, id_field=(provider.uri_field or 'id')
