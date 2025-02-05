@@ -31,6 +31,7 @@ from datetime import datetime
 import io
 import logging
 import xml.etree.ElementTree as ET
+import xml.sax.saxutils as saxutils
 
 from pygeoapi.formatter.base import BaseFormatter, FormatterSerializationError
 
@@ -100,6 +101,7 @@ class XMLFormatter(BaseFormatter):
                 except KeyError:
                     loc = feature['@id']
 
+                loc = saxutils.escape(loc)
                 try:
                     _ = URLSET_FOREACH.format(loc, lastmod)
                     root.append(ET.fromstring(_))
