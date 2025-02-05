@@ -100,8 +100,12 @@ class XMLFormatter(BaseFormatter):
                 except KeyError:
                     loc = feature['@id']
 
-                _ = URLSET_FOREACH.format(loc, lastmod)
-                root.append(ET.fromstring(_))
+                try:
+                    _ = URLSET_FOREACH.format(loc, lastmod)
+                    root.append(ET.fromstring(_))
+                except ET.ParseError as err:
+                    LOGGER.error(f'Unable to add {loc}')
+                    LOGGER.error(err)
 
         except ValueError as err:
             LOGGER.error(err)
