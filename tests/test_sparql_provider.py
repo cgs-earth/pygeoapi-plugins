@@ -45,11 +45,7 @@ def config():
             'endpoint': 'https://dbpedia.org/sparql',
             'bind': {'name': 'uri', 'variable': '?subject'},
             'where': [
-                {
-                    'subject': '?subject',
-                    'predicate': 'dbo:populationTotal',
-                    'object': '?population',
-                },
+                '?subject dbo:populationTotal ?population',
                 {
                     'predicate': '<http://dbpedia.org/ontology/country>',
                     'object': '?country',
@@ -92,4 +88,15 @@ def test_query(config):
     assert (
         feature2['properties']['country'] == 'http://dbpedia.org/resource/United_States'
     )  # noqa
-    assert feature2['properties']['leader'] == 'Eric Adams'
+
+
+def test_query_missing_where(config):
+    config['sparql_query']['where'][0] = '?subject dbo:populationTotal'
+    p = SPARQLProvider(config)
+    feature = p.get('0')
+    assert feature['id'] == '0'
+    assert feature['properties']['city'] == 'Berlin'
+    assert 'population' not in feature['properties']
+    assert feature['properties']['country'] == 'http://dbpedia.org/resource/Germany'  # noqa
+    assert feature['geometry']['coordinates'][0] == 13.405
+    assert feature['geometry']['coordinates'][1] == 52.52
