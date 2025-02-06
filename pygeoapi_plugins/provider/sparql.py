@@ -107,7 +107,16 @@ class SPARQLProvider(BaseProvider):
         self.bind = bind.get('name')
         self.alias = bind.get('variable').lstrip('?')
 
-        self.where = query.get('where')
+        self.where = []
+        for triple in query.get('where'):
+            if isinstance(triple, dict):
+                self.where.append(triple)
+            elif isinstance(triple, str) and len(triple.split()) == 3:
+                keys = ('subject', 'predicate', 'object')
+                triples = dict(zip(keys, triple.split()))
+                self.where.append(triples)
+            else:
+                LOGGER.warning(f'Unable to add where filter for: {triple}')
 
         self.filter = ' '.join(query.get('filter', []))
         self.groupby = f'GROUP BY {query["groupby"]}' if query.get('groupby') else ''
