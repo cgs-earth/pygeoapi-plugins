@@ -112,7 +112,7 @@ class SPARQLProvider(BaseProvider):
             if isinstance(triple, dict):
                 self.where.append(triple)
             elif isinstance(triple, str) and len(triple.split()) == 3:
-                keys = ("subject", "predicate", "object")
+                keys = ('subject', 'predicate', 'object')
                 triples = dict(zip(keys, triple.split()))
                 self.where.append(triples)
             else:
