@@ -297,7 +297,7 @@ class CKANProvider(BaseProvider):
         :returns: CKAN query `order` clause
         """
         __ = {'+': 'asc', '-': 'desc'}
-        ret = [f"{_['property']} {__[_['order']]}" for _ in sortby]
+        ret = [f'{_["property"]} {__[_["order"]]}' for _ in sortby]
 
         return ','.join(ret)
 
