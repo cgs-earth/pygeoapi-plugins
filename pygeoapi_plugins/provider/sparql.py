@@ -310,8 +310,15 @@ class SPARQLProvider(BaseProvider):
                     self.parse(item.get('value') if isinstance(item, dict) else item)
                     for item in (v if isinstance(v, list) else [v])
                 ]
-                # Return item or list of items
-                tmp_props[k] = values[-1] if len(values) == 1 else values
+
+                if k not in tmp_props:
+                    tmp_props[k] = values[-1] if len(values) == 1 else values
+
+                elif not isinstance(tmp_props[k], list):
+                    tmp_props[k].extend(values)
+
+                else:
+                    tmp_props[k] = [tmp_props[k]].extend(values)
 
             # Apply changes to properties block
             properties.update(self.combine_lists(tmp_props))
