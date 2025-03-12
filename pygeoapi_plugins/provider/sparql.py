@@ -209,7 +209,7 @@ class SPARQLProvider(BaseProvider):
         values = self._sparql(subj)
         try:
             feature['properties'] = self._combine(
-                feature['properties'], values.get(_subj)
+                feature['properties'], values
             )
         except AttributeError:
             LOGGER.warning('Unable to add SPARQL context')
@@ -286,28 +286,11 @@ class SPARQLProvider(BaseProvider):
 
         :returns: `dict` where each key corresponds to a subject.
         """
-        ret = {}
-
         # Iterate over each binding (result row) in the SPARQL result
         for v in result['results']['bindings']:
-            # Pop subject from response body (this is already a property)
-            _id = v.pop(self.alias, {}).get('value')
-
-            # If this is a new subject, initialize its entry in the result dict
-            if _id not in ret:
-                ret[_id] = {k: [] for k in v.keys()}
-
-            # Iterate over each property-value pair for this binding
+            v.pop(self.alias, {})
             for k, v_ in v.items():
-                # Ensure the property's entry is always a list
-                if not isinstance(ret[_id][k], list):
-                    ret[_id][k] = [ret[_id][k]]
-
-                # If the current value is not already in the list, append it
-                if v_ not in [item['value'] for item in ret[_id][k]]:
-                    ret[_id][k].append(v_)
-
-        return ret
+                yield k, v_['value'] 
 
     def _combine(self, properties, results):
         """
@@ -321,7 +304,7 @@ class SPARQLProvider(BaseProvider):
         # Create a new dictionary for the updated properties
         tmp_props = {}
         try:
-            for k, v in results.items():
+            for k, v in results:
                 # Join query results by key
                 values = [
                     self.parse(item.get('value') if isinstance(item, dict) else item)
