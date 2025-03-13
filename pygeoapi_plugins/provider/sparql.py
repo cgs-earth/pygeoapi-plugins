@@ -2,7 +2,7 @@
 #
 # Author: Benjamin Webb <bwebb@lincolninst.edu>
 #
-# Copyright (c) 2023 Center for Geospatial Solutions
+# Copyright (c) 2025 Center for Geospatial Solutions
 #
 # Permission is hereby granted, free of charge, to any person
 # obtaining a copy of this software and associated documentation
@@ -97,6 +97,13 @@ class SPARQLProvider(BaseProvider):
 
         select = query.get('select', '*')
         self.select = _SELECT.format(select=select)
+        try:
+            limit = int(query.get('limit'))
+            assert limit > 0
+            self.limit = f'LIMIT {limit}'
+        except (ValueError, TypeError, AssertionError):
+            LOGGER.debug('No valid limit found')
+            self.limit = ''
 
         if query.get('prefixes'):
             self.prefix = ' '.join(
@@ -355,7 +362,7 @@ class SPARQLProvider(BaseProvider):
         _where = _WHERE.format(
             alias=self.alias, value=value, where=where, filter=filter
         )
-        querystring = ''.join([prefix, select, _where, self.groupby])
+        querystring = ''.join([prefix, select, _where, self.groupby, self.limit])
 
         LOGGER.debug(f'SPARQL query: {querystring}')
 
