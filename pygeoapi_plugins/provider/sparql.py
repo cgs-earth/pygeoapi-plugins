@@ -29,6 +29,7 @@
 
 from SPARQLWrapper import SPARQLWrapper, JSON
 
+import json
 import logging
 
 from pygeoapi.plugin import load_plugin
@@ -552,6 +553,11 @@ class SPARQLProvider(BaseProvider):
         """
         if not isinstance(value, str):
             return value
+        
+        try:
+            return json.parse(value)
+        except json.JSONDecodeError:
+            pass
             
         if '|' in value:
             return value.strip('|').split('|')
