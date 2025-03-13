@@ -240,3 +240,26 @@ def test_query_mainstem_result(mainstem_config):
 
     for dataset in feature['properties']['datasets']:
         assert all(k in dataset for k in expected_keys)
+
+
+def test_sparql_with_limit(mainstem_config):
+    mainstem_config['sparql_query']['limit'] = 5
+    p = SPARQLProvider(mainstem_config)
+
+    feature = p.get('381404')
+
+    assert len(feature['properties']['datasets']) == 5
+
+    mainstem_config['sparql_query']['limit'] = 'Notanummber'
+    p = SPARQLProvider(mainstem_config)
+
+    feature = p.get('381404')
+
+    assert len(feature['properties']['datasets']) == 8
+
+    mainstem_config['sparql_query']['limit'] = 0
+    p = SPARQLProvider(mainstem_config)
+
+    feature = p.get('381404')
+
+    assert len(feature['properties']['datasets']) == 8
