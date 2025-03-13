@@ -53,7 +53,95 @@ def config():
                 {'predicate': 'dbpedia2:leaderName', 'object': '?leader'},
             ],
             'filter': [
-                'FILTER (isIRI(?leader) || (isLiteral(?leader) && (!bound(datatype(?leader)) || datatype(?leader) = xsd:string)))'
+                'FILTER (isIRI(?leader) || (isLiteral(?leader) && (!bound(datatype(?leader)) || datatype(?leader) = xsd:string)))'  # noqa
+            ],
+        },
+    }
+
+
+@pytest.fixture()
+def huc_config():
+    return {
+        'name': 'pygeoapi_plugins.provider.sparql.SPARQLProvider',
+        'type': 'feature',
+        'data': 'tests/data/hu02.gpkg',
+        'id_field': 'HUC2',
+        'sparql_provider': 'pygeoapi_plugins.provider.geopandas_.GeoPandasProvider',
+        'sparql_query': {
+            'endpoint': 'https://graph.geoconnex.us/repositories/iow',
+            'prefixes': {
+                'hyf': '<https://www.opengis.net/def/schema/hy_features/hyf/>'
+            },
+            'bind': {'name': 'uri', 'variable': '?huc'},
+            'select': '?huc ?hucLevel (GROUP_CONCAT(?containedCatchment; SEPARATOR="|") AS ?hucs)',
+            'groupby': '?huc ?hucLevel',
+            'where': [
+                '?containedCatchment hyf:containingCatchment ?huc',
+            ],
+            'filter': [
+                'BIND(REPLACE(STR(?containedCatchment), "^.*ref/(hu[0-9]+)/.*$", "$1") AS ?hucLevel)'
+            ],
+        },
+    }
+
+
+@pytest.fixture()
+def mainstem_config():
+    return {
+        'name': 'pygeoapi_plugins.provider.sparql.SPARQLProvider',
+        'type': 'feature',
+        'data': 'tests/data/mainstem.json',
+        'id_field': 'id',
+        'sparql_provider': 'GeoJSON',
+        'sparql_query': {
+            'endpoint': 'https://graph.geoconnex.us/repositories/iow',
+            'prefixes': {
+                'schema': '<https://schema.org/>',
+                'gsp': '<http://www.opengis.net/ont/geosparql#>',
+                'hyf': '<https://www.opengis.net/def/schema/hy_features/hyf/>',
+            },
+            'bind': {'name': 'uri', 'variable': '?mainstem'},
+            'select': '?mainstem ?datasets',
+            'where': [
+                '?monitoringLocation hyf:HydroLocationType ?type',
+                '?monitoringLocation hyf:referencedPosition/hyf:HY_IndirectPosition/hyf:linearElement ?mainstem',
+                '?monitoringLocation schema:subjectOf ?dataset',
+                '?monitoringLocation gsp:hasGeometry/gsp:asWKT ?wkt',
+                '?dataset schema:variableMeasured ?var',
+                '?dataset schema:url ?url',
+                '?dataset schema:distribution ?distribution',
+                '?dataset schema:description ?datasetDescription',
+                '?dataset schema:temporalCoverage ?temporalCoverage',
+                '?dataset schema:name ?siteName',
+                '?var schema:name ?variableMeasured',
+                '?var schema:unitText ?variableUnit',
+                '?var schema:measurementTechnique ?measurementTechnique',
+                '?distribution schema:name ?distributionName',
+                '?distribution schema:contentUrl ?distributionURL',
+                '?distribution schema:encodingFormat ?distributionFormat',
+            ],
+            'filter': [
+                """
+                BIND(
+                    CONCAT(
+                        '{',
+                        '"monitoringLocation":"', STR(?monitoringLocation),
+                        '","siteName":"', STR(?siteName),
+                        '","datasetDescription":"', STR(?datasetDescription),
+                        '","type":"', STR(?type),
+                        '","url":"', STR(?url),
+                        '","variableMeasured":"', STR(?variableMeasured),
+                        '","variableUnit":"', STR(?variableUnit),
+                        '","measurementTechnique":"', STR(?measurementTechnique),
+                        '","temporalCoverage":"', STR(?temporalCoverage),
+                        '","distributionName":"', STR(?distributionName),
+                        '","distributionURL":"', STR(?distributionURL),
+                        '","distributionFormat":"', STR(?distributionFormat),
+                        '","wkt":"', STR(?wkt),
+                        '"}'
+                    ) AS ?datasets
+                )
+                """
             ],
         },
     }
@@ -86,8 +174,8 @@ def test_query(config):
     feature2 = p.get('2')
     assert feature2['properties']['city'] == 'New York'
     assert (
-        feature2['properties']['country'] == 'http://dbpedia.org/resource/United_States'
-    )  # noqa
+        feature2['properties']['country'] == 'http://dbpedia.org/resource/United_States'  # noqa
+    )
 
 
 def test_query_missing_where(config):
@@ -100,3 +188,55 @@ def test_query_missing_where(config):
     assert feature['properties']['country'] == 'http://dbpedia.org/resource/Germany'  # noqa
     assert feature['geometry']['coordinates'][0] == 13.405
     assert feature['geometry']['coordinates'][1] == 52.52
+
+
+def test_query_nested_results(huc_config):
+    p = SPARQLProvider(huc_config)
+
+    feature_id = '01'
+    feature = p.get(feature_id)
+
+    for result in feature['properties']['datasets']:
+        hucLevel = result['hucLevel']
+        hucs = result['hucs']
+
+        match hucLevel:
+            case 'hu04':
+                assert len(hucs) == 10
+            case 'hu06':
+                assert len(hucs) == 11
+            case 'hu08':
+                assert len(hucs) == 58
+            case 'hu10':
+                assert len(hucs) == 413
+
+        for huc in hucs:
+            assert huc.startswith('https://geoconnex.us/ref/' + hucLevel)
+            assert huc.split('/')[-1].startswith(feature_id)
+
+
+def test_query_mainstem_result(mainstem_config):
+    p = SPARQLProvider(mainstem_config)
+
+    feature = p.get('381404')
+
+    assert len(feature['properties']['datasets']) >= 8
+
+    expected_keys = [
+        'monitoringLocation',
+        'siteName',
+        'datasetDescription',
+        'type',
+        'url',
+        'variableMeasured',
+        'variableUnit',
+        'measurementTechnique',
+        'temporalCoverage',
+        'wkt',
+        'distributionName',
+        'distributionURL',
+        'distributionFormat',
+    ]
+
+    for dataset in feature['properties']['datasets']:
+        assert all(k in dataset for k in expected_keys)

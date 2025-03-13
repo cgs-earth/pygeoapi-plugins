@@ -28,7 +28,7 @@
 # =================================================================
 
 from SPARQLWrapper import SPARQLWrapper, JSON
-
+import json
 import logging
 
 from pygeoapi.plugin import load_plugin
@@ -299,13 +299,13 @@ class SPARQLProvider(BaseProvider):
 
             # Iterate over each property-value pair for this binding
             for k, v_ in v.items():
-                # Ensure the property's entry is always a list
-                if not isinstance(ret[_id][k], list):
-                    ret[_id][k] = [ret[_id][k]]
+                prop = ret[_id][k]
 
-                # If the current value is not already in the list, append it
-                if v_ not in [item['value'] for item in ret[_id][k]]:
-                    ret[_id][k].append(v_)
+                # Ensure entry is a list if there are collisions
+                if not isinstance(prop, list):
+                    prop = [ret[_id][k]]
+
+                prop.append(v_['value'])
 
         return ret
 
@@ -415,6 +415,10 @@ class SPARQLProvider(BaseProvider):
         :returns: A `list` of strings if commas are present,
                   otherwise the original string.
         """
+        if isinstance(value, str) and value.startswith(('{', '[')):
+            LOGGER.debug('Attempting to parse as JSON')
+            return json.loads(value)
+
         if '|' in value:
             LOGGER.debug('Splitting value by "|"')
             return value.lstrip('|').rstrip('|').split('|')
