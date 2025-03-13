@@ -53,7 +53,7 @@ def config():
                 {'predicate': 'dbpedia2:leaderName', 'object': '?leader'},
             ],
             'filter': [
-                'FILTER (isIRI(?leader) || (isLiteral(?leader) && (!bound(datatype(?leader)) || datatype(?leader) = xsd:string)))' # noqa
+                'FILTER (isIRI(?leader) || (isLiteral(?leader) && (!bound(datatype(?leader)) || datatype(?leader) = xsd:string)))'  # noqa
             ],
         },
     }
@@ -100,10 +100,7 @@ def mainstem_config():
                 'gsp': '<http://www.opengis.net/ont/geosparql#>',
                 'hyf': '<https://www.opengis.net/def/schema/hy_features/hyf/>',
             },
-            'bind': {
-                'name': 'uri',
-                'variable': '?mainstem'
-            },
+            'bind': {'name': 'uri', 'variable': '?mainstem'},
             'select': '?mainstem ?datasets',
             'where': [
                 '?monitoringLocation hyf:HydroLocationType ?type',
@@ -121,10 +118,10 @@ def mainstem_config():
                 '?var schema:measurementTechnique ?measurementTechnique',
                 '?distribution schema:name ?distributionName',
                 '?distribution schema:contentUrl ?distributionURL',
-                '?distribution schema:encodingFormat ?distributionFormat'
+                '?distribution schema:encodingFormat ?distributionFormat',
             ],
             'filter': [
-                '''
+                """
                 BIND(
                     CONCAT(
                         '{',
@@ -144,7 +141,7 @@ def mainstem_config():
                         '"}'
                     ) AS ?datasets
                 )
-                '''
+                """
             ],
         },
     }
@@ -177,7 +174,7 @@ def test_query(config):
     feature2 = p.get('2')
     assert feature2['properties']['city'] == 'New York'
     assert (
-        feature2['properties']['country'] == 'http://dbpedia.org/resource/United_States' # noqa
+        feature2['properties']['country'] == 'http://dbpedia.org/resource/United_States'  # noqa
     )
 
 
@@ -225,11 +222,21 @@ def test_query_mainstem_result(mainstem_config):
 
     assert len(feature['properties']['datasets']) >= 8
 
-    expected_keys = ['monitoringLocation', 'siteName', 'datasetDescription',
-                     'type', 'url', 'variableMeasured', 'variableUnit',
-                     'measurementTechnique', 'temporalCoverage', 'wkt',
-                     'distributionName', 'distributionURL',
-                     'distributionFormat']
+    expected_keys = [
+        'monitoringLocation',
+        'siteName',
+        'datasetDescription',
+        'type',
+        'url',
+        'variableMeasured',
+        'variableUnit',
+        'measurementTechnique',
+        'temporalCoverage',
+        'wkt',
+        'distributionName',
+        'distributionURL',
+        'distributionFormat',
+    ]
 
     for dataset in feature['properties']['datasets']:
         assert all(k in dataset for k in expected_keys)
