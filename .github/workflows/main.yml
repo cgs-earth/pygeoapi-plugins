@@ -41,7 +41,6 @@ jobs:
           # pytest tests/test_ckan_provider.py
           pytest tests/test_geopandas_provider.py
           pytest tests/test_postgresql_provider.py
-          pytest tests/test_sensorthings_edr_provider.py
           # pytest tests/test_sitemap_process.py
           pytest tests/test_sparql_provider.py
           pytest tests/test_xml_formatter.py

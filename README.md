@@ -156,28 +156,3 @@ sitemap-generator:
   processor:
     name: pygeoapi_plugins.process.sitemap.SitemapProcessor
 ```
-
-## OGC API - Environmental Data Retrieval
-
-### Sensorthings API
-
-The EDR provider is implemented as the default for retrieving environmental data in a compliant manner with the OGC API - EDR specification. This ensures that spatial and temporal queries can be efficiently performed on the sensor data. Additionally, the OGC API - Features (OAF) provider is used to fill in the /items component of the API, allowing access to the Things (sensor devices) from the SensorThings API.
-
-Both providers are configured together to offer a unified interface for sensor data access, while maintaining compliance with OGC standards. The EDR provider is responsible for the core environmental data retrieval, while the OAF provider exposes the sensor entities.
-
-> **Note:** For more information on configuring the OAF provider, refer to the [SensorThings API](https://docs.pygeoapi.io/en/latest/data-publishing/ogcapi-features.html#sensorthings-api) documentation.
-
-```yaml
-providers:
-  # EDR Provider for environmental data retrieval
-  - type: edr
-    name: pygeoapi_plugins.provider.sensorthings_edr.SensorThingsEDRProvider
-    data: https://labs.waterdata.usgs.gov/sta/v1.1/
-
-  # OAF Provider for exposing sensor entities (Things)
-  - type: feature
-    name: pygeoapi.provider.sensorthings.SensorThingsProvider
-    data: https://labs.waterdata.usgs.gov/sta/v1.1/
-    entity: Things
-    title_field: name
-```
