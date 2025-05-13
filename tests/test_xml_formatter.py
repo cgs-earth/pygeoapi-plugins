@@ -2,7 +2,7 @@
 #
 # Author: Benjamin Webb <bwebb@lincolninst.edu>
 #
-# Copyright (c) 2023 Center for Geospatial Solutions
+# Copyright (c) 2025 Center for Geospatial Solutions
 #
 # Permission is hereby granted, free of charge, to any person
 # obtaining a copy of this software and associated documentation
