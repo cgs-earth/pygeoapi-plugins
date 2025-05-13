@@ -27,7 +27,6 @@
 #
 # =================================================================
 
-import os
 import logging
 from requests import get
 
@@ -36,7 +35,7 @@ from pygeofilter.parsers.cql_json import parse as parse_cql_json
 from pygeoapi.config import get_config
 from pygeoapi.plugin import load_plugin
 from pygeoapi.process.base import BaseProcessor, ProcessorExecuteError
-from pygeoapi.util import yaml_load, get_provider_default, filter_dict_by_key_value
+from pygeoapi.util import get_provider_default, filter_dict_by_key_value
 
 
 LOGGER = logging.getLogger(__name__)
