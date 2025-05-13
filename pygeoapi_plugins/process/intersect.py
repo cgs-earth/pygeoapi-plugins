@@ -33,6 +33,7 @@ from requests import get
 
 from pygeofilter.parsers.cql_json import parse as parse_cql_json
 
+from pygeoapi.config import get_config
 from pygeoapi.plugin import load_plugin
 from pygeoapi.process.base import BaseProcessor, ProcessorExecuteError
 from pygeoapi.util import yaml_load, get_provider_default, filter_dict_by_key_value
@@ -40,10 +41,9 @@ from pygeoapi.util import yaml_load, get_provider_default, filter_dict_by_key_va
 
 LOGGER = logging.getLogger(__name__)
 
-with open(os.getenv('PYGEOAPI_CONFIG'), encoding='utf8') as fh:
-    CONFIG = yaml_load(fh)
-    COLLECTIONS = filter_dict_by_key_value(CONFIG['resources'], 'type', 'collection')
-    # TODO: Filter collections for those that support CQL
+CONFIG = get_config()
+COLLECTIONS = filter_dict_by_key_value(CONFIG['resources'], 'type', 'collection')
+# TODO: Filter collections for those that support CQL
 
 
 PROCESS_DEF = CONFIG['resources']['intersector']
