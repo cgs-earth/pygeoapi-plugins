@@ -1,7 +1,7 @@
 # =================================================================
 #
 # Authors: Benjamin Webb <bwebb@lincolninst.edu>
-#          
+#
 #
 # Copyright (c) 2025 Center for Geospatial Solutions
 #
@@ -30,9 +30,16 @@
 
 import logging
 
-from geoalchemy2.functions import (ST_Transform, ST_AsMVTGeom,
-                                   ST_AsMVT, ST_CurveToLine,
-                                   ST_XMax, ST_XMin, ST_YMax, ST_YMin)
+from geoalchemy2.functions import (
+    ST_Transform,
+    ST_AsMVTGeom,
+    ST_AsMVT,
+    ST_CurveToLine,
+    ST_XMax,
+    ST_XMin,
+    ST_YMax,
+    ST_YMin,
+)
 
 from sqlalchemy.sql import select, desc
 from sqlalchemy.orm import Session
@@ -65,7 +72,6 @@ class MVTPostgreSQLProvider_(MVTPostgreSQLProvider):
         self.disable_at_z = provider_def.get('disable_at_z', 6)
         self.layer = provider_def.get('layer', self.table)
 
-
     def get_layer(self):
         """
         Use table name as layer name
@@ -74,8 +80,9 @@ class MVTPostgreSQLProvider_(MVTPostgreSQLProvider):
         """
         return self.layer
 
-    def get_tiles(self, layer='default', tileset=None,
-                  z=None, y=None, x=None, format_=None):
+    def get_tiles(
+        self, layer='default', tileset=None, z=None, y=None, x=None, format_=None
+    ):
         """
         Gets tile
 
@@ -91,7 +98,8 @@ class MVTPostgreSQLProvider_(MVTPostgreSQLProvider):
         z, y, x = map(int, [z, y, x])
 
         [tileset_schema] = [
-            schema for schema in self.get_tiling_schemes()
+            schema
+            for schema in self.get_tiling_schemes()
             if tileset == schema.tileMatrixSet
         ]
         if not self.is_in_limits(tileset_schema, z, x, y):
@@ -103,41 +111,26 @@ class MVTPostgreSQLProvider_(MVTPostgreSQLProvider):
         envelope = self.get_envelope(z, y, x, tileset)
 
         geom_column = getattr(self.table_model, self.geom)
-        geom_filter = geom_column.intersects(
-            ST_Transform(envelope, storage_srid)
-        )
+        geom_filter = geom_column.intersects(ST_Transform(envelope, storage_srid))
 
-        mvtgeom = (
-            ST_AsMVTGeom(
-                ST_Transform(ST_CurveToLine(geom_column), out_srid),
-                ST_Transform(envelope, out_srid))
-            .label('mvtgeom')
-        )
+        mvtgeom = ST_AsMVTGeom(
+            ST_Transform(ST_CurveToLine(geom_column), out_srid),
+            ST_Transform(envelope, out_srid),
+        ).label('mvtgeom')
 
-        mvtrow = (
-            select(mvtgeom, *self.fields.values())
-            .filter(geom_filter)
-        )
+        mvtrow = select(mvtgeom, *self.fields.values()).filter(geom_filter)
 
         if self.max_items_per_tile and z < self.disable_at_z:
             bbox_area = (
-                (ST_XMax(geom_column) - ST_XMin(geom_column)) *
-                (ST_YMax(geom_column) - ST_YMin(geom_column))
+                (ST_XMax(geom_column) - ST_XMin(geom_column))
+                * (ST_YMax(geom_column) - ST_YMin(geom_column))
             ).label('bbox_area')
 
-            mvtrow = (
-                mvtrow
-                .order_by(desc(bbox_area))
-                .limit(self.max_items_per_tile)
-            )
+            mvtrow = mvtrow.order_by(desc(bbox_area)).limit(self.max_items_per_tile)
 
-        mvtquery = select(
-            ST_AsMVT(mvtrow.cte('mvtrow').table_valued(), layer)
-        )
+        mvtquery = select(ST_AsMVT(mvtrow.cte('mvtrow').table_valued(), layer))
 
         with Session(self._engine) as session:
-            result = bytes(
-                session.execute(mvtquery).scalar()
-            ) or None
+            result = bytes(session.execute(mvtquery).scalar()) or None
 
         return result
