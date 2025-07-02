@@ -221,19 +221,20 @@ def _describe_file(filepath):
     links = content['properties']['links']
 
     _ = tree.getroot().itertext()
-    result = [line.strip() for line in
-                ''.join(_).split('\n') if line.strip()]
+    result = [line.strip() for line in ''.join(_).split('\n') if line.strip()]
     for i in range(0, len(result), 2):
         href = result[i]
         lastmod = result[i + 1]
         title = href.split('/')[-1]
 
-        links.append({
-            'rel': 'child',
-            'href': href,
-            'title': title,
-            'type': 'application/ld+json',
-            'lastmod': lastmod
-        })
+        links.append(
+            {
+                'rel': 'child',
+                'href': href,
+                'title': title,
+                'type': 'application/ld+json',
+                'lastmod': lastmod,
+            }
+        )
 
     return content
