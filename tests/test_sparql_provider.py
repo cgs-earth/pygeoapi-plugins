@@ -68,7 +68,7 @@ def huc_config():
         'id_field': 'HUC2',
         'sparql_provider': 'pygeoapi_plugins.provider.geopandas_.GeoPandasProvider',
         'sparql_query': {
-            'endpoint': 'https://graph.geoconnex.us/repositories/iow',
+            'endpoint': 'https://graph.geoconnex.us',
             'prefixes': {
                 'hyf': '<https://www.opengis.net/def/schema/hy_features/hyf/>'
             },
@@ -94,7 +94,7 @@ def mainstem_config():
         'id_field': 'id',
         'sparql_provider': 'GeoJSON',
         'sparql_query': {
-            'endpoint': 'https://graph.geoconnex.us/repositories/iow',
+            'endpoint': 'https://graph.geoconnex.us',
             'prefixes': {
                 'schema': '<https://schema.org/>',
                 'gsp': '<http://www.opengis.net/ont/geosparql#>',
@@ -255,11 +255,11 @@ def test_sparql_with_limit(mainstem_config):
 
     feature = p.get('381404')
 
-    assert len(feature['properties']['datasets']) == 8
+    assert len(feature['properties']['datasets']) == 3707
 
     mainstem_config['sparql_query']['limit'] = 0
     p = SPARQLProvider(mainstem_config)
 
     feature = p.get('381404')
 
-    assert len(feature['properties']['datasets']) == 8
+    assert len(feature['properties']['datasets']) == 3707
