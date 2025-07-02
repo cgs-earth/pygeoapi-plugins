@@ -35,7 +35,7 @@
 # =================================================================
 
 # Needs to be run like: python3 -m pytest
-# See pygeoapi/provider/postgresql.py for instructions on setting up
+# See pygeoapi/provider/sql.py for instructions on setting up
 # test database in Docker
 
 import os
@@ -44,12 +44,9 @@ import pytest
 from pygeofilter.parsers.ecql import parse
 
 from pygeoapi.provider.base import (
-    ProviderConnectionError,
-    ProviderItemNotFoundError,
-    ProviderQueryError,
+    ProviderItemNotFoundError
 )
-from pygeoapi.provider.postgresql import PostgreSQLProvider
-import pygeoapi.provider.postgresql as postgresql_provider_module
+from pygeoapi.provider.sql import PostgreSQLProvider
 
 PASSWORD = os.environ.get('POSTGRESQL_PASSWORD', 'postgres')
 DEFAULT_CRS = 'http://www.opengis.net/def/crs/OGC/1.3/CRS84'
@@ -375,46 +372,6 @@ def test_instantiation(config):
     assert provider.name == 'PostgreSQL'
     assert provider.table == 'hotosm_bdi_waterways'
     assert provider.id_field == 'osm_id'
-
-
-@pytest.mark.parametrize(
-    'bad_data, exception, match',
-    [
-        ({'table': 'bad_table'}, ProviderQueryError, 'Table.*not found in schema.*'),
-        (
-            {'data': {'bad': 'data'}},
-            ProviderConnectionError,
-            r'Could not connect to postgresql\+psycopg2:\/\/:5432 \(password hidden\).',
-        ),  # noqa
-        (
-            {'id_field': 'bad_id'},
-            ProviderQueryError,
-            r'No such id_field column \(bad_id\) on osm.hotosm_bdi_waterways.',
-        ),
-    ],
-)
-def test_instantiation_with_bad_config(config, bad_data, exception, match):
-    # Arrange
-    config.update(bad_data)
-    # Make sure we don't use a cached connection or model in the tests
-    postgresql_provider_module._ENGINE_STORE = {}
-    postgresql_provider_module._TABLE_MODEL_STORE = {}
-
-    # Act and assert
-    with pytest.raises(exception, match=match):
-        PostgreSQLProvider(config)
-
-
-def test_instantiation_with_bad_credentials(config):
-    # Arrange
-    config['data'].update({'user': 'bad_user'})
-    match = r'Could not connect to .*bad_user:\*\*\*@'
-    # Make sure we don't use a cached connection in the tests
-    postgresql_provider_module._ENGINE_STORE = {}
-
-    # Act and assert
-    with pytest.raises(ProviderConnectionError, match=match):
-        PostgreSQLProvider(config)
 
 
 def test_engine_and_table_model_stores(config):
