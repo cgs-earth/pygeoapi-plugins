@@ -43,9 +43,7 @@ import pytest
 
 from pygeofilter.parsers.ecql import parse
 
-from pygeoapi.provider.base import (
-    ProviderItemNotFoundError
-)
+from pygeoapi.provider.base import ProviderItemNotFoundError
 from pygeoapi.provider.sql import PostgreSQLProvider
 
 PASSWORD = os.environ.get('POSTGRESQL_PASSWORD', 'postgres')

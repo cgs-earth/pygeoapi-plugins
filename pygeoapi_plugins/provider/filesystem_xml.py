@@ -68,39 +68,35 @@ class FileSystemXMLProvider(FileSystemProvider):
             root_link = baseurl
         else:
             parentpath = url_join(thispath, '.')
-            child_links.append({
-                'rel': 'parent',
-                'href': f'{parentpath}?f=json',
-                'type': 'application/json'
-            })
-            child_links.append({
-                'rel': 'parent',
-                'href': parentpath,
-                'type': 'text/html'
-            })
+            child_links.append(
+                {
+                    'rel': 'parent',
+                    'href': f'{parentpath}?f=json',
+                    'type': 'application/json',
+                }
+            )
+            child_links.append(
+                {'rel': 'parent', 'href': parentpath, 'type': 'text/html'}
+            )
 
             depth = dirpath.count('/')
             root_path = '/'.replace('/', '../' * depth, 1)
             root_link = url_join(thispath, root_path)
 
         content = {
-            'links': [{
-                'rel': 'root',
-                'href': f'{root_link}?f=json',
-                'type': 'application/json'
-                }, {
-                'rel': 'root',
-                'href': root_link,
-                'type': 'text/html'
-                }, {
-                'rel': 'self',
-                'href': f'{thispath}?f=json',
-                'type': 'application/json',
-                }, {
-                'rel': 'self',
-                'href': thispath,
-                'type': 'text/html'
-                }
+            'links': [
+                {
+                    'rel': 'root',
+                    'href': f'{root_link}?f=json',
+                    'type': 'application/json',
+                },
+                {'rel': 'root', 'href': root_link, 'type': 'text/html'},
+                {
+                    'rel': 'self',
+                    'href': f'{thispath}?f=json',
+                    'type': 'application/json',
+                },
+                {'rel': 'self', 'href': thispath, 'type': 'text/html'},
             ]
         }
 
@@ -138,7 +134,7 @@ class FileSystemXMLProvider(FileSystemProvider):
                 LOGGER.debug('sitemap.xml not in dir')
             for dc in dirpath2:
                 # TODO: handle a generic directory for tiles
-                if dc == "tiles":
+                if dc == 'tiles':
                     continue
 
                 fullpath = os.path.join(data_path, dc)
@@ -147,27 +143,31 @@ class FileSystemXMLProvider(FileSystemProvider):
 
                 if os.path.isdir(fullpath):
                     newpath = os.path.join(baseurl, urlpath, dc)
-                    child_links.append({
-                        'rel': 'child',
-                        'href': newpath,
-                        'type': 'text/html',
-                        'created': filectime,
-                        'entry:type': 'Catalog'
-                    })
+                    child_links.append(
+                        {
+                            'rel': 'child',
+                            'href': newpath,
+                            'type': 'text/html',
+                            'created': filectime,
+                            'entry:type': 'Catalog',
+                        }
+                    )
                 elif os.path.isfile(fullpath):
                     basename, extension = os.path.splitext(dc)
                     newpath = os.path.join(baseurl, urlpath, basename)
                     newpath2 = f'{newpath}{extension}'
                     if extension in self.file_types:
                         fullpath = os.path.join(data_path, dc)
-                        child_links.append({
-                            'rel': 'item',
-                            'href': newpath,
-                            'title': get_path_basename(newpath2),
-                            'created': filectime,
-                            'file:size': filesize,
-                            'entry:type': 'Item'
-                        })
+                        child_links.append(
+                            {
+                                'rel': 'item',
+                                'href': newpath,
+                                'title': get_path_basename(newpath2),
+                                'created': filectime,
+                                'file:size': filesize,
+                                'entry:type': 'Item',
+                            }
+                        )
 
         elif resource_type == 'file':
             filename = os.path.basename(data_path)
@@ -185,7 +185,7 @@ class FileSystemXMLProvider(FileSystemProvider):
                 'type': 'Feature',
                 'properties': {},
                 'links': [],
-                'assets': {}
+                'assets': {},
             }
 
             content.update(_describe_file(data_path))
@@ -193,7 +193,7 @@ class FileSystemXMLProvider(FileSystemProvider):
             content['assets']['default'] = {
                 'href': url,
                 'created': filectime,
-                'file:size': filesize
+                'file:size': filesize,
             }
 
         content['links'].extend(child_links)
@@ -215,11 +215,7 @@ def _describe_file(filepath):
     :returns: `dict` of GeoJSON item
     """
 
-    content = {
-        'bbox': None,
-        'geometry': None,
-        'properties': {}
-    }
+    content = {'bbox': None, 'geometry': None, 'properties': {}}
 
     mcf_file = f'{os.path.splitext(filepath)[0]}.yml'
 
@@ -267,23 +263,24 @@ def _describe_file(filepath):
             if not scrs.is_geographic:
                 LOGGER.debug('Reprojecting coordinates')
                 tcrs = CRS.from_epsg(4326)
-                bnds = transform_bounds(scrs, tcrs,
-                                        d.bounds[0], d.bounds[1],
-                                        d.bounds[2], d.bounds[3])
+                bnds = transform_bounds(
+                    scrs, tcrs, d.bounds[0], d.bounds[1], d.bounds[2], d.bounds[3]
+                )
                 content['properties']['projection'] = scrs.to_epsg()
             else:
-                bnds = [d.bounds.left, d.bounds.bottom,
-                        d.bounds.right, d.bounds.top]
+                bnds = [d.bounds.left, d.bounds.bottom, d.bounds.right, d.bounds.top]
             content['bbox'] = bnds
             content['geometry'] = {
                 'type': 'Polygon',
-                'coordinates': [[
-                    [bnds[0],  bnds[1]],
-                    [bnds[0],  bnds[3]],
-                    [bnds[2], bnds[3]],
-                    [bnds[2], bnds[1]],
-                    [bnds[0],  bnds[1]]
-                ]]
+                'coordinates': [
+                    [
+                        [bnds[0], bnds[1]],
+                        [bnds[0], bnds[3]],
+                        [bnds[2], bnds[3]],
+                        [bnds[2], bnds[1]],
+                        [bnds[0], bnds[1]],
+                    ]
+                ],
             }
             for k, v in d.tags(d.count).items():
                 content['properties'][k] = v
@@ -304,29 +301,26 @@ def _describe_file(filepath):
                 if not scrs.is_geographic:
                     LOGGER.debug('Reprojecting coordinates')
                     tcrs = CRS.from_epsg(4326)
-                    bnds = transform_bounds(scrs, tcrs,
-                                            d.bounds[0], d.bounds[1],
-                                            d.bounds[2], d.bounds[3])
+                    bnds = transform_bounds(
+                        scrs, tcrs, d.bounds[0], d.bounds[1], d.bounds[2], d.bounds[3]
+                    )
                     content['properties']['projection'] = scrs.to_epsg()
                 else:
                     bnds = d.bounds
 
                 if d.schema['geometry'] not in [None, 'None']:
-                    content['bbox'] = [
-                        bnds[0],
-                        bnds[1],
-                        bnds[2],
-                        bnds[3]
-                    ]
+                    content['bbox'] = [bnds[0], bnds[1], bnds[2], bnds[3]]
                     content['geometry'] = {
                         'type': 'Polygon',
-                        'coordinates': [[
-                            [bnds[0], bnds[1]],
-                            [bnds[0], bnds[3]],
-                            [bnds[2], bnds[3]],
-                            [bnds[2], bnds[1]],
-                            [bnds[0], bnds[1]]
-                        ]]
+                        'coordinates': [
+                            [
+                                [bnds[0], bnds[1]],
+                                [bnds[0], bnds[3]],
+                                [bnds[2], bnds[3]],
+                                [bnds[2], bnds[1]],
+                                [bnds[0], bnds[1]],
+                            ]
+                        ],
                     }
 
                 for k, v in d.schema['properties'].items():
@@ -345,7 +339,7 @@ def _describe_file(filepath):
                             content['assets'][suffix] = {
                                 'href': f'./{id_}.{suffix}',
                                 'created': filectime,
-                                'file:size': filesize
+                                'file:size': filesize,
                             }
 
             except fiona.errors.DriverError:
@@ -355,19 +349,22 @@ def _describe_file(filepath):
                 links = content['properties']['links']
 
                 _ = tree.getroot().itertext()
-                result = [line.strip() for line in
-                          ''.join(_).split('\n') if line.strip()]
+                result = [
+                    line.strip() for line in ''.join(_).split('\n') if line.strip()
+                ]
                 for i in range(0, len(result), 2):
                     href = result[i]
                     lastmod = result[i + 1]
                     title = href.split('/')[-1]
 
-                    links.append({
-                        'rel': 'child',
-                        'href': href,
-                        'title': title,
-                        'type': 'application/ld+json',
-                        'lastmod': lastmod
-                    })
+                    links.append(
+                        {
+                            'rel': 'child',
+                            'href': href,
+                            'title': title,
+                            'type': 'application/ld+json',
+                            'lastmod': lastmod,
+                        }
+                    )
 
     return content
