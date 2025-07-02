@@ -27,9 +27,7 @@
 #
 # =================================================================
 
-from datetime import datetime
 import io
-from json import loads
 import logging
 import os
 import xml.etree.ElementTree as ET
@@ -128,7 +126,7 @@ class FileSystemXMLProvider(FileSystemProvider):
             dirpath2 = os.listdir(data_path)
             dirpath2.sort()
             try:
-                idx = dirpath2.index('sitemap.xml')
+                idx = dirpath2.index('_sitemap.xml')
                 dirpath2.insert(0, dirpath2.pop(idx))
             except ValueError:
                 LOGGER.debug('sitemap.xml not in dir')
@@ -217,154 +215,25 @@ def _describe_file(filepath):
 
     content = {'bbox': None, 'geometry': None, 'properties': {}}
 
-    mcf_file = f'{os.path.splitext(filepath)[0]}.yml'
+    LOGGER.debug('Could not detect raster or vector data')
+    tree = ET.parse(filepath)
+    content['properties']['links'] = []
+    links = content['properties']['links']
 
-    if os.path.isfile(mcf_file):
-        try:
-            from pygeometa.core import read_mcf, MCFReadError
-            from pygeometa.schemas.stac import STACItemOutputSchema
+    _ = tree.getroot().itertext()
+    result = [line.strip() for line in
+                ''.join(_).split('\n') if line.strip()]
+    for i in range(0, len(result), 2):
+        href = result[i]
+        lastmod = result[i + 1]
+        title = href.split('/')[-1]
 
-            md = read_mcf(mcf_file)
-            stacjson = STACItemOutputSchema.write(STACItemOutputSchema, md)
-            stacdata = loads(stacjson)
-            for k, v in stacdata.items():
-                content[k] = v
-        except ImportError:
-            LOGGER.debug('pygeometa not found')
-        except MCFReadError as err:
-            LOGGER.warning(f'MCF error: {err}')
-    else:
-        LOGGER.debug(f'No mcf found at: {mcf_file}')
-
-    if content['geometry'] is None and content['bbox'] is None:
-        try:
-            import rasterio
-            from rasterio.crs import CRS
-            from rasterio.warp import transform_bounds
-        except ImportError as err:
-            LOGGER.warning('rasterio not found')
-            LOGGER.warning(err)
-            return content
-
-        try:
-            import fiona
-        except ImportError as err:
-            LOGGER.warning('fiona not found')
-            LOGGER.warning(err)
-            return content
-
-        try:  # raster
-            LOGGER.debug('Testing raster data detection')
-            d = rasterio.open(filepath)
-            scrs = CRS(d.crs)
-            LOGGER.debug(f'CRS: {d.crs}')
-            LOGGER.debug(f'bounds: {d.bounds}')
-            LOGGER.debug(f'Is geographic: {scrs.is_geographic}')
-            if not scrs.is_geographic:
-                LOGGER.debug('Reprojecting coordinates')
-                tcrs = CRS.from_epsg(4326)
-                bnds = transform_bounds(
-                    scrs, tcrs, d.bounds[0], d.bounds[1], d.bounds[2], d.bounds[3]
-                )
-                content['properties']['projection'] = scrs.to_epsg()
-            else:
-                bnds = [d.bounds.left, d.bounds.bottom, d.bounds.right, d.bounds.top]
-            content['bbox'] = bnds
-            content['geometry'] = {
-                'type': 'Polygon',
-                'coordinates': [
-                    [
-                        [bnds[0], bnds[1]],
-                        [bnds[0], bnds[3]],
-                        [bnds[2], bnds[3]],
-                        [bnds[2], bnds[1]],
-                        [bnds[0], bnds[1]],
-                    ]
-                ],
-            }
-            for k, v in d.tags(d.count).items():
-                content['properties'][k] = v
-                if k in ['GRIB_REF_TIME']:
-                    value = int(v.split()[0])
-                    datetime_ = datetime.fromtimestamp(value)
-                    content['properties']['datetime'] = datetime_.isoformat() + 'Z'  # noqa
-        except rasterio.errors.RasterioIOError:
-            try:
-                LOGGER.debug('Testing vector data detection')
-                d = fiona.open(filepath)
-                LOGGER.debug(f'CRS: {d.crs}')
-                LOGGER.debug(f'bounds: {d.bounds}')
-                scrs = CRS(d.crs)
-                LOGGER.debug(f'CRS: {d.crs}')
-                LOGGER.debug(f'bounds: {d.bounds}')
-                LOGGER.debug(f'Is geographic: {scrs.is_geographic}')
-                if not scrs.is_geographic:
-                    LOGGER.debug('Reprojecting coordinates')
-                    tcrs = CRS.from_epsg(4326)
-                    bnds = transform_bounds(
-                        scrs, tcrs, d.bounds[0], d.bounds[1], d.bounds[2], d.bounds[3]
-                    )
-                    content['properties']['projection'] = scrs.to_epsg()
-                else:
-                    bnds = d.bounds
-
-                if d.schema['geometry'] not in [None, 'None']:
-                    content['bbox'] = [bnds[0], bnds[1], bnds[2], bnds[3]]
-                    content['geometry'] = {
-                        'type': 'Polygon',
-                        'coordinates': [
-                            [
-                                [bnds[0], bnds[1]],
-                                [bnds[0], bnds[3]],
-                                [bnds[2], bnds[3]],
-                                [bnds[2], bnds[1]],
-                                [bnds[0], bnds[1]],
-                            ]
-                        ],
-                    }
-
-                for k, v in d.schema['properties'].items():
-                    content['properties'][k] = v
-
-                if d.driver == 'ESRI Shapefile':
-                    id_ = os.path.splitext(os.path.basename(filepath))[0]
-                    content['assets'] = {}
-                    for suffix in ['shx', 'dbf', 'prj']:
-                        fullpath = f'{os.path.splitext(filepath)[0]}.{suffix}'
-
-                        if os.path.exists(fullpath):
-                            filectime = file_modified_iso8601(fullpath)
-                            filesize = os.path.getsize(fullpath)
-
-                            content['assets'][suffix] = {
-                                'href': f'./{id_}.{suffix}',
-                                'created': filectime,
-                                'file:size': filesize,
-                            }
-
-            except fiona.errors.DriverError:
-                LOGGER.debug('Could not detect raster or vector data')
-                tree = ET.parse(filepath)
-                content['properties']['links'] = []
-                links = content['properties']['links']
-
-                _ = tree.getroot().itertext()
-                result = [
-                    line.strip() for line in ''.join(_).split('\n') if line.strip()
-                ]
-                for i in range(0, len(result), 2):
-                    href = result[i]
-                    lastmod = result[i + 1]
-                    title = href.split('/')[-1]
-
-                    links.append(
-                        {
-                            'rel': 'child',
-                            'href': href,
-                            'title': title,
-                            'type': 'application/ld+json',
-                            'lastmod': lastmod,
-                        }
-                    )
+        links.append({
+            'rel': 'child',
+            'href': href,
+            'title': title,
+            'type': 'application/ld+json',
+            'lastmod': lastmod
+        })
 
     return content
