@@ -2,7 +2,6 @@
 #
 # Authors: Benjamin Webb <bwebb@lincolninst.edu>
 #
-#
 # Copyright (c) 2025 Center for Geospatial Solutions
 #
 # Permission is hereby granted, free of charge, to any person
@@ -34,15 +33,15 @@ from geoalchemy2.functions import (
     ST_Transform,
     ST_AsMVTGeom,
     ST_AsMVT,
-    ST_CurveToLine,
     ST_XMax,
     ST_XMin,
     ST_YMax,
     ST_YMin,
 )
 
-from sqlalchemy.sql import select, desc
+from sqlalchemy.sql import select
 from sqlalchemy.orm import Session
+from pygeofilter.parsers.ecql import parse as parse_ecql_text
 
 from pygeoapi.provider.mvt_postgresql import MVTPostgreSQLProvider
 from pygeoapi.provider.tile import ProviderTileNotFoundError
@@ -68,8 +67,10 @@ class MVTPostgreSQLProvider_(MVTPostgreSQLProvider):
         """
         MVTPostgreSQLProvider.__init__(self, provider_def)
 
-        self.max_items_per_tile = provider_def.get('max_items_per_tile', 0)
+        self.tile_threshold = provider_def.get('tile_threshold')
+        self.tile_limit = provider_def.get('tile_limit', 0)
         self.disable_at_z = provider_def.get('disable_at_z', 6)
+        self.min_pixel = provider_def.get('min_pixel', 512)
         self.layer = provider_def.get('layer', self.table)
 
     def get_layer(self):
@@ -106,29 +107,49 @@ class MVTPostgreSQLProvider_(MVTPostgreSQLProvider):
             LOGGER.warning(f'Tile {z}/{x}/{y} not found')
             return ProviderTileNotFoundError
 
+        LOGGER.debug(f'Querying {self.table} for MVT tile {z}/{x}/{y}')
+
         storage_srid = get_crs_from_uri(self.storage_crs).to_string()
         out_srid = get_crs_from_uri(tileset_schema.crs).to_string()
         envelope = self.get_envelope(z, y, x, tileset)
+        envelope = select(
+            ST_Transform(envelope, storage_srid).label('src'),
+            ST_Transform(envelope, out_srid).label('out'),
+        ).cte('envelope')
 
         geom_column = getattr(self.table_model, self.geom)
-        geom_filter = geom_column.intersects(ST_Transform(envelope, storage_srid))
-
+        bbox_area = (ST_XMax(geom_column) - ST_XMin(geom_column)) * (
+            ST_YMax(geom_column) - ST_YMin(geom_column)
+        )
         mvtgeom = ST_AsMVTGeom(
-            ST_Transform(ST_CurveToLine(geom_column), out_srid),
-            ST_Transform(envelope, out_srid),
+            ST_Transform(geom_column, out_srid),
+            envelope.c.out,
         ).label('mvtgeom')
 
+        geom_filter = geom_column.intersects(envelope.c.src)
         mvtrow = select(mvtgeom, *self.fields.values()).filter(geom_filter)
 
-        if self.max_items_per_tile and z < self.disable_at_z:
-            bbox_area = (
-                (ST_XMax(geom_column) - ST_XMin(geom_column))
-                * (ST_YMax(geom_column) - ST_YMin(geom_column))
-            ).label('bbox_area')
+        if self.tile_threshold and z < self.disable_at_z:
+            # Filter features based on tile_threshold CQL expression
+            tile_threshold = parse_ecql_text(self.tile_threshold.format(z=z))
+            filter_ = self._get_cql_filters(tile_threshold)
+            mvtrow = mvtrow.filter(filter_)
 
-            mvtrow = mvtrow.order_by(desc(bbox_area)).limit(self.max_items_per_tile)
+        elif z < self.disable_at_z:
+            # Filter features based on tile extents
+            LOGGER.debug(f'Filtering features at zoom level {z}')
+            min_pixel = (
+                ST_XMax(envelope.c.src) - ST_XMin(envelope.c.src)
+            ) / self.min_pixel
+            mvtrow = mvtrow.filter(bbox_area > (min_pixel * min_pixel))
 
-        mvtquery = select(ST_AsMVT(mvtrow.cte('mvtrow').table_valued(), layer))
+        if self.tile_limit:
+            # Maximimum number of features in a tile
+            LOGGER.debug(f'Filtering features based on tile limit {self.tile_limit}')
+            mvtrow = mvtrow.order_by(bbox_area.desc()).limit(self.tile_limit)
+
+        mvtrow = mvtrow.cte('mvtrow').table_valued()
+        mvtquery = select(ST_AsMVT(mvtrow, layer))
 
         with Session(self._engine) as session:
             result = bytes(session.execute(mvtquery).scalar()) or None
