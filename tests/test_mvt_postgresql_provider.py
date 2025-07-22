@@ -53,17 +53,9 @@ def config():
         'id_field': 'osm_id',
         'table': 'hotosm_bdi_waterways',
         'geom_field': 'foo_geom',
-        'options': {
-            'zoom': {
-                'min': 0,
-                'max': 15
-            }
-        },
-        'format': {
-            'name': 'pbf',
-            'mimetype': 'application/vnd.mapbox-vector-tile'
-        },
-        'storage_crs': 'http://www.opengis.net/def/crs/EPSG/0/4326'
+        'options': {'zoom': {'min': 0, 'max': 15}},
+        'format': {'name': 'pbf', 'mimetype': 'application/vnd.mapbox-vector-tile'},
+        'storage_crs': 'http://www.opengis.net/def/crs/EPSG/0/4326',
     }
 
 
@@ -75,13 +67,17 @@ def test_disable_at_z(config):
     p = MVTPostgreSQLProvider_(config)
     tile = p.get_tiles(
         tileset=tileset,
-        z=z, x=x, y=y,
+        z=z,
+        x=x,
+        y=y,
     )
     assert 69000 > len(tile) > 68000
 
     tile = p.get_tiles(
         tileset=tileset,
-        z=2, x=2, y=2,
+        z=2,
+        x=2,
+        y=2,
     )
     assert 400 > len(tile) > 300
 
@@ -95,7 +91,9 @@ def test_tile_filter(config):
     p = MVTPostgreSQLProvider_(config)
     tile = p.get_tiles(
         tileset=tileset,
-        z=z, x=x, y=y,
+        z=z,
+        x=x,
+        y=y,
     )
     assert len(tile) == 7519
 
@@ -108,7 +106,9 @@ def test_tile_limit(config):
     p = MVTPostgreSQLProvider_(config)
     tile = p.get_tiles(
         tileset=tileset,
-        z=z, x=x, y=y,
+        z=z,
+        x=x,
+        y=y,
     )
     assert 73000 > len(tile) > 72000
 
