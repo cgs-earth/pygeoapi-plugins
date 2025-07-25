@@ -5,5 +5,6 @@ numpy==2.0.1
 psycopg2
 pygeofilter[backend-sqlalchemy]
 requests
+shapely>=2.1.0
 SPARQLWrapper
 SQLAlchemy
