@@ -40,7 +40,7 @@ from sqlalchemy import (
     Integer,
     LargeBinary,
     PrimaryKeyConstraint,
-    Index
+    Index,
 )
 from sqlalchemy.sql import select
 from sqlalchemy.orm import Session
@@ -64,9 +64,7 @@ class MVTCacheProvider(MVTPostgreSQLProvider_):
 
         self.disable_cache_at_z = provider_def.get('disable_cache_at_z', 6)
 
-    def get_tiles(
-        self, layer=None, tileset=None, z=None, y=None, x=None, format_=None
-    ):
+    def get_tiles(self, layer=None, tileset=None, z=None, y=None, x=None, format_=None):
         """
         Gets tile
 
@@ -90,8 +88,7 @@ class MVTCacheProvider(MVTPostgreSQLProvider_):
                 return tile
 
         LOGGER.debug('Tile not found in cache, rendering tile')
-        tile = MVTPostgreSQLProvider_.get_tiles(
-            self, layer, tileset, z, y, x, format_)
+        tile = MVTPostgreSQLProvider_.get_tiles(self, layer, tileset, z, y, x, format_)
 
         if z < self.disable_cache_at_z and tile is not None:
             LOGGER.debug('Caching tile')
@@ -119,7 +116,12 @@ class MVTCacheProvider(MVTPostgreSQLProvider_):
             p.start()
 
     def get_tiles_from_cache(
-        self, layer='default', tileset=None, z=None, y=None, x=None,
+        self,
+        layer='default',
+        tileset=None,
+        z=None,
+        y=None,
+        x=None,
     ):
         """
         Gets tile from cache
@@ -135,7 +137,13 @@ class MVTCacheProvider(MVTPostgreSQLProvider_):
         raise NotImplementedError()
 
     def save_tiles_to_cache(
-        self, tile, layer='default', tileset=None, z=None, y=None, x=None,
+        self,
+        tile,
+        layer='default',
+        tileset=None,
+        z=None,
+        y=None,
+        x=None,
     ):
         """
         Saves tile to cache
@@ -170,7 +178,12 @@ class MVTPostgresFilesystem(MVTCacheProvider):
                 self.run_pre_cache(schema)
 
     def get_tiles_from_cache(
-        self, layer='default', tileset=None, z=None, y=None, x=None,
+        self,
+        layer='default',
+        tileset=None,
+        z=None,
+        y=None,
+        x=None,
     ):
         tile_ = self._get_tile_path(layer, tileset, z, y, x)
 
@@ -179,7 +192,13 @@ class MVTPostgresFilesystem(MVTCacheProvider):
                 return fh.read()
 
     def save_tiles_to_cache(
-        self, tile, layer='default', tileset=None, z=None, y=None, x=None,
+        self,
+        tile,
+        layer='default',
+        tileset=None,
+        z=None,
+        y=None,
+        x=None,
     ):
         tile_ = self._get_tile_path(layer, tileset, z, y, x)
 
@@ -198,9 +217,7 @@ class MVTPostgresFilesystem(MVTCacheProvider):
 
     def _get_tile_path(self, layer, tileset, z, y, x):
         z, y, x = map(str, [z, y, x])
-        return (
-            self.cache_directory / layer / tileset / z / y / x
-        ).with_suffix('.pbf')
+        return (self.cache_directory / layer / tileset / z / y / x).with_suffix('.pbf')
 
 
 class MVTPostgresCache(MVTCacheProvider):
@@ -219,7 +236,7 @@ class MVTPostgresCache(MVTCacheProvider):
             self.cache_table,
             self.db_search_path,
             self._engine,
-            provider_def.get('force_create', False)
+            provider_def.get('force_create', False),
         )
 
         if provider_def.get('pre_cache', False):
@@ -227,19 +244,21 @@ class MVTPostgresCache(MVTCacheProvider):
                 self.run_pre_cache(schema)
 
     def get_tiles_from_cache(
-        self, layer='default', tileset=None, z=None, y=None, x=None,
+        self,
+        layer='default',
+        tileset=None,
+        z=None,
+        y=None,
+        x=None,
     ):
         x, y, z = map(int, [x, y, z])
 
-        query = (
-            select(self.cache_model.c.tile)
-            .where(
-                self.cache_model.c.layer == layer,
-                self.cache_model.c.tilematrixset == tileset,
-                self.cache_model.c.z == z,
-                self.cache_model.c.x == x,
-                self.cache_model.c.y == y
-            )
+        query = select(self.cache_model.c.tile).where(
+            self.cache_model.c.layer == layer,
+            self.cache_model.c.tilematrixset == tileset,
+            self.cache_model.c.z == z,
+            self.cache_model.c.x == x,
+            self.cache_model.c.y == y,
         )
         with Session(self._engine) as session:
             result = session.execute(query).scalar()
@@ -248,19 +267,17 @@ class MVTPostgresCache(MVTCacheProvider):
                 return bytes(result)
 
     def save_tiles_to_cache(
-        self, tile, layer='default', tileset=None, z=None, y=None, x=None,
+        self,
+        tile,
+        layer='default',
+        tileset=None,
+        z=None,
+        y=None,
+        x=None,
     ):
         if tile and isinstance(tile, bytes):
-            query = (
-                self.cache_model.insert()
-                .values(
-                    layer=layer,
-                    tilematrixset=tileset,
-                    z=z,
-                    y=y,
-                    x=x,
-                    tile=tile
-                )
+            query = self.cache_model.insert().values(
+                layer=layer, tilematrixset=tileset, z=z, y=y, x=x, tile=tile
             )
             with Session(self._engine) as session:
                 try:
@@ -276,12 +293,9 @@ class MVTPostgresCache(MVTCacheProvider):
 
 @functools.cache
 def create_cache_table(
-    table_name: str,
-    db_search_path: tuple[str],
-    engine,
-    force_create: bool = False
+    table_name: str, db_search_path: tuple[str], engine, force_create: bool = False
 ):
-    '''Create cache table if it does not exist'''
+    """Create cache table if it does not exist"""
     metadata = MetaData(schema=db_search_path[0])
 
     table = Table(
@@ -293,15 +307,10 @@ def create_cache_table(
         Column('x', Integer, nullable=False),
         Column('y', Integer, nullable=False),
         Column('tile', LargeBinary, nullable=False),
-
         # composite PK enforces uniqueness
         PrimaryKeyConstraint('layer', 'tilematrixset', 'z', 'x', 'y'),
-
         # covering index for fast lookups by key
-        Index(
-            f'idx_{table_name}_lookup',
-            'layer', 'tilematrixset', 'z', 'x', 'y'
-        )
+        Index(f'idx_{table_name}_lookup', 'layer', 'tilematrixset', 'z', 'x', 'y'),
     )
 
     if force_create:

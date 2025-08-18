@@ -68,15 +68,27 @@ def test_fs_miss_cache_disable_at_z(config):
     config['cache_directory'] = d.name
 
     p = MVTPostgresFilesystem(config)
-    assert p.get_tiles_from_cache(
-        tileset=TILESET, z=Z, x=X, y=Y,
-    ) is None
+    assert (
+        p.get_tiles_from_cache(
+            tileset=TILESET,
+            z=Z,
+            x=X,
+            y=Y,
+        )
+        is None
+    )
 
     tile = p.get_tiles(tileset=TILESET, z=Z, x=X, y=Y)
 
-    assert p.get_tiles_from_cache(
-        tileset=TILESET, z=Z, x=X, y=Y,
-    ) != tile
+    assert (
+        p.get_tiles_from_cache(
+            tileset=TILESET,
+            z=Z,
+            x=X,
+            y=Y,
+        )
+        != tile
+    )
 
     d.cleanup()
 
@@ -87,15 +99,27 @@ def test_fs_disable_at_z(config):
     config['disable_cache_at_z'] = 14
 
     p = MVTPostgresFilesystem(config)
-    assert p.get_tiles_from_cache(
-        tileset=TILESET, z=Z, x=X, y=Y,
-    ) is None
+    assert (
+        p.get_tiles_from_cache(
+            tileset=TILESET,
+            z=Z,
+            x=X,
+            y=Y,
+        )
+        is None
+    )
 
     tile = p.get_tiles(tileset=TILESET, z=Z, x=X, y=Y)
 
-    assert p.get_tiles_from_cache(
-        tileset=TILESET, z=Z, x=X, y=Y,
-    ) == tile
+    assert (
+        p.get_tiles_from_cache(
+            tileset=TILESET,
+            z=Z,
+            x=X,
+            y=Y,
+        )
+        == tile
+    )
 
     d.cleanup()
 
@@ -104,15 +128,27 @@ def test_miss_cache_disable_at_z(config):
     config['force_create'] = True
 
     p = MVTPostgresFilesystem(config)
-    assert p.get_tiles_from_cache(
-        tileset=TILESET, z=Z, x=X, y=Y,
-    ) is None
+    assert (
+        p.get_tiles_from_cache(
+            tileset=TILESET,
+            z=Z,
+            x=X,
+            y=Y,
+        )
+        is None
+    )
 
     tile = p.get_tiles(tileset=TILESET, z=Z, x=X, y=Y)
 
-    assert p.get_tiles_from_cache(
-        tileset=TILESET, z=Z, x=X, y=Y,
-    ) != tile
+    assert (
+        p.get_tiles_from_cache(
+            tileset=TILESET,
+            z=Z,
+            x=X,
+            y=Y,
+        )
+        != tile
+    )
 
 
 def test_disable_at_z(config):
@@ -120,12 +156,24 @@ def test_disable_at_z(config):
     config['disable_cache_at_z'] = 14
 
     p = MVTPostgresCache(config)
-    assert p.get_tiles_from_cache(
-        tileset=TILESET, z=Z, x=X, y=Y,
-    ) is None
+    assert (
+        p.get_tiles_from_cache(
+            tileset=TILESET,
+            z=Z,
+            x=X,
+            y=Y,
+        )
+        is None
+    )
 
     tile = p.get_tiles(tileset=TILESET, z=Z, x=X, y=Y)
 
-    assert p.get_tiles_from_cache(
-        tileset=TILESET, z=Z, x=X, y=Y,
-    ) == tile
+    assert (
+        p.get_tiles_from_cache(
+            tileset=TILESET,
+            z=Z,
+            x=X,
+            y=Y,
+        )
+        == tile
+    )

@@ -134,12 +134,12 @@ Additional OGC API - Tile providers are listed below
 
 The MVT PostgreSQL Provider extends the core provider, to include additional supports for rendering features
 efficiently at low zoom. The threshold for applying limits can be controlled with the configuration option
-``disable_at_z``. The default value for the zoom threshold is 6.
+`disable_at_z`. The default value for the zoom threshold is 6.
 
 The first way to filter the features that are rendered is by setting a minimum pixel size. The
-configuration option ``min_pixel`` provider will drop features that are less than a pixel in the 
+configuration option `min_pixel` provider will drop features that are less than a pixel in the
 rendered tile. The default value for minimum pixel size is 512. The following configuration
-would render half pixel features until zoom level 10. 
+would render half pixel features until zoom level 10.
 
 ```yaml
 providers:
@@ -180,9 +180,9 @@ providers:
     # z{4}: population_served_count > 25000
 ```
 
-The configuration option ``tile_limit`` can be specified to enforce a maximum number of features in a single tile.
-This will apply to all tiles regardless of if the other filters are enabled by ``disable_at_z``. Features will be ordered
-by the size of there bounding box, pruning the smallest feature until the feature limit is met for the tile. 
+The configuration option `tile_limit` can be specified to enforce a maximum number of features in a single tile.
+This will apply to all tiles regardless of if the other filters are enabled by `disable_at_z`. Features will be ordered
+by the size of there bounding box, pruning the smallest feature until the feature limit is met for the tile.
 
 ```yaml
 providers:
@@ -196,7 +196,7 @@ providers:
 ### MVT PostgreSQL with Caching
 
 There are two additional Postgres based MVT providers with caching of tiles to prevent significant server load
-on tile generation at low zoom levels. Both providers use the configuration option ``disable_cache_at_z`` to 
+on tile generation at low zoom levels. Both providers use the configuration option `disable_cache_at_z` to
 prevent storing tiles at high zoom levels if undesired.
 
 #### Filesystem Cache

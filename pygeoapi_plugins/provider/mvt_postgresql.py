@@ -85,9 +85,7 @@ class MVTPostgreSQLProvider_(MVTPostgreSQLProvider):
         """
         return self.layer
 
-    def get_tiles(
-        self, layer=None, tileset=None, z=None, y=None, x=None, format_=None
-    ):
+    def get_tiles(self, layer=None, tileset=None, z=None, y=None, x=None, format_=None):
         """
         Gets tile
 
@@ -135,8 +133,7 @@ class MVTPostgreSQLProvider_(MVTPostgreSQLProvider):
 
         if self.tile_threshold and z < self.disable_at_z:
             # Filter features based on tile_threshold CQL expression
-            tile_threshold = parse_ecql_text(
-                self.tile_threshold.format(z=z or 1))
+            tile_threshold = parse_ecql_text(self.tile_threshold.format(z=z or 1))
             filter_ = self._get_cql_filters(tile_threshold)
             mvtrow = mvtrow.filter(filter_)
 
