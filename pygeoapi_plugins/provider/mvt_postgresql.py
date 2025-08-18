@@ -67,11 +67,15 @@ class MVTPostgreSQLProvider_(MVTPostgreSQLProvider):
         """
         MVTPostgreSQLProvider.__init__(self, provider_def)
 
-        self.tile_threshold = provider_def.get('tile_threshold')
-        self.tile_limit = provider_def.get('tile_limit', 0)
-        self.disable_at_z = provider_def.get('disable_at_z', 6)
-        self.min_pixel = provider_def.get('min_pixel', 512)
         self.layer = provider_def.get('layer', self.table)
+        self.disable_at_z = provider_def.get('disable_at_z', 6)
+
+        # Apply filters to low zoom levels
+        self.tile_threshold = provider_def.get('tile_threshold')
+        self.min_pixel = provider_def.get('min_pixel', 256)
+
+        # Maximum number of features in a tile
+        self.tile_limit = provider_def.get('tile_limit', 0)
 
     def get_layer(self):
         """
@@ -105,7 +109,7 @@ class MVTPostgreSQLProvider_(MVTPostgreSQLProvider):
         ]
         if not self.is_in_limits(tileset_schema, z, x, y):
             LOGGER.warning(f'Tile {z}/{x}/{y} not found')
-            return ProviderTileNotFoundError
+            raise ProviderTileNotFoundError
 
         LOGGER.debug(f'Querying {self.table} for MVT tile {z}/{x}/{y}')
 
@@ -131,7 +135,7 @@ class MVTPostgreSQLProvider_(MVTPostgreSQLProvider):
 
         if self.tile_threshold and z < self.disable_at_z:
             # Filter features based on tile_threshold CQL expression
-            tile_threshold = parse_ecql_text(self.tile_threshold.format(z=z))
+            tile_threshold = parse_ecql_text(self.tile_threshold.format(z=z or 1))
             filter_ = self._get_cql_filters(tile_threshold)
             mvtrow = mvtrow.filter(filter_)
 
