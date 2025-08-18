@@ -113,7 +113,7 @@ The SPARQL Provider only uses variables prefixed with sparql\_ in the configurat
 
 The GeoPandas Provider enables OGC API - Feature support using GeoPandas as the backend. This integration can read in data files in [any of the geospatial formats supported by GeoPandas](https://geopandas.org/en/stable/docs/user_guide/io.html#supported-drivers-file-formats).
 
-`id_field` is the only field that is required to be labelled.
+`id_field` is the only field that is required to be labeled.
 
 ```yaml
 providers:
@@ -126,9 +126,110 @@ providers:
 
 You can also use plain CSV and read in points by providing an `x_field` and `y_field` in the config the [same way you would with the default pygeoapi CSV provider](https://github.com/geopython/pygeoapi/blob/510875027e8483ce2916e7cf315fb6a7f6105807/pygeoapi-config.yml#L137).
 
+## OGC API - Tiles
+
+Additional OGC API - Tile providers are listed below
+
+### MVT PostgreSQL
+
+The MVT PostgreSQL Provider extends the core provider, to include additional supports for rendering features
+efficiently at low zoom. The threshold for applying limits can be controlled with the configuration option
+`disable_at_z`. The default value for the zoom threshold is 6.
+
+The first way to filter the features that are rendered is by setting a minimum pixel size. The
+configuration option `min_pixel` provider will drop features that are less than a pixel in the
+rendered tile. The default value for minimum pixel size is 512. The following configuration
+would render half pixel features until zoom level 10.
+
+```yaml
+providers:
+  - type: tile
+    name: pygeoapi_plugins.provider.mvt_postgresql.MVTPostgreSQLProvider_
+    ...
+    disable_at_a: 10
+    mix_pixel: 256 # a full pixel in the tile
+```
+
+The second way to filter the features that are rendered in a tile is using a modified CQL expression. The
+CQL expression can be used to determine render priority based on non-geographic attributes of a feature
+The following configuration would only render features with a population larger than 100,000:
+
+```yaml
+providers:
+  - type: tile
+    name: pygeoapi_plugins.provider.mvt_postgresql.MVTPostgreSQLProvider_
+    ...
+    tile_threshold: "population > 100000"
+```
+
+The CQL expression can be formatted with a `z` value (minimum zoom is 1). This allows the parameter filter to be dynamic
+based on the zoom level of the tile. The following configuration would render tiles of successively
+smaller populations for every subsequent zoom level increase:
+
+```yaml
+providers:
+  - type: tile
+    name: pygeoapi_plugins.provider.mvt_postgresql.MVTPostgreSQLProvider_
+    ...
+    disable_at_z: 5
+    tile_threshold: "population_served_count > 200000 / ({z} * 2)"
+    # z{0}: population_served_count > 100000
+    # z{1}: population_served_count > 100000
+    # z{2}: population_served_count > 50000
+    # z{3}: population_served_count > 33333
+    # z{4}: population_served_count > 25000
+```
+
+The configuration option `tile_limit` can be specified to enforce a maximum number of features in a single tile.
+This will apply to all tiles regardless of if the other filters are enabled by `disable_at_z`. Features will be ordered
+by the size of there bounding box, pruning the smallest feature until the feature limit is met for the tile.
+
+```yaml
+providers:
+  - type: tile
+    name: pygeoapi_plugins.provider.mvt_postgresql.MVTPostgreSQLProvider_
+    ...
+    disable_at_z: 0 # Apply no CQL or Pixel Size filter
+    tile_limit: 1000 # No more than 1000 features in a single tile
+```
+
+### MVT PostgreSQL with Caching
+
+There are two additional Postgres based MVT providers with caching of tiles to prevent significant server load
+on tile generation at low zoom levels. Both providers use the configuration option `disable_cache_at_z` to
+prevent storing tiles at high zoom levels if undesired.
+
+#### Filesystem Cache
+
+The filesystem cache uses a local filesystem to store pbf blobs in a typical z/y/x directory tree.
+
+```yaml
+providers:
+  - type: tile
+    name: pygeoapi_plugins.provider.mvt_cache.MVTPostgresFilesystem
+    ...
+    cache_directory: /tmp/mvt_cache # Default directory if not specified
+    disable_cache_at_z: 6 # Default value to disable caching if not specified
+```
+
+#### PostgreSQL Table Cache
+
+The table cache uses an external table to store pbf blobs in a typical z/y/x relational database.
+Make sure the credentials have access to update the table and write if necessary.
+
+```yaml
+providers:
+  - type: tile
+    name: pygeoapi_plugins.provider.mvt_cache.MVTPostgresCache
+    ...
+    table: osm_waterways
+    mvt_table: osm_waterways_mvt # Default table is table with `_mvt` appended
+    disable_cache_at_z: 25 # Cache everything (eventually)
+```
+
 ## OGC API - Processes
 
-Additional OGC API - Process are listed below
+Additional OGC API - Processes are listed below
 
 ### Intersector
 
