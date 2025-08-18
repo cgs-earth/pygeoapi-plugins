@@ -138,7 +138,7 @@ efficiently at low zoom. The threshold for applying limits can be controlled wit
 
 The first way to filter the features that are rendered is by setting a minimum pixel size. The
 configuration option ``min_pixel`` provider will drop features that are less than a pixel in the 
-rendered tile. The default value for minimum pixel size is 256. The following configuration
+rendered tile. The default value for minimum pixel size is 512. The following configuration
 would render half pixel features until zoom level 10. 
 
 ```yaml
@@ -147,7 +147,7 @@ providers:
     name: pygeoapi_plugins.provider.mvt_postgresql.MVTPostgreSQLProvider_
     ...
     disable_at_a: 10
-    mix_pixel: 512 # half of a full pixel in the tile
+    mix_pixel: 256 # a full pixel in the tile
 ```
 
 The second way to filter the features that are rendered in a tile is using a modified CQL expression. The

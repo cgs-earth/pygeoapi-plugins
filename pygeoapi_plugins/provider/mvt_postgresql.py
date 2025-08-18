@@ -72,7 +72,7 @@ class MVTPostgreSQLProvider_(MVTPostgreSQLProvider):
 
         # Apply filters to low zoom levels
         self.tile_threshold = provider_def.get('tile_threshold')
-        self.min_pixel = provider_def.get('min_pixel', 256)
+        self.min_pixel = provider_def.get('min_pixel', 512)
 
         # Maximum number of features in a tile
         self.tile_limit = provider_def.get('tile_limit', 0)
