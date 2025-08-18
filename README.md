@@ -193,6 +193,40 @@ providers:
     tile_limit: 1000 # No more than 1000 features in a single tile
 ```
 
+### MVT PostgreSQL with Caching
+
+There are two additional Postgres based MVT providers with caching of tiles to prevent significant server load
+on tile generation at low zoom levels. Both providers use the configuration option ``disable_cache_at_z`` to 
+prevent storing tiles at high zoom levels if undesired.
+
+#### Filesystem Cache
+
+The filesystem cache uses a local filesystem to store pbf blobs in a typical z/y/x directory tree.
+
+```yaml
+providers:
+  - type: tile
+    name: pygeoapi_plugins.provider.mvt_cache.MVTPostgresFilesystem
+    ...
+    cache_directory: /tmp/mvt_tiles # Default directory if not specified
+    disable_cache_at_z: 6 # Default value to disable caching if not specified
+```
+
+#### PostgreSQL Table Cache
+
+The table cache uses an external table to store pbf blobs in a typical z/y/x relational database.
+Make sure the credentials have access to update the table and write if necessary.
+
+```yaml
+providers:
+  - type: tile
+    name: pygeoapi_plugins.provider.mvt_cache.MVTPostgresCache
+    ...
+    table: osm_waterways
+    mvt_table: osm_waterways_mvt # Default table is table with `_mvt` appended
+    disable_cache_at_z: 25 # Cache everything (eventually)
+```
+
 ## OGC API - Processes
 
 Additional OGC API - Processes are listed below

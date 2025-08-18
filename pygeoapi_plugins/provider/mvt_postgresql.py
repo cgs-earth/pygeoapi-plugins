@@ -63,7 +63,7 @@ class MVTPostgreSQLProvider_(MVTPostgreSQLProvider):
 
         :param provider_def: provider definition
 
-        :returns: pygeoapi.provider.MVT.MVTPostgreSQLProvider
+        :returns: pygeoapi_plugins.provider.mvt_postgresql.MVTPostgreSQLProvider_
         """
         MVTPostgreSQLProvider.__init__(self, provider_def)
 
@@ -86,7 +86,7 @@ class MVTPostgreSQLProvider_(MVTPostgreSQLProvider):
         return self.layer
 
     def get_tiles(
-        self, layer='default', tileset=None, z=None, y=None, x=None, format_=None
+        self, layer=None, tileset=None, z=None, y=None, x=None, format_=None
     ):
         """
         Gets tile
@@ -135,7 +135,8 @@ class MVTPostgreSQLProvider_(MVTPostgreSQLProvider):
 
         if self.tile_threshold and z < self.disable_at_z:
             # Filter features based on tile_threshold CQL expression
-            tile_threshold = parse_ecql_text(self.tile_threshold.format(z=z or 1))
+            tile_threshold = parse_ecql_text(
+                self.tile_threshold.format(z=z or 1))
             filter_ = self._get_cql_filters(tile_threshold)
             mvtrow = mvtrow.filter(filter_)
 
@@ -149,7 +150,7 @@ class MVTPostgreSQLProvider_(MVTPostgreSQLProvider):
 
         if self.tile_limit:
             # Maximimum number of features in a tile
-            LOGGER.debug(f'Filtering features based on tile limit {self.tile_limit}')
+            LOGGER.debug(f'Filtering based on tile limit {self.tile_limit}')
             mvtrow = mvtrow.order_by(bbox_area.desc()).limit(self.tile_limit)
 
         mvtrow = mvtrow.cte('mvtrow').table_valued()
