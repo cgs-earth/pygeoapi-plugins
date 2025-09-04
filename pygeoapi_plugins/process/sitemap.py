@@ -41,6 +41,7 @@ from pygeoapi.util import (
     url_join,
     filter_dict_by_key_value,
     get_provider_by_type,
+    get_base_url
 )
 
 from pygeoapi_plugins.formatter.xml import XMLFormatter
@@ -49,9 +50,10 @@ from pygeoapi_plugins.formatter.xml import XMLFormatter
 LOGGER = logging.getLogger(__name__)
 
 CONFIG = get_config()
-COLLECTIONS = filter_dict_by_key_value(CONFIG['resources'], 'type', 'collection')
+RESOURCES = CONFIG['resources']
+COLLECTIONS = filter_dict_by_key_value(RESOURCES, 'type', 'collection')
 
-PROCESS_DEF = CONFIG['resources']['sitemap-generator']
+PROCESS_DEF = RESOURCES['sitemap-generator']
 PROCESS_DEF.update(
     {
         'version': '0.1.0',
@@ -137,8 +139,8 @@ class SitemapProcessor(BaseProcessor):
         """
         LOGGER.debug('SitemapProcesser init')
         super().__init__(processor_def, PROCESS_DEF)
-        self.config = CONFIG
-        self.base_url = self.config['server']['url']
+
+        self.base_url = get_base_url(CONFIG)
         self.xml = XMLFormatter({})
 
     def execute(self, data, outputs=None):
@@ -176,11 +178,13 @@ class SitemapProcessor(BaseProcessor):
         """
         if include_common:
             LOGGER.debug('Generating common.xml')
-            oas = {'features': []}
-            for path in get_oas(self.config).get('paths', []):
-                if r'{jobId}' not in path and r'{featureId}' not in path:
-                    path_uri = url_join(self.base_url, path)
-                    oas['features'].append({'@id': path_uri})
+            paths = get_oas(self.config).get('paths', [])
+            oas = {'features': [
+                {'@id': url_join(self.base_url, path)}
+                for path in paths
+                if r'{jobId}' not in path and r'{featureId}' not in path
+            ]}
+
             yield ('common.xml', self.xml.write(data=oas))
 
         if include_features:
