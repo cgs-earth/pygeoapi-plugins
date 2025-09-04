@@ -42,7 +42,7 @@ from pygeoapi.util import (
     get_provider_default,
     url_join,
     filter_dict_by_key_value,
-    filter_providers_by_type
+    filter_providers_by_type,
 )
 
 from pygeoapi_plugins.formatter.xml import XMLFormatter
