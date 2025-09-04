@@ -29,7 +29,6 @@
 
 import io
 import math
-import os
 import logging
 import zipfile
 
@@ -215,14 +214,14 @@ class SitemapProcessor(BaseProcessor):
 
     def get_collections_url(self, *args):
         return url_join(self.base_url, 'collections', *args)
-    
+
     def geojson2linkedlist(self, content, dataset, id_field):
         for feature in content['features']:
             id = str(feature['id'])
             feature['@id'] = (
                 self.get_collections_url(dataset, 'items', id)
-                if id_field == 'id' else
-                feature['properties'].get(id_field)    
+                if id_field == 'id'
+                else feature['properties'].get(id_field)
             )
 
         return content
