@@ -41,7 +41,7 @@ from pygeoapi.util import (
     url_join,
     filter_dict_by_key_value,
     get_provider_by_type,
-    get_base_url
+    get_base_url,
 )
 
 from pygeoapi_plugins.formatter.xml import XMLFormatter
@@ -179,11 +179,13 @@ class SitemapProcessor(BaseProcessor):
         if include_common:
             LOGGER.debug('Generating common.xml')
             paths = get_oas(self.config).get('paths', [])
-            oas = {'features': [
-                {'@id': url_join(self.base_url, path)}
-                for path in paths
-                if r'{jobId}' not in path and r'{featureId}' not in path
-            ]}
+            oas = {
+                'features': [
+                    {'@id': url_join(self.base_url, path)}
+                    for path in paths
+                    if r'{jobId}' not in path and r'{featureId}' not in path
+                ]
+            }
 
             yield ('common.xml', self.xml.write(data=oas))
 
