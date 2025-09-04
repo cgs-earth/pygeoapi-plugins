@@ -35,6 +35,7 @@ import zipfile
 from pygeoapi.config import get_config
 from pygeoapi.plugin import load_plugin
 from pygeoapi.process.base import BaseProcessor
+from pygeoapi.provider.base import ProviderTypeError
 from pygeoapi.openapi import get_oas
 from pygeoapi.util import (
     url_join,
@@ -53,7 +54,7 @@ COLLECTIONS = filter_dict_by_key_value(CONFIG['resources'], 'type', 'collection'
 PROCESS_DEF = CONFIG['resources']['sitemap-generator']
 PROCESS_DEF.update(
     {
-        'version': '0.2.0',
+        'version': '0.1.0',
         'id': 'sitemap-generator',
         'title': 'Sitemap Generator',
         'description': ('A process that returns a sitemap ofall pygeoapi endpoints.'),
@@ -185,10 +186,22 @@ class SitemapProcessor(BaseProcessor):
         if include_features:
             LOGGER.debug('Generating collections sitemap')
             for name, c in COLLECTIONS.items():
+                try:
+                    p = get_provider_by_type(c['providers'], 'feature')
+                except ProviderTypeError:
+                    LOGGER.debug(f'No feature collection found: {name}')
+                    continue
+
                 LOGGER.debug(f'Generating sitemap(s) for {name}')
-                p = get_provider_by_type(c['providers'], 'feature')
                 provider = load_plugin('provider', p)
                 hits = provider.query(resulttype='hits').get('numberMatched')
+
+                try:
+                    hits = int(hits)
+                except TypeError:
+                    LOGGER.warning(f'Collection does not support hits: {name}')
+                    continue
+
                 iterations = range(math.ceil(hits / 50000))
                 for i in iterations:
                     yield (f'{name}__{i}.xml', self._generate(i, name, provider))
@@ -220,8 +233,8 @@ class SitemapProcessor(BaseProcessor):
             id = str(feature['id'])
             feature['@id'] = (
                 self.get_collections_url(dataset, 'items', id)
-                if id_field == 'id'
-                else feature['properties'].get(id_field)
+                if id_field == 'id' else
+                feature['properties'].get(id_field)    
             )
 
         return content
