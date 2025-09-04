@@ -178,7 +178,7 @@ class SitemapProcessor(BaseProcessor):
         """
         if include_common:
             LOGGER.debug('Generating common.xml')
-            paths = get_oas(self.config).get('paths', [])
+            paths = get_oas(CONFIG).get('paths', [])
             oas = {
                 'features': [
                     {'@id': url_join(self.base_url, path)}
