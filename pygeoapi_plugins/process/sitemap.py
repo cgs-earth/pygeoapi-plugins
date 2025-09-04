@@ -233,8 +233,8 @@ class SitemapProcessor(BaseProcessor):
             id = str(feature['id'])
             feature['@id'] = (
                 self.get_collections_url(dataset, 'items', id)
-                if id_field == 'id' else
-                feature['properties'].get(id_field)    
+                if id_field == 'id'
+                else feature['properties'].get(id_field)
             )
 
         return content
