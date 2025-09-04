@@ -42,6 +42,7 @@ from pygeoapi.util import (
     get_provider_default,
     url_join,
     filter_dict_by_key_value,
+    filter_providers_by_type
 )
 
 from pygeoapi_plugins.formatter.xml import XMLFormatter
@@ -191,7 +192,8 @@ class SitemapProcessor(BaseProcessor):
             LOGGER.debug('Generating collections sitemap')
             for name, c in COLLECTIONS.items():
                 LOGGER.debug(f'Generating sitemap(s) for {name}')
-                p = get_provider_default(c['providers'])
+                feature_providers = filter_providers_by_type(c['providers'], 'feature')
+                p = get_provider_default(feature_providers)
                 provider = load_plugin('provider', p)
                 hits = provider.query(resulttype='hits').get('numberMatched')
                 iterations = range(math.ceil(hits / 50000))
