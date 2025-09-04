@@ -29,19 +29,19 @@
 
 import io
 import math
-import os
 import logging
 import zipfile
 
+from pygeoapi.config import get_config
 from pygeoapi.plugin import load_plugin
 from pygeoapi.process.base import BaseProcessor
-from pygeoapi.linked_data import geojson2jsonld
+from pygeoapi.provider.base import ProviderTypeError
 from pygeoapi.openapi import get_oas
 from pygeoapi.util import (
-    yaml_load,
-    get_provider_default,
     url_join,
     filter_dict_by_key_value,
+    get_provider_by_type,
+    get_base_url,
 )
 
 from pygeoapi_plugins.formatter.xml import XMLFormatter
@@ -49,13 +49,11 @@ from pygeoapi_plugins.formatter.xml import XMLFormatter
 
 LOGGER = logging.getLogger(__name__)
 
-with open(os.getenv('PYGEOAPI_CONFIG'), encoding='utf8') as fh:
-    CONFIG = yaml_load(fh)
-    COLLECTIONS = filter_dict_by_key_value(CONFIG['resources'], 'type', 'collection')
-    # TODO: Filter collections for those that support CQL
+CONFIG = get_config()
+RESOURCES = CONFIG['resources']
+COLLECTIONS = filter_dict_by_key_value(RESOURCES, 'type', 'collection')
 
-
-PROCESS_DEF = CONFIG['resources']['sitemap-generator']
+PROCESS_DEF = RESOURCES['sitemap-generator']
 PROCESS_DEF.update(
     {
         'version': '0.1.0',
@@ -141,8 +139,8 @@ class SitemapProcessor(BaseProcessor):
         """
         LOGGER.debug('SitemapProcesser init')
         super().__init__(processor_def, PROCESS_DEF)
-        self.config = CONFIG
-        self.base_url = self.config['server']['url']
+
+        self.base_url = get_base_url(CONFIG)
         self.xml = XMLFormatter({})
 
     def execute(self, data, outputs=None):
@@ -180,20 +178,36 @@ class SitemapProcessor(BaseProcessor):
         """
         if include_common:
             LOGGER.debug('Generating common.xml')
-            oas = {'features': []}
-            for path in get_oas(self.config).get('paths'):
-                if r'{jobId}' not in path and r'{featureId}' not in path:
-                    path_uri = url_join(self.base_url, path)
-                    oas['features'].append({'@id': path_uri})
+            paths = get_oas(self.config).get('paths', [])
+            oas = {
+                'features': [
+                    {'@id': url_join(self.base_url, path)}
+                    for path in paths
+                    if r'{jobId}' not in path and r'{featureId}' not in path
+                ]
+            }
+
             yield ('common.xml', self.xml.write(data=oas))
 
         if include_features:
             LOGGER.debug('Generating collections sitemap')
             for name, c in COLLECTIONS.items():
+                try:
+                    p = get_provider_by_type(c['providers'], 'feature')
+                except ProviderTypeError:
+                    LOGGER.debug(f'No feature collection found: {name}')
+                    continue
+
                 LOGGER.debug(f'Generating sitemap(s) for {name}')
-                p = get_provider_default(c['providers'])
                 provider = load_plugin('provider', p)
                 hits = provider.query(resulttype='hits').get('numberMatched')
+
+                try:
+                    hits = int(hits)
+                except TypeError:
+                    LOGGER.warning(f'Collection does not support hits: {name}')
+                    continue
+
                 iterations = range(math.ceil(hits / 50000))
                 for i in iterations:
                     yield (f'{name}__{i}.xml', self._generate(i, name, provider))
@@ -212,13 +226,24 @@ class SitemapProcessor(BaseProcessor):
 
         content = provider.query(offset=(n * index), limit=n, skip_geometry=True)
         content['links'] = []
-        content = geojson2jsonld(
-            self, content, dataset, id_field=(provider.uri_field or 'id')
+        content = self.geojson2linkedlist(
+            content, dataset, id_field=(provider.uri_field or 'id')
         )
         return self.xml.write(data=content)
 
-    def get_collections_url(self):
-        return url_join(self.base_url, 'collections')
+    def get_collections_url(self, *args):
+        return url_join(self.base_url, 'collections', *args)
+
+    def geojson2linkedlist(self, content, dataset, id_field):
+        for feature in content['features']:
+            id = str(feature['id'])
+            feature['@id'] = (
+                self.get_collections_url(dataset, 'items', id)
+                if id_field == 'id'
+                else feature['properties'].get(id_field)
+            )
+
+        return content
 
     def __repr__(self):
         return f'<SitemapProcessor> {self.name}'
