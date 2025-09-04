@@ -33,16 +33,14 @@ import os
 import logging
 import zipfile
 
+from pygeoapi.config import get_config
 from pygeoapi.plugin import load_plugin
 from pygeoapi.process.base import BaseProcessor
-from pygeoapi.linked_data import geojson2jsonld
 from pygeoapi.openapi import get_oas
 from pygeoapi.util import (
-    yaml_load,
-    get_provider_default,
     url_join,
     filter_dict_by_key_value,
-    filter_providers_by_type,
+    get_provider_by_type,
 )
 
 from pygeoapi_plugins.formatter.xml import XMLFormatter
@@ -50,16 +48,13 @@ from pygeoapi_plugins.formatter.xml import XMLFormatter
 
 LOGGER = logging.getLogger(__name__)
 
-with open(os.getenv('PYGEOAPI_CONFIG'), encoding='utf8') as fh:
-    CONFIG = yaml_load(fh)
-    COLLECTIONS = filter_dict_by_key_value(CONFIG['resources'], 'type', 'collection')
-    # TODO: Filter collections for those that support CQL
-
+CONFIG = get_config()
+COLLECTIONS = filter_dict_by_key_value(CONFIG['resources'], 'type', 'collection')
 
 PROCESS_DEF = CONFIG['resources']['sitemap-generator']
 PROCESS_DEF.update(
     {
-        'version': '0.1.0',
+        'version': '0.2.0',
         'id': 'sitemap-generator',
         'title': 'Sitemap Generator',
         'description': ('A process that returns a sitemap ofall pygeoapi endpoints.'),
@@ -182,7 +177,7 @@ class SitemapProcessor(BaseProcessor):
         if include_common:
             LOGGER.debug('Generating common.xml')
             oas = {'features': []}
-            for path in get_oas(self.config).get('paths'):
+            for path in get_oas(self.config).get('paths', []):
                 if r'{jobId}' not in path and r'{featureId}' not in path:
                     path_uri = url_join(self.base_url, path)
                     oas['features'].append({'@id': path_uri})
@@ -192,8 +187,7 @@ class SitemapProcessor(BaseProcessor):
             LOGGER.debug('Generating collections sitemap')
             for name, c in COLLECTIONS.items():
                 LOGGER.debug(f'Generating sitemap(s) for {name}')
-                feature_providers = filter_providers_by_type(c['providers'], 'feature')
-                p = get_provider_default(feature_providers)
+                p = get_provider_by_type(c['providers'], 'feature')
                 provider = load_plugin('provider', p)
                 hits = provider.query(resulttype='hits').get('numberMatched')
                 iterations = range(math.ceil(hits / 50000))
@@ -214,13 +208,24 @@ class SitemapProcessor(BaseProcessor):
 
         content = provider.query(offset=(n * index), limit=n, skip_geometry=True)
         content['links'] = []
-        content = geojson2jsonld(
-            self, content, dataset, id_field=(provider.uri_field or 'id')
+        content = self.geojson2linkedlist(
+            content, dataset, id_field=(provider.uri_field or 'id')
         )
         return self.xml.write(data=content)
 
-    def get_collections_url(self):
-        return url_join(self.base_url, 'collections')
+    def get_collections_url(self, *args):
+        return url_join(self.base_url, 'collections', *args)
+    
+    def geojson2linkedlist(self, content, dataset, id_field):
+        for feature in content['features']:
+            id = str(feature['id'])
+            feature['@id'] = (
+                self.get_collections_url(dataset, 'items', id)
+                if id_field == 'id' else
+                feature['properties'].get(id_field)    
+            )
+
+        return content
 
     def __repr__(self):
         return f'<SitemapProcessor> {self.name}'
