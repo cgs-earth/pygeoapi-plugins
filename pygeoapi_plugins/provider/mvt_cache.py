@@ -44,6 +44,7 @@ from sqlalchemy import (
 from sqlalchemy.sql import select
 from sqlalchemy.orm import Session
 
+from pygeoapi.provider.tile import ProviderTileNotFoundError
 
 from pygeoapi_plugins.provider.mvt_postgresql import MVTPostgreSQLProvider_
 
@@ -100,11 +101,16 @@ class MVTCacheProvider(MVTPostgreSQLProvider_):
         """
         zoom_level = min(self.disable_cache_at_z, len(schema.tileMatrices))
         layers = [
-            self.get_tiles(self.get_layer(), schema.tileMatrixSet, z, y, x)
+            (self.get_layer(), schema.tileMatrixSet, z, y, x)
             for z in range(zoom_level)
             for y in range(schema.tileMatrices[z]['matrixHeight'])
             for x in range(schema.tileMatrices[z]['matrixWidth'])
         ]
+        for layer in layers:
+            try:
+                self.get_tiles(*layer)
+            except ProviderTileNotFoundError:
+                continue
 
     def get_tiles_from_cache(
         self,
