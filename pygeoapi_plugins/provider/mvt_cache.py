@@ -30,7 +30,6 @@
 import logging
 
 import functools
-import multiprocessing as mp
 from pathlib import Path
 from sqlalchemy import (
     Table,
@@ -102,18 +101,11 @@ class MVTCacheProvider(MVTPostgreSQLProvider_):
         """
         zoom_level = min(self.disable_cache_at_z, len(schema.tileMatrices))
         layers = [
-            (self.get_layer(), schema.tileMatrixSet, z, y, x)
+             self.get_tiles(self.get_layer(), schema.tileMatrixSet, z, y, x)
             for z in range(zoom_level)
             for y in range(schema.tileMatrices[z]['matrixHeight'])
             for x in range(schema.tileMatrices[z]['matrixWidth'])
         ]
-
-        for layer in layers:
-            while len(mp.active_children()) == 2:
-                sleep(0.1)
-
-            p = mp.Process(target=self.get_tiles, args=layer)
-            p.start()
 
     def get_tiles_from_cache(
         self,
