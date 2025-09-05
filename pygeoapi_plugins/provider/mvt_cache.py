@@ -100,7 +100,11 @@ class MVTCacheProvider(MVTPostgreSQLProvider_):
         Run pre-cache to generate tiles for zoom levels
         """
         min_zoom = max(self.options['zoom']['min'], 0)
-        max_zoom = min(self.options['zoom']['max'], self.disable_cache_at_z, len(schema.tileMatrices))
+        max_zoom = min(
+            self.options['zoom']['max'],
+            self.disable_cache_at_z,
+            len(schema.tileMatrices),
+        )
         layers = [
             (self.get_layer(), schema.tileMatrixSet, z, y, x)
             for z in range(min_zoom, max_zoom)
