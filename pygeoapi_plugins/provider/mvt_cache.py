@@ -109,7 +109,7 @@ class MVTCacheProvider(MVTPostgreSQLProvider_):
         ]
 
         for layer in layers:
-            while len(mp.active_children()) == mp.cpu_count():
+            while len(mp.active_children()) == 2:
                 sleep(0.1)
 
             p = mp.Process(target=self.get_tiles, args=layer)
