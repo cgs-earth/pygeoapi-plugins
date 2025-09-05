@@ -30,7 +30,6 @@
 import logging
 
 import functools
-import multiprocessing as mp
 from pathlib import Path
 from sqlalchemy import (
     Table,
@@ -44,8 +43,8 @@ from sqlalchemy import (
 )
 from sqlalchemy.sql import select
 from sqlalchemy.orm import Session
-from time import sleep
 
+from pygeoapi.provider.tile import ProviderTileNotFoundError
 
 from pygeoapi_plugins.provider.mvt_postgresql import MVTPostgreSQLProvider_
 
@@ -100,20 +99,23 @@ class MVTCacheProvider(MVTPostgreSQLProvider_):
         """
         Run pre-cache to generate tiles for zoom levels
         """
-        zoom_level = min(self.disable_cache_at_z, len(schema.tileMatrices))
+        min_zoom = max(self.options['zoom']['min'], 0)
+        max_zoom = min(
+            self.options['zoom']['max'],
+            self.disable_cache_at_z,
+            len(schema.tileMatrices),
+        )
         layers = [
             (self.get_layer(), schema.tileMatrixSet, z, y, x)
-            for z in range(zoom_level)
+            for z in range(min_zoom, max_zoom)
             for y in range(schema.tileMatrices[z]['matrixHeight'])
             for x in range(schema.tileMatrices[z]['matrixWidth'])
         ]
-
         for layer in layers:
-            while len(mp.active_children()) == mp.cpu_count():
-                sleep(0.1)
-
-            p = mp.Process(target=self.get_tiles, args=layer)
-            p.start()
+            try:
+                self.get_tiles(*layer)
+            except ProviderTileNotFoundError:
+                continue
 
     def get_tiles_from_cache(
         self,
