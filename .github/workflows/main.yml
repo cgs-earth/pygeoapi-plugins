@@ -26,6 +26,7 @@ jobs:
           python-version: 3.12
       - name: Install requirements 📦
         run: |
+          pip3 install setuptools
           pip3 install https://github.com/geopython/pygeoapi/archive/refs/heads/master.zip
           pip3 install -r requirements.txt
           pip3 install -r requirements-dev.txt
