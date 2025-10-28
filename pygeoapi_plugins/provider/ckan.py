@@ -38,7 +38,7 @@ from pygeoapi.provider.base import (
     ProviderQueryError,
     ProviderConnectionError,
 )
-from pygeoapi.util import crs_transform
+from pygeoapi.crs import crs_transform
 
 LOGGER = logging.getLogger(__name__)
 
