@@ -45,7 +45,7 @@ from pygeofilter.parsers.ecql import parse as parse_ecql_text
 
 from pygeoapi.provider.mvt_postgresql import MVTPostgreSQLProvider
 from pygeoapi.provider.tile import ProviderTileNotFoundError
-from pygeoapi.util import get_crs
+from pygeoapi.crs import get_crs
 
 LOGGER = logging.getLogger(__name__)
 
