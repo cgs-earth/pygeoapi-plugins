@@ -45,7 +45,7 @@ from pygeofilter.parsers.ecql import parse as parse_ecql_text
 
 from pygeoapi.provider.mvt_postgresql import MVTPostgreSQLProvider
 from pygeoapi.provider.tile import ProviderTileNotFoundError
-from pygeoapi.util import get_crs_from_uri
+from pygeoapi.crs import get_crs
 
 LOGGER = logging.getLogger(__name__)
 
@@ -111,8 +111,8 @@ class MVTPostgreSQLProvider_(MVTPostgreSQLProvider):
 
         LOGGER.debug(f'Querying {self.table} for MVT tile {z}/{x}/{y}')
 
-        storage_srid = get_crs_from_uri(self.storage_crs).to_string()
-        out_srid = get_crs_from_uri(tileset_schema.crs).to_string()
+        storage_srid = get_crs(self.storage_crs).to_string()
+        out_srid = get_crs(tileset_schema.crs).to_string()
         envelope = self.get_envelope(z, y, x, tileset)
         envelope = select(
             ST_Transform(envelope, storage_srid).label('src'),
