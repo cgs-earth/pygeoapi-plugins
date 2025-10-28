@@ -154,6 +154,7 @@ def test_query_with_config_properties(config):
     """
     properties_subset = ['name', 'waterway', 'width', 'does_not_exist']
     config.update({'properties': properties_subset})
+    properties_subset.append('osm_id') 
     provider = PostgreSQLProvider(config)
     assert provider.properties == properties_subset
     result = provider.query()
