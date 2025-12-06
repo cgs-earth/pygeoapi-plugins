@@ -83,7 +83,7 @@ class PseudoPostgreSQLProvider(PostgreSQLProvider):
                              data contains the connection information
                              for class DatabaseCursor
 
-        :returns: pygeoapi.provider.base.PostgreSQLProvider
+        :returns: pygeoapi_plugins.provider.postgres.PseudoPostgreSQLProvider
         """
         LOGGER.debug('Initialising Pseudo-count PostgreSQL provider.')
         super().__init__(provider_def)
