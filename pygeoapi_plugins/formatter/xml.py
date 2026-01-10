@@ -60,10 +60,9 @@ class XMLFormatter(BaseFormatter):
 
         :returns: `pygeoapi.formatter.xml.XMLFormatter`
         """
-
-        geom = False
+        super().__init__(formatter_def)
         self.uri_field = formatter_def.get('uri_field')
-        super().__init__({'name': 'xml', 'geom': geom})
+        self.f = 'xml'
         self.mimetype = 'application/xml; charset=utf-8'
         self.extension = 'xml'
 
