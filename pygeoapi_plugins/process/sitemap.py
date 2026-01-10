@@ -2,7 +2,7 @@
 #
 # Author: Benjamin Webb <bwebb@lincolninst.edu>
 #
-# Copyright (c) 2025 Center for Geospatial Solutions
+# Copyright (c) 2026 Lincoln Institute of Land Policy
 #
 # Permission is hereby granted, free of charge, to any person
 # obtaining a copy of this software and associated documentation
@@ -225,25 +225,10 @@ class SitemapProcessor(BaseProcessor):
         """
 
         content = provider.query(offset=(n * index), limit=n, skip_geometry=True)
-        content['links'] = []
-        content = self.geojson2linkedlist(
-            content, dataset, id_field=(provider.uri_field or 'id')
-        )
         return self.xml.write(data=content)
 
     def get_collections_url(self, *args):
         return url_join(self.base_url, 'collections', *args)
-
-    def geojson2linkedlist(self, content, dataset, id_field):
-        for feature in content['features']:
-            id = str(feature['id'])
-            feature['@id'] = (
-                self.get_collections_url(dataset, 'items', id)
-                if id_field == 'id'
-                else feature['properties'].get(id_field)
-            )
-
-        return content
 
     def __repr__(self):
         return f'<SitemapProcessor> {self.name}'
