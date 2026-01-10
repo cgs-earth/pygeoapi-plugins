@@ -65,6 +65,7 @@ class XMLFormatter(BaseFormatter):
         self.uri_field = formatter_def.get('uri_field')
         super().__init__({'name': 'xml', 'geom': geom})
         self.mimetype = 'application/xml; charset=utf-8'
+        self.extension = 'xml'
 
     def write(self, options: dict = {}, data: dict = None) -> str:
         """
