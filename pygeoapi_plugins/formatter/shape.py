@@ -103,7 +103,7 @@ class KMLFormatter(BaseFormatter):
         :returns: `pygeoapi_plugins.formatter.shape.KMLFormatter`
         """
 
-        super().__init__({'name': 'kml'})
+        super().__init__({'name': 'kml', 'attachment': True})
 
         self.f = 'kml'
         self.mimetype = 'application/vnd.google-earth.kml+xml'
