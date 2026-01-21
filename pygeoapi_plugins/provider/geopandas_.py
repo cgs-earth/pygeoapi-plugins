@@ -501,7 +501,8 @@ class GeoPandasProvider(BaseProvider):
         if len(item) != len(self.gdf.columns):
             raise ProviderQueryError('Item to update does not match dataframe shape')
 
-        self.gdf = self.gdf._append(item, ignore_index=True)
+        new_row = geopandas.GeoDataFrame([item], crs=self.gdf.crs)
+        self.gdf = pandas.concat([self.gdf, new_row], ignore_index=True)
 
         return self.gdf[self.id_field].iloc[-1]
 
