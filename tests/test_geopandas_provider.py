@@ -30,6 +30,7 @@
 import datetime
 
 import geopandas as gpd
+import pandas as pd
 import pytest
 import shapely
 
@@ -284,7 +285,8 @@ def test_gpkg_sort_query(gpkg_config):
         'geometry': shapely.box(0, 0, 0, 0),
     }
 
-    p.gdf = p.gdf._append(dummy_row, ignore_index=True)
+    new_row = gpd.GeoDataFrame([dummy_row], crs=p.gdf.crs)
+    p.gdf = pd.concat([p.gdf, new_row], ignore_index=True)
     assert (len(p.gdf)) == 23
 
     results = p.query(
