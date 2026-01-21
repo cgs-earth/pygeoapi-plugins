@@ -96,9 +96,7 @@ class XMLFormatter(BaseFormatter):
             LOGGER.warning('Unable to indent')
 
         [collection_url] = [
-            link['href']
-            for link in data['links']
-            if link['rel'] == 'collection'
+            link['href'] for link in data['links'] if link['rel'] == 'collection'
         ]
 
         try:
