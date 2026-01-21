@@ -53,7 +53,7 @@ class JSONFGFormatter(BaseFormatter):
 
         :param formatter_def: formatter definition
 
-        :returns: `pygeoapi.formatter.jsonfg.JSONFGFormatter`
+        :returns: `pygeoapi_plugins.formatter.jsonfg.JSONFGFormatter`
         """
 
         geom = False
