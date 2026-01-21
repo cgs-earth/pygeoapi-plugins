@@ -68,3 +68,33 @@ def test_xml_formatter(config):
 
     now = datetime.now().strftime('%Y-%m-%dT%H:%M')
     assert now in lastmod
+
+
+def test_xml_formatter_no_uri(config):
+    p = CSVProvider(config)
+    config.pop('uri_field')
+    f = XMLFormatter(config)
+    fc = p.query()
+    fc['links'] = [
+        {
+            'rel': 'collection',
+            'href': 'http://example.com/collections/cities',
+            'type': 'application/json',
+        }
+    ]
+    f_xml = f.write(data=fc)
+
+    assert f.mimetype == 'application/xml; charset=utf-8'
+
+    root = ET.fromstring(f_xml)
+    assert all(i.tag == j.tag for (i, j) in zip(root, root.findall('url')))
+
+    node = root.find('url')
+    assert node.find('loc').text == 'http://example.com/collections/cities/items/0'
+
+    lastmod = node.find('lastmod').text
+    strptime = datetime.strptime(lastmod, '%Y-%m-%dT%H:%M:%SZ')
+    assert isinstance(strptime, datetime)
+
+    now = datetime.now().strftime('%Y-%m-%dT%H:%M')
+    assert now in lastmod

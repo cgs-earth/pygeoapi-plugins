@@ -62,9 +62,12 @@ class XMLFormatter(BaseFormatter):
         :returns: `pygeoapi_plugins.formatter.xml.XMLFormatter`
         """
 
+        formatter_def = {
+            'name': 'XML'
+        }
+
         super().__init__(formatter_def)
 
-        self.name = 'XML'
         self.f = 'xml'
         self.mimetype = 'application/xml; charset=utf-8'
         self.extension = 'xml'
@@ -95,11 +98,12 @@ class XMLFormatter(BaseFormatter):
         except AttributeError:
             LOGGER.warning('Unable to indent')
 
-        [collection_url] = [
-            link['href']
-            for link in data['links']
-            if link['rel'] == 'collection'
-        ]
+        if not self.uri_field:
+            [collection_url] = [
+                link['href']
+                for link in data['links']
+                if link['rel'] == 'collection'
+            ]
 
         try:
             for i, feature in enumerate(data['features']):
@@ -110,7 +114,7 @@ class XMLFormatter(BaseFormatter):
                 try:
                     loc = feature['properties'][self.uri_field]
                 except KeyError:
-                    loc = url_join(collection_url, 'items', feature['id'])
+                    loc = url_join(collection_url, 'items', str(feature['id']))
 
                 loc = saxutils.escape(loc)
                 try:

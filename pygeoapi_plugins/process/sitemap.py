@@ -181,13 +181,15 @@ class SitemapProcessor(BaseProcessor):
             paths = get_oas(CONFIG).get('paths', [])
             oas = {
                 'features': [
-                    {'@id': url_join(self.base_url, path)}
+                    {'properties':{'@id': url_join(self.base_url, path)}}
                     for path in paths
                     if r'{jobId}' not in path and r'{featureId}' not in path
                 ]
             }
 
+            self.xml.uri_field = '@id'
             yield ('common.xml', self.xml.write(data=oas))
+            self.xml.uri_field = None
 
         if include_features:
             LOGGER.debug('Generating collections sitemap')
@@ -200,6 +202,9 @@ class SitemapProcessor(BaseProcessor):
 
                 LOGGER.debug(f'Generating sitemap(s) for {name}')
                 provider = load_plugin('provider', p)
+                if provider.uri_field:
+                    self.xml.uri_field = provider.uri_field
+
                 hits = provider.query(resulttype='hits').get('numberMatched')
 
                 try:
@@ -225,6 +230,13 @@ class SitemapProcessor(BaseProcessor):
         """
 
         content = provider.query(offset=(n * index), limit=n, skip_geometry=True)
+        content['links'] = [
+            {
+                'rel': 'collection',
+                'href': self.get_collections_url(dataset),
+                'type': 'application/json',
+            }
+        ]
         return self.xml.write(data=content)
 
     def get_collections_url(self, *args):

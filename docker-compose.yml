@@ -1,0 +1,6 @@
+services:
+  pygeoapi:
+    build:
+      context: .
+    ports:
+      - 5000:80
