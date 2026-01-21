@@ -51,10 +51,10 @@ def test_sitemap_generator(body):
     assert r.status_code == 200
 
     sitemap = r.json()
-    assert len(sitemap) == 5
+    assert len(sitemap) == 4
 
     common = sitemap.pop('common.xml')
-    assert len(common) == 3134
+    assert len(common) == 2646
 
     root = xml.etree.ElementTree.fromstring(common)
     assert all(i.tag == j.tag for (i, j) in zip(root, root.findall('url')))
@@ -79,7 +79,7 @@ def test_sitemap_no_features(body):
     assert len(sitemap) == 1
 
     common = sitemap.pop('common.xml')
-    assert len(common) == 3134
+    assert len(common) == 2646
 
 
 def test_sitemap_zip(body):
