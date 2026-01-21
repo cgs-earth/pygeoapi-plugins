@@ -51,7 +51,7 @@ class ShapefileFormatter(BaseFormatter):
         :returns: `pygeoapi_plugins.formatter.shape.ShapefileFormatter`
         """
 
-        super().__init__({'name': 'shp', 'attachment': True})
+        super().__init__({'name': 'SHP', 'attachment': True})
 
         self.mimetype = 'application/zip'
         self.f = 'shp'
@@ -69,7 +69,6 @@ class ShapefileFormatter(BaseFormatter):
         dataset = options.get('dataset', 'data')
 
         gdf = gpd.GeoDataFrame.from_features(data['features'])
-        gdf.set_crs('EPSG:4326', inplace=True)
 
         # Create a temporary directory for shapefile components
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -88,10 +87,34 @@ class ShapefileFormatter(BaseFormatter):
             return zip_buffer.getvalue()
 
     def __repr__(self):
-        return f'<KMLFormatter> {self.name}'
+        return f'<ShapefileFormatter> {self.name}'
+    
+
+class BaseShapeFormatter(BaseFormatter):
+    """Base Shape formatter"""
+
+    def _write(self, driver=str, options: dict = {}, data: dict = None) -> str:
+        """
+        Generate data in driver format
+
+        :param driver: OGR driver name
+        :param options: formatting options
+        :param data: dict of GeoJSON data
+
+        :returns: string representation of format
+        """
+
+        gdf = gpd.GeoDataFrame.from_features(data['features'])
+        output = io.BytesIO()
+        try:
+            gdf.to_file(output, driver=driver, use_arrow=True)
+        except ModuleNotFoundError:
+            gdf.to_file(output, driver=driver)
+
+        return output.getvalue()
 
 
-class KMLFormatter(BaseFormatter):
+class KMLFormatter(BaseShapeFormatter):
     """KML formatter"""
 
     def __init__(self, formatter_def: dict):
@@ -103,7 +126,7 @@ class KMLFormatter(BaseFormatter):
         :returns: `pygeoapi_plugins.formatter.shape.KMLFormatter`
         """
 
-        super().__init__({'name': 'kml', 'attachment': True})
+        super().__init__({'name': 'KML', 'attachment': True})
 
         self.f = 'kml'
         self.mimetype = 'application/vnd.google-earth.kml+xml'
@@ -112,20 +135,36 @@ class KMLFormatter(BaseFormatter):
     def write(self, options: dict = {}, data: dict = None) -> str:
         """
         Generate data in KML format
-
-        :param options: KML formatting options
-        :param data: dict of GeoJSON data
-
-        :returns: string representation of format
         """
-
-        gdf = gpd.GeoDataFrame.from_features(data['features'])
-        gdf.set_crs('EPSG:4326', inplace=True)
-
-        output = io.BytesIO()
-        gdf.to_file(output, driver='KML')
-
-        return output.getvalue()
+        return self._write('KML', options, data)
 
     def __repr__(self):
         return f'<KMLFormatter> {self.name}'
+
+
+class GPKGFormatter(BaseShapeFormatter):
+    """GPKG formatter"""
+
+    def __init__(self, formatter_def: dict):
+        """
+        Initialize object
+
+        :param formatter_def: formatter definition
+
+        :returns: `pygeoapi_plugins.formatter.shape.GPKGFormatter`
+        """
+
+        super().__init__({'name': 'GPKG', 'attachment': True})
+
+        self.f = 'gpkg'
+        self.mimetype = 'application/geopackage+sqlite3'
+        self.extension = 'gpkg'
+
+    def write(self, options: dict = {}, data: dict = None) -> str:
+        """
+        Generate data in GPKG format
+        """
+        return self._write('GPKG', options, data)
+
+    def __repr__(self):
+        return f'<GPKGFormatter> {self.name}'
