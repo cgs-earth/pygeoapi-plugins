@@ -166,7 +166,7 @@ def test_query(config):
     feature = p.get('0')
     assert feature['id'] == '0'
     assert feature['properties']['city'] == 'Berlin'
-    assert feature['properties']['population'] == '3677472'
+    assert feature['properties']['population'] == '3596999'
     assert feature['properties']['country'] == 'http://dbpedia.org/resource/Germany'  # noqa
     assert feature['geometry']['coordinates'][0] == 13.405
     assert feature['geometry']['coordinates'][1] == 52.52
