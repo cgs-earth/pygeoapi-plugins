@@ -57,13 +57,13 @@ class JSONFGFormatter(BaseFormatter):
         """
 
         geom = False
-        if "geom" in formatter_def:
-            geom = formatter_def["geom"]
+        if 'geom' in formatter_def:
+            geom = formatter_def['geom']
 
-        super().__init__({"name": "JSONFG", "geom": geom})
-        self.mimetype = "application/geo+json"
-        self.f = "jsonfg"
-        self.extension = "json"
+        super().__init__({'name': 'JSONFG', 'geom': geom})
+        self.mimetype = 'application/geo+json'
+        self.f = 'jsonfg'
+        self.extension = 'json'
 
     def write(self, options: dict = {}, data: dict = None) -> dict:
         """
@@ -77,27 +77,27 @@ class JSONFGFormatter(BaseFormatter):
 
         try:
             fields = list(
-                data["features"][0]["properties"].keys()
-                if data.get("features")
-                else data["properties"].keys()
+                data['features'][0]['properties'].keys()
+                if data.get('features')
+                else data['properties'].keys()
             )
         except IndexError:
-            LOGGER.error("no features")
+            LOGGER.error('no features')
             return dict()
 
-        LOGGER.debug(f"JSONFG fields: {fields}")
+        LOGGER.debug(f'JSONFG fields: {fields}')
 
         try:
-            links = data.get("links")
+            links = data.get('links')
             output = geojson2jsonfg(data=data)
-            output["links"] = links
+            output['links'] = links
             return output
         except ValueError as err:
             LOGGER.error(err)
-            raise FormatterSerializationError("Error writing JSONFG output")
+            raise FormatterSerializationError('Error writing JSONFG output')
 
     def __repr__(self):
-        return f"<JSONFGFormatter> {self.name}"
+        return f'<JSONFGFormatter> {self.name}'
 
 
 def geojson2jsonfg(data: dict) -> dict:
@@ -109,23 +109,23 @@ def geojson2jsonfg(data: dict) -> dict:
     :returns: dict of converted GeoJSON (JSON-FG)
     """
     gdal.UseExceptions()
-    LOGGER.debug("Dump GeoJSON content into a data source")
+    LOGGER.debug('Dump GeoJSON content into a data source')
     try:
         with gdal.OpenEx(json.dumps(data)) as srcDS:
-            tmpfile = f"/vsimem/{uuid.uuid1()}.json"
-            LOGGER.debug("Translate GeoJSON into a JSONFG memory file")
-            gdal.VectorTranslate(tmpfile, srcDS, format="JSONFG")
-            LOGGER.debug("Read JSONFG content from a memory file")
-            data = gdal.VSIFOpenL(tmpfile, "rb")
+            tmpfile = f'/vsimem/{uuid.uuid1()}.json'
+            LOGGER.debug('Translate GeoJSON into a JSONFG memory file')
+            gdal.VectorTranslate(tmpfile, srcDS, format='JSONFG')
+            LOGGER.debug('Read JSONFG content from a memory file')
+            data = gdal.VSIFOpenL(tmpfile, 'rb')
             if not data:
-                raise ValueError("Failed to read JSONFG content")
+                raise ValueError('Failed to read JSONFG content')
             gdal.VSIFSeekL(data, 0, 2)
             length = gdal.VSIFTellL(data)
             gdal.VSIFSeekL(data, 0, 0)
             jsonfg = json.loads(gdal.VSIFReadL(1, length, data).decode())
             return jsonfg
     except Exception as e:
-        LOGGER.error(f"Failed to convert GeoJSON to JSON-FG: {e}")
+        LOGGER.error(f'Failed to convert GeoJSON to JSON-FG: {e}')
         raise
     finally:
         gdal.VSIFCloseL(data)

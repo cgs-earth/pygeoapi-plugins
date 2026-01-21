@@ -38,23 +38,22 @@ from pygeoapi_plugins.formatter.jsonfg import JSONFGFormatter
 def fixture():
     data = {
         'type': 'FeatureCollection',
-        'features': [{
-            'type': 'Feature',
-            'id': '123-456',
-            'geometry': {
-                'type': 'Point',
-                'coordinates': [125.6, 10.1]},
-            'properties': {
-                'name': 'Dinagat Islands',
-                'foo': 'bar'
-            }}
+        'features': [
+            {
+                'type': 'Feature',
+                'id': '123-456',
+                'geometry': {'type': 'Point', 'coordinates': [125.6, 10.1]},
+                'properties': {'name': 'Dinagat Islands', 'foo': 'bar'},
+            }
         ],
-        'links': [{
-            'rel': 'self',
-            'type': 'application/geo+json',
-            'title': 'GeoJSON',
-            'href': 'http://example.com'
-        }]
+        'links': [
+            {
+                'rel': 'self',
+                'type': 'application/geo+json',
+                'title': 'GeoJSON',
+                'href': 'http://example.com',
+            }
+        ],
     }
 
     return data
@@ -64,7 +63,7 @@ def test_jsonfg__formatter(fixture):
     f = JSONFGFormatter({'geom': True})
     f_jsonfg = f.write(data=fixture)
 
-    assert f.mimetype == "application/geo+json"
+    assert f.mimetype == 'application/geo+json'
 
     assert f_jsonfg['type'] == 'FeatureCollection'
     assert f_jsonfg['features'][0]['type'] == 'Feature'
