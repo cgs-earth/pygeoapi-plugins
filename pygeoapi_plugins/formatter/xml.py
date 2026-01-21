@@ -2,7 +2,7 @@
 #
 # Author: Benjamin Webb <bwebb@lincolninst.edu>
 #
-# Copyright (c) 2025 Center for Geospatial Solutions
+# Copyright (c) 2026 Lincoln Institute of Land Policy
 #
 # Permission is hereby granted, free of charge, to any person
 # obtaining a copy of this software and associated documentation
@@ -34,6 +34,7 @@ import xml.etree.ElementTree as ET
 import xml.sax.saxutils as saxutils
 
 from pygeoapi.formatter.base import BaseFormatter, FormatterSerializationError
+from pygeoapi.util import url_join
 
 LOGGER = logging.getLogger(__name__)
 
@@ -58,13 +59,18 @@ class XMLFormatter(BaseFormatter):
 
         :param formatter_def: formatter definition
 
-        :returns: `pygeoapi.formatter.xml.XMLFormatter`
+        :returns: `pygeoapi_plugins.formatter.xml.XMLFormatter`
         """
 
-        geom = False
-        self.uri_field = formatter_def.get('uri_field')
-        super().__init__({'name': 'xml', 'geom': geom})
+        formatter_def['name'] = 'XML'
+
+        super().__init__(formatter_def)
+
+        self.f = 'xml'
         self.mimetype = 'application/xml; charset=utf-8'
+        self.extension = 'xml'
+
+        self.uri_field = formatter_def.get('uri_field')
 
     def write(self, options: dict = {}, data: dict = None) -> str:
         """
@@ -90,6 +96,11 @@ class XMLFormatter(BaseFormatter):
         except AttributeError:
             LOGGER.warning('Unable to indent')
 
+        if not self.uri_field:
+            [collection_url] = [
+                link['href'] for link in data['links'] if link['rel'] == 'collection'
+            ]
+
         try:
             for i, feature in enumerate(data['features']):
                 if i >= 50000:
@@ -99,7 +110,7 @@ class XMLFormatter(BaseFormatter):
                 try:
                     loc = feature['properties'][self.uri_field]
                 except KeyError:
-                    loc = feature['@id']
+                    loc = url_join(collection_url, 'items', str(feature['id']))
 
                 loc = saxutils.escape(loc)
                 try:

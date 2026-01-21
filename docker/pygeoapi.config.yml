@@ -196,40 +196,6 @@ resources:
             - predicate: dbp:timezone
               object: '?time_zone'
 
-  reservoirs:
-    type: collection
-    title: New Mexico Reservoirs
-    description: This is a point coverage of dams in the New Mexico, which originally was derived from the national inventory of dams data base (U.S. Army Corps of Engineers, 1982)
-    keywords:
-      - pygeoapi
-      - ckan
-      - api
-    context:
-      - name: schema:name
-        description: schema:description
-        subjectOf: schema:subjectOf
-    links:
-      - type: application/html
-        rel: canonical
-        title: data source
-        href: https://catalog.newmexicowaterdata.org/mn_MN/dataset/new-mexico-reservoirs/resource/08369d21-520b-439e-97e3-5ecb50737887
-        hreflang: en-US
-    extents:
-      spatial:
-        bbox: [-109, 31, -103, 37]
-        crs: http://www.opengis.net/def/crs/OGC/1.3/CRS84
-      temporal:
-        begin: null
-        end: null
-    providers:
-      - type: feature
-        name: pygeoapi_plugins.provider.ckan.CKANProvider
-        data: https://catalog.newmexicowaterdata.org/api/3/action/datastore_search
-        resource_id: 08369d21-520b-439e-97e3-5ecb50737887
-        id_field: _id
-        x_field: LONDD
-        y_field: LATDD
-
   intersector:
     type: process
     processor:

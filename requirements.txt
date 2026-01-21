@@ -1,9 +1,10 @@
 pygeoapi
 geoalchemy
 geopandas
-numpy==2.0.1
+numpy
 psycopg2
 pygeofilter[backend-sqlalchemy]
+pyarrow
 requests
 shapely>=2.1.0
 SPARQLWrapper
