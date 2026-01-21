@@ -62,9 +62,7 @@ class XMLFormatter(BaseFormatter):
         :returns: `pygeoapi_plugins.formatter.xml.XMLFormatter`
         """
 
-        formatter_def = {
-            'name': 'XML'
-        }
+        formatter_def = {'name': 'XML'}
 
         super().__init__(formatter_def)
 
@@ -100,9 +98,7 @@ class XMLFormatter(BaseFormatter):
 
         if not self.uri_field:
             [collection_url] = [
-                link['href']
-                for link in data['links']
-                if link['rel'] == 'collection'
+                link['href'] for link in data['links'] if link['rel'] == 'collection'
             ]
 
         try:

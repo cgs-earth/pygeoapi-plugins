@@ -77,9 +77,7 @@ class ShapefileFormatter(BaseFormatter):
 
             # Create a zip in memory
             zip_buffer = io.BytesIO()
-            with zipfile.ZipFile(
-                zip_buffer, 'w', zipfile.ZIP_DEFLATED
-            ) as zipf:
+            with zipfile.ZipFile(zip_buffer, 'w', zipfile.ZIP_DEFLATED) as zipf:
                 for filename in os.listdir(tmpdir):
                     full_path = os.path.join(tmpdir, filename)
                     zipf.write(full_path, arcname=filename)
@@ -88,7 +86,7 @@ class ShapefileFormatter(BaseFormatter):
 
     def __repr__(self):
         return f'<ShapefileFormatter> {self.name}'
-    
+
 
 class BaseShapeFormatter(BaseFormatter):
     """Base Shape formatter"""

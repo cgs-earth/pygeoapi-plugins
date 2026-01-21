@@ -181,7 +181,7 @@ class SitemapProcessor(BaseProcessor):
             paths = get_oas(CONFIG).get('paths', [])
             oas = {
                 'features': [
-                    {'properties':{'@id': url_join(self.base_url, path)}}
+                    {'properties': {'@id': url_join(self.base_url, path)}}
                     for path in paths
                     if r'{jobId}' not in path and r'{featureId}' not in path
                 ]
