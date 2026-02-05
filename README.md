@@ -233,7 +233,9 @@ Additional OGC API - Processes are listed below
 
 ### Intersector
 
-The intersection process uses OGC API - Features Part 3: Filtering to return CQL intersections of features.
+The intersection process uses GDAL Python bindings to return features from a 
+collection using an existing Geospatial OGR based file as the spatial mask.
+
 An example configuration in a pygeoapi configuration is below.
 
 ```yaml
@@ -242,6 +244,11 @@ intersector:
   processor:
     name: pygeoapi_plugins.process.intersect.IntersectionProcessor
 ```
+
+* **collection** is always required
+* **url** or **file** is required
+  - **url** is the remote source of the Geospatial file
+  - **file** is the encoded bytes of the Geospatial file
 
 This plugin is used in https:/reference.geoconnex.us/.
 

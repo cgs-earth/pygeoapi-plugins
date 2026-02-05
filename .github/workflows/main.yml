@@ -46,6 +46,7 @@ jobs:
           POSTGRESQL_PASSWORD: ${{ env.POSTGRESQL_PASSWORD }}
         run: |
           # pytest tests/test_ckan_provider.py
+          pytest tests/test_intersect_process.py
           pytest tests/test_geopandas_provider.py
           pytest tests/test_jsonfg_formatter.py
           pytest tests/test_postgresql_provider.py
@@ -53,3 +54,10 @@ jobs:
           pytest tests/test_sitemap_process.py
           pytest tests/test_sparql_provider.py
           pytest tests/test_xml_formatter.py
+      - name: Failed Tests
+        if: failure()
+        run: |
+          echo "Tests failed. Collecting logs..."
+          docker ps -a
+          docker logs pygeoapi-plugins-pygeoapi-1
+          pip3 freeze

@@ -35,12 +35,12 @@ import zipfile
 from pygeoapi.config import get_config
 from pygeoapi.plugin import load_plugin
 from pygeoapi.process.base import BaseProcessor
+from pygeoapi.provider import get_provider_by_type
 from pygeoapi.provider.base import ProviderTypeError
 from pygeoapi.openapi import get_oas
 from pygeoapi.util import (
     url_join,
     filter_dict_by_key_value,
-    get_provider_by_type,
     get_base_url,
 )
 
