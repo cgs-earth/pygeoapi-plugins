@@ -34,20 +34,17 @@ from typing import Tuple
 from zipfile import ZipFile
 from pyproj import CRS
 
-from pygeoapi.crs import DEFAULT_CRS, transform_bbox
+from pygeoapi.crs import transform_bbox
 from pygeoapi.config import get_config
 from pygeoapi.plugin import load_plugin
 from pygeoapi.process.base import BaseProcessor, ProcessorExecuteError
 from pygeoapi.provider.ogr import GdalErrorHandler
-from pygeoapi.util import (
-    filter_dict_by_key_value, get_provider_default, to_json)
+from pygeoapi.util import filter_dict_by_key_value, get_provider_default, to_json
 
 LOGGER = logging.getLogger(__name__)
 
 CONFIG = get_config()
-COLLECTIONS = filter_dict_by_key_value(
-    CONFIG['resources'], 'type', 'collection'
-)
+COLLECTIONS = filter_dict_by_key_value(CONFIG['resources'], 'type', 'collection')
 
 PROCESS_DEF = CONFIG['resources']['intersector']
 PROCESS_DEF.update(
@@ -55,9 +52,7 @@ PROCESS_DEF.update(
         'version': '0.2.0',
         'id': 'intersector',
         'title': 'Intersector',
-        'description': (
-            'A process that runs an intersection.'
-        ),
+        'description': ('A process that runs an intersection.'),
         'links': [
             {
                 'type': 'text/html',
@@ -96,7 +91,7 @@ PROCESS_DEF.update(
                 'minOccurs': 1,
                 'maxOccurs': 1,
                 'metadata': None,  # TODO how to use?
-            }
+            },
         },
         'outputs': {
             'path': {
@@ -110,7 +105,7 @@ PROCESS_DEF.update(
         },
         'example': {
             'inputs': {
-                'url': 'https://demo.pygeoapi.io/master/collections/obs/items/238', # noqa
+                'url': 'https://demo.pygeoapi.io/master/collections/obs/items/238',  # noqa
                 'collection': next(iter(COLLECTIONS)),
             }
         },
@@ -152,9 +147,7 @@ class IntersectionProcessor(BaseProcessor):
         mimetype = 'application/json'
 
         if not data.get('url') and not data.get('file'):
-            raise ProcessorExecuteError(
-                'Invalid input, no Feature to intersect'
-            )
+            raise ProcessorExecuteError('Invalid input, no Feature to intersect')
 
         if data.get('url') and data.get('file'):
             raise ProcessorExecuteError(
@@ -163,9 +156,7 @@ class IntersectionProcessor(BaseProcessor):
 
         collection = data.get('collection')
         if not collection:
-            raise ProcessorExecuteError(
-                'Invalid input: no collection specified'
-            )
+            raise ProcessorExecuteError('Invalid input: no collection specified')
         elif collection not in COLLECTIONS:
             raise ProcessorExecuteError(
                 f'Invalid input: collection {collection} not found'
@@ -194,9 +185,7 @@ class IntersectionProcessor(BaseProcessor):
 
         out_features = []
         for feature in features['features']:
-            geom = ogr.CreateGeometryFromJson(
-                to_json(feature['geometry'])
-            )
+            geom = ogr.CreateGeometryFromJson(to_json(feature['geometry']))
 
             if geom and geom.Intersects(layer):
                 out_features.append(feature)
@@ -204,7 +193,7 @@ class IntersectionProcessor(BaseProcessor):
         outputs = {
             'type': 'FeatureCollection',
             'features': out_features,
-            'numberReturned': len(out_features)
+            'numberReturned': len(out_features),
         }
 
         return mimetype, outputs
@@ -251,14 +240,15 @@ class IntersectionProcessor(BaseProcessor):
                 if ext == '.zip':
                     with ZipFile(tmp_path, 'r') as zip_ref:
                         [filename] = [
-                            f for f in zip_ref.namelist()
-                            if f.endswith(('shp', 'gpkg'))
+                            f for f in zip_ref.namelist() if f.endswith(('shp', 'gpkg'))
                         ]
                         tmp_path = f'/vsizip/{tmp_path}/{filename}'
 
                 ds = gdal.OpenEx(tmp_path, gdal.OF_VECTOR)
                 if ds is None:
-                    raise ProcessorExecuteError('GDAL could not open feature from bytes (temp file fallback).')  # noqa
+                    raise ProcessorExecuteError(
+                        'GDAL could not open feature from bytes (temp file fallback).'
+                    )  # noqa
 
                 layer = ds.GetLayer()
                 srs = layer.GetSpatialRef()
@@ -274,9 +264,7 @@ class IntersectionProcessor(BaseProcessor):
         bbox = (minx, miny, maxx, maxy)
 
         if srs:
-            bbox = transform_bbox(
-                bbox, CRS(srs.ExportToWkt()), CRS('EPSG:4326')
-            )
+            bbox = transform_bbox(bbox, CRS(srs.ExportToWkt()), CRS('EPSG:4326'))
 
         return (union, bbox)
 
