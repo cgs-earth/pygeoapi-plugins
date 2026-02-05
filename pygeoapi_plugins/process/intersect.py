@@ -240,7 +240,9 @@ class IntersectionProcessor(BaseProcessor):
                 if ext == '.zip':
                     with ZipFile(tmp_path, 'r') as zip_ref:
                         [filename] = [
-                            f for f in zip_ref.namelist() if f.endswith(('.shp', '.gpkg'))
+                            f
+                            for f in zip_ref.namelist()
+                            if f.endswith(('.shp', '.gpkg'))
                         ]
                         tmp_path = f'/vsizip/{tmp_path}/{filename}'
 
