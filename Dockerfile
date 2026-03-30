@@ -5,8 +5,7 @@ ADD ./docker/pygeoapi.config.yml /pygeoapi/local.config.yml
 ADD . /pygeoapi_plugins
 
 RUN /venv/bin/python3 -m pip install -r /pygeoapi_plugins/requirements.txt \
+    && /venv/bin/python3 -m pip install GDAL \
     && /venv/bin/python3 -m pip install -e /pygeoapi_plugins
-
-RUN /venv/bin/python3 -m pip install GDAL>=3.12.0
 
 ENTRYPOINT [ "/entrypoint.sh" ]
