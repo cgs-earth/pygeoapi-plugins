@@ -1,5 +1,4 @@
 pygeoapi
-GDAL
 geoalchemy
 geopandas
 numpy
