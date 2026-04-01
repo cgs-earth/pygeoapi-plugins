@@ -165,8 +165,7 @@ class IntersectionProcessor(BaseProcessor):
 
         layer, bbox = self.get_layer(**data)
         provider_def = get_provider_by_type(
-            CONFIG['resources'][collection]['providers'],
-            'feature'
+            CONFIG['resources'][collection]['providers'], 'feature'
         )
         p = load_plugin('provider', provider_def)
         hits = p.query(bbox=bbox, resulttype='hits')['numberMatched']
