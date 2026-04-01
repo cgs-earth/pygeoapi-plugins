@@ -24,20 +24,23 @@ jobs:
         name: Setup Python
         with:
           python-version: 3.12
+      - name: Start pygeoapi sitemap instance
+        run: |
+          docker compose up -d --build &
       - name: Use ubuntuGIS unstable ppa
         run: |
           sudo add-apt-repository ppa:ubuntugis/ubuntugis-unstable
           sudo apt update
           sudo apt-get install gdal-bin libgdal-dev -y
-      - name: Install requirements 📦
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+          cache-dependency-glob: 'uv.lock'
+      - name: Install the project
         run: |
-          pip3 install setuptools
-          pip3 install https://github.com/geopython/pygeoapi/archive/refs/heads/master.zip
-          pip3 install GDAL==`gdal-config --version`
-          pip3 install -r requirements.txt
-          pip3 install -r requirements-dev.txt
-          python3 setup.py install
-          docker compose up -d --build
+          uv sync --inexact --all-packages --extra dev 
+          uv pip install GDAL==`gdal-config --version`
       - name: Setup test data ⚙️
         run: |
           gunzip < tests/data/hotosm_bdi_waterways.sql.gz | psql postgresql://postgres:${{ env.POSTGRESQL_PASSWORD }}@localhost:5432/test
@@ -45,19 +48,18 @@ jobs:
         env:
           POSTGRESQL_PASSWORD: ${{ env.POSTGRESQL_PASSWORD }}
         run: |
-          # pytest tests/test_ckan_provider.py
-          pytest tests/test_intersect_process.py
-          pytest tests/test_geopandas_provider.py
-          pytest tests/test_jsonfg_formatter.py
-          pytest tests/test_postgresql_provider.py
-          pytest tests/test_mvt_postgresql_provider.py
-          pytest tests/test_sitemap_process.py
-          pytest tests/test_sparql_provider.py
-          pytest tests/test_xml_formatter.py
+          uv run pytest tests/test_intersect_process.py
+          uv run pytest tests/test_geopandas_provider.py
+          uv run pytest tests/test_jsonfg_formatter.py
+          uv run pytest tests/test_postgresql_provider.py
+          uv run pytest tests/test_mvt_postgresql_provider.py
+          uv run pytest tests/test_sitemap_process.py
+          uv run pytest tests/test_sparql_provider.py
+          uv run pytest tests/test_xml_formatter.py
       - name: Failed Tests
         if: failure()
         run: |
           echo "Tests failed. Collecting logs..."
           docker ps -a
           docker logs pygeoapi-plugins-pygeoapi-1
-          pip3 freeze
+          uv pip freeze

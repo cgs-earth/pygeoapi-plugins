@@ -30,7 +30,8 @@
 import io
 import pytest
 from requests import Session
-import xml
+import xml.etree.ElementTree as ET
+from xml.sax.saxutils import unescape
 import zipfile
 
 from pygeoapi.util import url_join
@@ -54,9 +55,11 @@ def test_sitemap_generator(body):
     assert len(sitemap) == 4
 
     common = sitemap.pop('common.xml')
-    assert len(common) == 2646
+    assert len(common) == 3322
+    common = unescape(common)
+    assert len(common) == 2548
 
-    root = xml.etree.ElementTree.fromstring(common)
+    root = ET.fromstring(common)
     assert all(i.tag == j.tag for (i, j) in zip(root, root.findall('url')))
 
     assert all(f.endswith('__0.xml') for f in sitemap)
@@ -79,7 +82,7 @@ def test_sitemap_no_features(body):
     assert len(sitemap) == 1
 
     common = sitemap.pop('common.xml')
-    assert len(common) == 2646
+    assert len(common) == 3322
 
 
 def test_sitemap_zip(body):
