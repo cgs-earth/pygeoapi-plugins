@@ -54,4 +54,4 @@ allow-direct-references = true
 exclude = ["tests"]
 
 [tool.uv.sources]
-pygeoapi = { git = "https://github.com/geopython/pygeoapi.git" }
+pygeoapi = { git = "https://github.com/internetofwater/pygeoapi.git", branch="dev" }

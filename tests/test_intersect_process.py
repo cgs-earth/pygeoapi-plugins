@@ -104,20 +104,58 @@ def test_execute_raises_when_missing_collection(process_def, bytes_data):
         (
             'https://github.com/geopython/pygeoapi/raw/refs/heads/master/tests/data/coads_sst.nc',
             None,
-            pytest.raises(Exception),
+            pytest.raises(ProcessorExecuteError),
         ),  # Error case - non-vector
-        ('https://example.com', None, pytest.raises(Exception)),  # Error case - bad URL
+        (
+            'http://example.com',
+            None,
+            pytest.raises(ProcessorExecuteError),
+        ),  # Error case - non-geospatial URL
+        (
+            'https://reference.geoconnex.us/ref',
+            None,
+            pytest.raises(ProcessorExecuteError),
+        ),  # Error case - 404 URL
     ],
 )
 def test_get_bbox(process_def, url, bounds, ctx):
     proc = intersect.IntersectionProcessor(process_def)
     with ctx:
-        _, bbox = proc.get_layer(url=url, as_bbox=True)
+        _, bbox = proc.get_layer(url=url)
+        print(bbox)
         assert pytest.approx(bbox) == bounds
 
     with ctx:
         content = requests.get(url).content
-        _, bbox = proc.get_layer(file=content, as_bbox=True)
+        _, bbox = proc.get_layer(file=content)
+        assert pytest.approx(bbox) == bounds
+
+
+@pytest.mark.parametrize(
+    'url,bounds,ctx',
+    [
+        (
+            'http://geoconnex.us/ref/states/08',
+            [-109.060253, 36.992426, -102.041524, 41.003443999999995],
+            contextlib.nullcontext(),
+        ),
+        (
+            'https://reference.geoconnex.us/collections/states/items',
+            [-179.148909, -14.548699, 179.77847011250077, 71.365162],
+            contextlib.nullcontext(),
+        ),
+        (
+            'https://reference.geoconnex.us',
+            None,
+            pytest.raises(ProcessorExecuteError),
+        ),
+    ],
+)
+def test_literal_geojson(process_def, url, bounds, ctx):
+    proc = intersect.IntersectionProcessor(process_def)
+    content = requests.get(url).json()
+    with ctx:
+        _, bbox = proc.get_layer(file=content)
         assert pytest.approx(bbox) == bounds
 
 
