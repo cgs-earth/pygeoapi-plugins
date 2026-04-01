@@ -30,7 +30,7 @@
 import logging
 import tempfile
 from osgeo import gdal, ogr
-from typing import Tuple
+from typing import Tuple, Any
 from zipfile import ZipFile
 from pyproj import CRS
 
@@ -38,14 +38,21 @@ from pygeoapi.crs import transform_bbox
 from pygeoapi.config import get_config
 from pygeoapi.plugin import load_plugin
 from pygeoapi.process.base import BaseProcessor, ProcessorExecuteError
-from pygeoapi.provider import get_provider_by_type
+from pygeoapi.provider import get_provider_by_type, filter_providers_by_type
 from pygeoapi.provider.ogr import GdalErrorHandler
 from pygeoapi.util import filter_dict_by_key_value, to_json
 
 LOGGER = logging.getLogger(__name__)
 
 CONFIG = get_config()
-COLLECTIONS = filter_dict_by_key_value(CONFIG['resources'], 'type', 'collection')
+COLLECTIONS = filter_dict_by_key_value(
+    CONFIG['resources'], 'type', 'collection'
+)
+FEATURE_COLLECTIONS = [
+    cid for cid, cdef in COLLECTIONS.items()
+    if filter_providers_by_type(cdef['providers'], 'feature')
+]
+FIRST_COLLECTION = next(iter(FEATURE_COLLECTIONS))
 
 PROCESS_DEF = CONFIG['resources']['intersector']
 PROCESS_DEF.update(
@@ -86,8 +93,8 @@ PROCESS_DEF.update(
                 'keywords': {'en': ['OGC API', 'collection']},
                 'schema': {
                     'type': 'string',
-                    'example': next(iter(COLLECTIONS)),
-                    'enum': list(COLLECTIONS),
+                    'example': FIRST_COLLECTION,
+                    'enum': FEATURE_COLLECTIONS,
                 },
                 'minOccurs': 1,
                 'maxOccurs': 1,
@@ -107,7 +114,7 @@ PROCESS_DEF.update(
         'example': {
             'inputs': {
                 'url': 'https://demo.pygeoapi.io/master/collections/obs/items/238',  # noqa
-                'collection': next(iter(COLLECTIONS)),
+                'collection': FIRST_COLLECTION,
             }
         },
     }
@@ -146,99 +153,132 @@ class IntersectionProcessor(BaseProcessor):
         :returns: 'application/json'
         """
         mimetype = 'application/json'
+        fc_out = {
+            'type': 'FeatureCollection',
+            'features': []
+        }
 
-        if not data.get('url') and not data.get('file'):
-            raise ProcessorExecuteError('Invalid input, no Feature to intersect')
+        # Validate input and get feature layer
+        collection = self.validate_inputs(data)
+        layer, bbox = self.get_layer(
+            url=data.get('url'),
+            file=data.get('file')
+        )
 
-        if data.get('url') and data.get('file'):
-            raise ProcessorExecuteError(
-                'Invalid input, provide either url or feature, not both'
-            )
-
-        collection = data.get('collection')
-        if not collection:
-            raise ProcessorExecuteError('Invalid input: no collection specified')
-        elif collection not in COLLECTIONS:
-            raise ProcessorExecuteError(
-                f'Invalid input: collection {collection} not found'
-            )
-
-        layer, bbox = self.get_layer(**data)
+        # Validate input and get provider definition for collection
         provider_def = get_provider_by_type(
             CONFIG['resources'][collection]['providers'], 'feature'
         )
         p = load_plugin('provider', provider_def)
-        hits = p.query(bbox=bbox, resulttype='hits')['numberMatched']
 
+        # Fetch features using bbox of input data
+        result = p.query(bbox=bbox, resulttype='hits')
+        # Try to determine number of features to fetch
+        # if the provider supports it, otherwise default to
+        # arbitrary large number to fetch all features in bbox
+        hits = result.get('numberMatched', 100000)
+        fc_out['numberMatched'] = hits
+        # Handle no features found
         if hits == 0:
-            msg = 'No features found in collection for provided feature bbox'
-            LOGGER.info(msg)
-            outputs = {
-                'type': 'FeatureCollection',
-                'features': [],
-                'numberMatched': 0,
-                'numberReturned': 0,
-            }
-            LOGGER.debug('Returning response')
-            return mimetype, outputs
+            LOGGER.info('No features found in collection for provided bbox')
+            return mimetype, fc_out
 
+        # Fetch features and insert into output FeatureCollection 
+        # if they intersect with provided geometry
         features = p.query(bbox=bbox, limit=hits)
-
-        out_features = []
         for feature in features['features']:
             geom = ogr.CreateGeometryFromJson(to_json(feature['geometry']))
-
             if geom and geom.Intersects(layer):
-                out_features.append(feature)
+                fc_out['features'].append(feature)
 
-        outputs = {
-            'type': 'FeatureCollection',
-            'features': out_features,
-            'numberReturned': len(out_features),
-        }
+        # Add numberReturned to output and return
+        fc_out['numberReturned'] = len(fc_out['features'])
+        return mimetype, fc_out
 
-        return mimetype, outputs
+    def validate_inputs(self, data) -> str:
+        """
+        Validate input data
+
+        :param data: processor arguments
+
+        :returns: valid collection_id
+
+        :raises ProcessorExecuteError: if invalid input
+        """
+        collection = data.get('collection')
+
+        if not data.get('url') and not data.get('file'):
+            msg = 'Invalid input, provide either url or feature'
+            raise ProcessorExecuteError(msg)
+
+        if data.get('url') and data.get('file'):
+            msg = 'Invalid input, provide either url or feature, not both'
+            raise ProcessorExecuteError(msg)
+
+        if not collection:
+            msg = 'Invalid input: no collection specified'
+            raise ProcessorExecuteError(msg)
+
+        if collection not in FEATURE_COLLECTIONS:
+            msg = f'Invalid input: collection {collection} not found'
+            raise ProcessorExecuteError(msg)
+
+        return collection
 
     def get_layer(
-        self, url: str = None, file: bytes = None, with_bbox=False, **kwargs
-    ) -> Tuple[ogr.Geometry, Tuple[float]]:
+        self, url: str | None = None, file: Any = None, with_bbox=False
+    ) -> Tuple[ogr.Geometry, list[float]]:
         """
-        Private Function: Load feature WKY from URL or bytes of OGR
+        Private Function: Load feature WKT from URL or bytes of OGR
         like file.
 
         :param url: URL of feature
-        :param feature: feature as string
+        :param feature: feature as string or byte string
+        :param with_bbox: whether to return bbox (for testing)
 
         :returns: feature as OGC Layer and WGS84 bbox
         """
+
         if url:
+            # Handle zip and remote files
             if url.startswith('http') and url.endswith('.zip'):
                 url = f'/vsizip//vsicurl/{url}'
 
-            ds = gdal.OpenEx(url, gdal.OF_VECTOR)
-            if ds is None:
+            # Read feature from URL with GDAL
+            try:
+                ds = gdal.OpenEx(url, gdal.OF_VECTOR)
+                assert ds is not None, 'GDAL could not open feature from URL.'
+            except (RuntimeError, AssertionError):
                 raise ProcessorExecuteError('GDAL could not open feature.')
 
             layer = ds.GetLayer()
             srs = layer.GetSpatialRef()
+
         elif file:
-            if not isinstance(file, bytes):
+            # Normalize file input to bytes
+            if isinstance(file, str):
                 file = bytes(file, 'utf-8')
+            elif isinstance(file, dict):
+                file = bytes(to_json(file), 'utf-8')
+            elif not isinstance(file, bytes):
+                raise ProcessorExecuteError('Invalid file input')
 
-            # Use /vsistdin/ to read bytes in-memory
+            # Guess file type in-memory
+            file_suffix = ''
             if file[:2] == b'PK':
-                ext = '.zip'
+                file_suffix = '.zip'
             elif file[:4] == b'PAR1':
-                ext = '.parquet'
-            else:
-                ext = ''
+                file_suffix = '.parquet'
 
-            with tempfile.NamedTemporaryFile(suffix=ext) as tmp:
+            # Write to temporary file to allow for use of
+            # GDAL virtual file systems (e.g. /vsizip/)
+            with tempfile.NamedTemporaryFile(suffix=file_suffix) as tmp:
                 tmp.write(file)
                 tmp.flush()
                 tmp_path = tmp.name
 
-                if ext == '.zip':
+                # Handle zipped files using /vsizip/
+                if file_suffix == '.zip':
                     with ZipFile(tmp_path, 'r') as zip_ref:
                         [filename] = [
                             f
@@ -247,27 +287,38 @@ class IntersectionProcessor(BaseProcessor):
                         ]
                         tmp_path = f'/vsizip/{tmp_path}/{filename}'
 
-                ds = gdal.OpenEx(tmp_path, gdal.OF_VECTOR)
-                if ds is None:
-                    raise ProcessorExecuteError(
-                        'GDAL could not open feature from bytes (temp file fallback).'
-                    )  # noqa
+                # Attempt to open file with GDAL
+                try:
+                    ds = gdal.OpenEx(tmp_path, gdal.OF_VECTOR)
+                    msg = f'GDAL could not open feature from file {tmp_path}.'
+                    assert ds is not None, msg
+                except (RuntimeError, AssertionError):
+                    msg = 'GDAL could not open feature.'
+                    raise ProcessorExecuteError(msg)
 
+                # Read layer to ensure it persists
+                # after temporary file is cleaned up
                 layer = ds.GetLayer()
                 srs = layer.GetSpatialRef()
         else:
             raise ProcessorExecuteError('No input provided.')
 
+        # Create union of all features in one geometry
         union = ogr.Geometry(ogr.wkbGeometryCollection)
         for feat in layer:
             geom = feat.GetGeometryRef()
-            union.AddGeometry(geom)
+            try:
+                union.AddGeometry(geom)
+            except ValueError:
+                raise ProcessorExecuteError('Invalid geometry found.')
 
+        # Attempt to get bbox of layer
         (minx, maxx, miny, maxy) = layer.GetExtent()
-        bbox = (minx, miny, maxx, maxy)
-
+        bbox = [minx, miny, maxx, maxy]
         if srs:
-            bbox = transform_bbox(bbox, CRS(srs.ExportToWkt()), CRS('EPSG:4326'))
+            bbox = transform_bbox(
+                bbox, CRS(srs.ExportToWkt()), CRS('EPSG:4326')
+            )
 
         return (union, bbox)
 
