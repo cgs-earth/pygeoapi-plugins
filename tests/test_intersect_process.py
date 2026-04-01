@@ -121,13 +121,13 @@ def test_execute_raises_when_missing_collection(process_def, bytes_data):
 def test_get_bbox(process_def, url, bounds, ctx):
     proc = intersect.IntersectionProcessor(process_def)
     with ctx:
-        _, bbox = proc.get_layer(url=url, as_bbox=True)
+        _, bbox = proc.get_layer(url=url)
         print(bbox)
         assert pytest.approx(bbox) == bounds
 
     with ctx:
         content = requests.get(url).content
-        _, bbox = proc.get_layer(file=content, as_bbox=True)
+        _, bbox = proc.get_layer(file=content)
         assert pytest.approx(bbox) == bounds
 
 
@@ -155,7 +155,7 @@ def test_literal_geojson(process_def, url, bounds, ctx):
     proc = intersect.IntersectionProcessor(process_def)
     content = requests.get(url).json()
     with ctx:
-        _, bbox = proc.get_layer(file=content, as_bbox=True)
+        _, bbox = proc.get_layer(file=content)
         assert pytest.approx(bbox) == bounds
 
 

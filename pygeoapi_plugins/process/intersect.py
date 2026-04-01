@@ -170,9 +170,9 @@ class IntersectionProcessor(BaseProcessor):
         # if the provider supports it, otherwise default to
         # arbitrary large number to fetch all features in bbox
         hits = result.get('numberMatched', 100000)
-        fc_out['numberMatched'] = hits
         # Handle no features found
         if hits == 0:
+            fc_out['numberReturned'] = hits
             LOGGER.info('No features found in collection for provided bbox')
             return mimetype, fc_out
 
@@ -185,7 +185,8 @@ class IntersectionProcessor(BaseProcessor):
                 fc_out['features'].append(feature)
 
         # Add numberReturned to output and return
-        fc_out['numberReturned'] = len(fc_out['features'])
+        true_hits = len(fc_out['features'])
+        fc_out['numberReturned'] = true_hits
         return mimetype, fc_out
 
     def validate_inputs(self, data) -> str:
@@ -219,7 +220,7 @@ class IntersectionProcessor(BaseProcessor):
         return collection
 
     def get_layer(
-        self, url: str | None = None, file: Any = None, with_bbox=False
+        self, url: str | None = None, file: Any = None
     ) -> Tuple[ogr.Geometry, list[float]]:
         """
         Private Function: Load feature WKT from URL or bytes of OGR
@@ -227,7 +228,6 @@ class IntersectionProcessor(BaseProcessor):
 
         :param url: URL of feature
         :param feature: feature as string or byte string
-        :param with_bbox: whether to return bbox (for testing)
 
         :returns: feature as OGC Layer and WGS84 bbox
         """
@@ -302,7 +302,7 @@ class IntersectionProcessor(BaseProcessor):
             geom = feat.GetGeometryRef()
             try:
                 union.AddGeometry(geom)
-            except ValueError:
+            except (ValueError, TypeError):
                 raise ProcessorExecuteError('Invalid geometry found.')
 
         # Attempt to get bbox of layer
