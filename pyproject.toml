@@ -1,0 +1,57 @@
+[project]
+name = "pygeoapi_plugins"
+version = "0.6.dev0"
+description = "pygeoapi plugins"
+readme = "README.md"
+requires-python = ">=3.12"
+
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Environment :: Console",
+  "Intended Audience :: Developers",
+  "Intended Audience :: Science/Research",
+  "License :: OSI Approved :: MIT License",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python",
+  "Topic :: Scientific/Engineering :: GIS",
+]
+
+dependencies = [
+    "geoalchemy",
+    "geopandas",
+    "numpy",
+    "psycopg2",
+    "pyarrow",
+    "pygeoapi",
+    "pygeofilter[backend-sqlalchemy]",
+    "requests",
+    "shapely>=2.1.0",
+    "sparqlwrapper",
+    "sqlalchemy",
+]
+
+[project.optional-dependencies]
+dev = ["pytest", "pytest-cov", "pre-commit"]
+gdal = ["GDAL"]
+
+[project.urls]
+Homepage = "https://github.com/cgs-earth/pygeoapi-plugins"
+
+[build-system]
+requires = ["hatchling", "hatch-vcs"]
+build-backend = "hatchling.build"
+
+[tool.setuptools.packages.find]
+exclude = ["pygeoapi_plugins.tests"]
+
+[tool.hatch.build.targets.wheel]
+packages = ["pygeoapi_plugins"]
+
+[tool.hatch.metadata]
+allow-direct-references = true
+
+[tool.pyright]
+exclude = ["tests"]
+
+[tool.uv.sources]
+pygeoapi = { git = "https://github.com/geopython/pygeoapi.git" }
