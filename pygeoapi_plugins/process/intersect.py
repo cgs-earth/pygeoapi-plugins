@@ -38,8 +38,9 @@ from pygeoapi.crs import transform_bbox
 from pygeoapi.config import get_config
 from pygeoapi.plugin import load_plugin
 from pygeoapi.process.base import BaseProcessor, ProcessorExecuteError
+from pygeoapi.provider import get_provider_by_type
 from pygeoapi.provider.ogr import GdalErrorHandler
-from pygeoapi.util import filter_dict_by_key_value, get_provider_default, to_json
+from pygeoapi.util import filter_dict_by_key_value, to_json
 
 LOGGER = logging.getLogger(__name__)
 
@@ -163,8 +164,9 @@ class IntersectionProcessor(BaseProcessor):
             )
 
         layer, bbox = self.get_layer(**data)
-        provider_def = get_provider_default(
-            CONFIG['resources'][collection]['providers']
+        provider_def = get_provider_by_type(
+            CONFIG['resources'][collection]['providers'],
+            'feature'
         )
         p = load_plugin('provider', provider_def)
         hits = p.query(bbox=bbox, resulttype='hits')['numberMatched']
