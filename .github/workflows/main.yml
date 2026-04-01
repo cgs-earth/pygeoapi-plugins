@@ -27,14 +27,15 @@ jobs:
       - name: Start pygeoapi sitemap instance
         run: |
           docker compose up -d --build &
-      - name: Install GDAL with Python bindings
-        uses: awalsh128/cache-apt-pkgs-action@v1.6.0
-        with:
-          packages: gdal-bin libgdal-dev
-          add-repository: ppa:ubuntugis/ubuntugis-unstable
+      - name: Use ubuntuGIS unstable ppa
+        run: |
+          sudo add-apt-repository ppa:ubuntugis/ubuntugis-unstable
+          sudo apt update
+          sudo apt-get install gdal-bin libgdal-dev -y
       - name: Install uv
         uses: astral-sh/setup-uv@v5
         with:
+          enable-cache: true
           cache-dependency-glob: 'uv.lock'
       - name: Install the project
         run: |
@@ -61,4 +62,4 @@ jobs:
           echo "Tests failed. Collecting logs..."
           docker ps -a
           docker logs pygeoapi-plugins-pygeoapi-1
-          pip3 freeze
+          uv pip freeze
