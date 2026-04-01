@@ -45,11 +45,10 @@ from pygeoapi.util import filter_dict_by_key_value, to_json
 LOGGER = logging.getLogger(__name__)
 
 CONFIG = get_config()
-COLLECTIONS = filter_dict_by_key_value(
-    CONFIG['resources'], 'type', 'collection'
-)
+COLLECTIONS = filter_dict_by_key_value(CONFIG['resources'], 'type', 'collection')
 FEATURE_COLLECTIONS = [
-    cid for cid, cdef in COLLECTIONS.items()
+    cid
+    for cid, cdef in COLLECTIONS.items()
     if filter_providers_by_type(cdef['providers'], 'feature')
 ]
 FIRST_COLLECTION = next(iter(FEATURE_COLLECTIONS))
@@ -153,17 +152,11 @@ class IntersectionProcessor(BaseProcessor):
         :returns: 'application/json'
         """
         mimetype = 'application/json'
-        fc_out = {
-            'type': 'FeatureCollection',
-            'features': []
-        }
+        fc_out = {'type': 'FeatureCollection', 'features': []}
 
         # Validate input and get feature layer
         collection = self.validate_inputs(data)
-        layer, bbox = self.get_layer(
-            url=data.get('url'),
-            file=data.get('file')
-        )
+        layer, bbox = self.get_layer(url=data.get('url'), file=data.get('file'))
 
         # Validate input and get provider definition for collection
         provider_def = get_provider_by_type(
@@ -183,7 +176,7 @@ class IntersectionProcessor(BaseProcessor):
             LOGGER.info('No features found in collection for provided bbox')
             return mimetype, fc_out
 
-        # Fetch features and insert into output FeatureCollection 
+        # Fetch features and insert into output FeatureCollection
         # if they intersect with provided geometry
         features = p.query(bbox=bbox, limit=hits)
         for feature in features['features']:
@@ -316,9 +309,7 @@ class IntersectionProcessor(BaseProcessor):
         (minx, maxx, miny, maxy) = layer.GetExtent()
         bbox = [minx, miny, maxx, maxy]
         if srs:
-            bbox = transform_bbox(
-                bbox, CRS(srs.ExportToWkt()), CRS('EPSG:4326')
-            )
+            bbox = transform_bbox(bbox, CRS(srs.ExportToWkt()), CRS('EPSG:4326'))
 
         return (union, bbox)
 

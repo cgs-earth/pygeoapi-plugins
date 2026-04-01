@@ -106,8 +106,16 @@ def test_execute_raises_when_missing_collection(process_def, bytes_data):
             None,
             pytest.raises(ProcessorExecuteError),
         ),  # Error case - non-vector
-        ('http://example.com', None, pytest.raises(ProcessorExecuteError)),  # Error case - non-geospatial URL
-        ('https://reference.geoconnex.us/ref', None, pytest.raises(ProcessorExecuteError)),  # Error case - 404 URL
+        (
+            'http://example.com',
+            None,
+            pytest.raises(ProcessorExecuteError),
+        ),  # Error case - non-geospatial URL
+        (
+            'https://reference.geoconnex.us/ref',
+            None,
+            pytest.raises(ProcessorExecuteError),
+        ),  # Error case - 404 URL
     ],
 )
 def test_get_bbox(process_def, url, bounds, ctx):
@@ -121,6 +129,7 @@ def test_get_bbox(process_def, url, bounds, ctx):
         content = requests.get(url).content
         _, bbox = proc.get_layer(file=content, as_bbox=True)
         assert pytest.approx(bbox) == bounds
+
 
 @pytest.mark.parametrize(
     'url,bounds,ctx',
