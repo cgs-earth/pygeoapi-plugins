@@ -30,13 +30,13 @@
 import logging
 
 from geoalchemy2.functions import (
-    ST_Transform,
+    Box2D,
     ST_AsMVTGeom,
     ST_AsMVT,
-    ST_XMax,
-    ST_XMin,
-    ST_YMax,
-    ST_YMin,
+    ST_SimplifyVW,
+    ST_Transform,
+    ST_Area, 
+
 )
 
 from sqlalchemy.sql import select
@@ -69,6 +69,7 @@ class MVTPostgreSQLProvider_(MVTPostgreSQLProvider):
 
         self.layer = provider_def.get('layer', self.table)
         self.disable_at_z = provider_def.get('disable_at_z', 6)
+        self.simplify_geometry = provider_def.get('simplify_geometry', False)
 
         # Apply filters to low zoom levels
         self.tile_threshold = provider_def.get('tile_threshold')
@@ -85,7 +86,9 @@ class MVTPostgreSQLProvider_(MVTPostgreSQLProvider):
         """
         return self.layer
 
-    def get_tiles(self, layer=None, tileset=None, z=None, y=None, x=None, format_=None):
+    def get_tiles(
+        self, layer=None, tileset=None, z=None, y=None, x=None, *args, **kwargs
+    ):
         """
         Gets tile
 
@@ -94,7 +97,6 @@ class MVTPostgreSQLProvider_(MVTPostgreSQLProvider):
         :param z: z index
         :param y: y index
         :param x: x index
-        :param format_: tile format
 
         :returns: an encoded mvt tile
         """
@@ -111,49 +113,77 @@ class MVTPostgreSQLProvider_(MVTPostgreSQLProvider):
 
         LOGGER.debug(f'Querying {self.table} for MVT tile {z}/{x}/{y}')
 
-        storage_srid = get_crs(self.storage_crs).to_string()
-        out_srid = get_crs(tileset_schema.crs).to_string()
-        envelope = self.get_envelope(z, y, x, tileset)
-        envelope = select(
-            ST_Transform(envelope, storage_srid).label('src'),
-            ST_Transform(envelope, out_srid).label('out'),
-        ).cte('envelope')
+        mvt_cte = self._get_geom_cte(layer, tileset_schema, z, y, x)
 
-        geom_column = getattr(self.table_model, self.geom)
-        bbox_area = (ST_XMax(geom_column) - ST_XMin(geom_column)) * (
-            ST_YMax(geom_column) - ST_YMin(geom_column)
-        )
-        mvtgeom = ST_AsMVTGeom(
-            ST_Transform(geom_column, out_srid),
-            envelope.c.out,
-        ).label('mvtgeom')
+        mvtquery = select(ST_AsMVT(mvt_cte, layer))
 
-        geom_filter = geom_column.intersects(envelope.c.src)
-        mvtrow = select(mvtgeom, *self.fields.values()).filter(geom_filter)
-
-        if self.tile_threshold and z < self.disable_at_z:
-            # Filter features based on tile_threshold CQL expression
-            tile_threshold = parse_ecql_text(self.tile_threshold.format(z=z or 1))
-            filter_ = self._get_cql_filters(tile_threshold)
-            mvtrow = mvtrow.filter(filter_)
-
-        elif z < self.disable_at_z:
-            # Filter features based on tile extents
-            LOGGER.debug(f'Filtering features at zoom level {z}')
-            min_pixel = (
-                ST_XMax(envelope.c.src) - ST_XMin(envelope.c.src)
-            ) / self.min_pixel
-            mvtrow = mvtrow.filter(bbox_area > (min_pixel * min_pixel))
-
-        if self.tile_limit:
-            # Maximimum number of features in a tile
-            LOGGER.debug(f'Filtering based on tile limit {self.tile_limit}')
-            mvtrow = mvtrow.order_by(bbox_area.desc()).limit(self.tile_limit)
-
-        mvtrow = mvtrow.cte('mvtrow').table_valued()
-        mvtquery = select(ST_AsMVT(mvtrow, layer))
-
+        LOGGER.error(mvtquery.compile(self._engine, compile_kwargs={"literal_binds": True}))
         with Session(self._engine) as session:
             result = bytes(session.execute(mvtquery).scalar()) or None
 
         return result
+
+    def _get_geom_cte(
+        self, layer=None, tileset_schema=None, z=None, y=None, x=None, *args, **kwargs
+    ):
+        feature_column = getattr(self.table_model, self.id_field)
+        geom_column = getattr(self.table_model, self.geom)
+
+        z_filtered = z < self.disable_at_z
+        out_srid = get_crs(tileset_schema.crs).to_string()
+        storage_srid = get_crs(self.storage_crs).to_string()
+        envelope = self.get_envelope(z, y, x, tileset_schema.tileMatrixSet)
+
+        if out_srid != storage_srid:
+            src_envelope = ST_Transform(envelope, storage_srid)
+            out_envelope = envelope
+        else:
+            src_envelope = envelope
+            out_envelope = envelope
+
+        filters = [
+            geom_column.intersects(src_envelope)
+        ]
+
+        if self.tile_threshold and z_filtered:
+            # Filter features based on tile_threshold CQL expression
+            tile_threshold = parse_ecql_text(
+                self.tile_threshold.format(z=z or 1)
+            )
+            filters.append(
+                self._get_cql_filters(tile_threshold)
+            )
+
+        elif z_filtered:
+            # Filter features based on tile extents
+            LOGGER.debug(f'Filtering features at zoom level {z}')
+            bbox_area = ST_Area(Box2D(geom_column)).label('bbox_area')
+
+            min_pixel_area = ST_Area(envelope) / self.min_pixel ** 2
+            filters.append(bbox_area > min_pixel_area)
+
+        if self.simplify_geometry and z_filtered:
+            geom_column = ST_SimplifyVW(geom_column, 1 / 10 ** (z + 1))
+
+        if out_srid != storage_srid:
+            geom_column = ST_Transform(geom_column, out_srid)
+
+        geom_subquery = (
+            select(feature_column.label('id'), geom_column.label('geom'))
+            .filter(*filters)
+            .subquery()
+        )
+
+        mvt_geom = ST_AsMVTGeom(
+            geom_subquery.c.geom, out_envelope
+        ).label('mvtgeom')
+
+        selects = self.fields.values()
+
+        return (
+            select(geom_subquery.c.id, mvt_geom, *selects)
+            .select_from(geom_subquery)
+            .join(self.table_model, feature_column == geom_subquery.c.id)
+            .cte('mvtcte')
+            .table_valued()
+        )

@@ -63,7 +63,15 @@ class MVTCacheProvider(MVTPostgreSQLProvider_):
 
         self.disable_cache_at_z = provider_def.get('disable_cache_at_z', 6)
 
-    def get_tiles(self, layer=None, tileset=None, z=None, y=None, x=None, format_=None):
+    def get_tiles(
+        self,
+        layer: str,
+        tileset: str,
+        z: int,
+        y: int,
+        x: int,
+        format_: str,
+    ) -> bytes | None:
         """
         Gets tile
 
@@ -88,8 +96,14 @@ class MVTCacheProvider(MVTPostgreSQLProvider_):
 
         LOGGER.debug('Tile not found in cache, rendering tile')
         tile = MVTPostgreSQLProvider_.get_tiles(self, layer, tileset, z, y, x, format_)
+        tile2 = self.get_tiles_from_cache(layer, tileset, z, y, x)
 
-        if z < self.disable_cache_at_z and tile is not None:
+        cache_tile_conditions = [
+            z < self.disable_cache_at_z,
+            tile is not None,
+            tile2 is None,  # Avoid caching if tile was cached by another request while rendering
+        ]
+        if all(cache_tile_conditions):
             LOGGER.debug('Caching tile')
             assert self.save_tiles_to_cache(tile, layer, tileset, z, y, x)
 
