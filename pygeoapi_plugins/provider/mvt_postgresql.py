@@ -31,11 +31,11 @@ import logging
 
 from geoalchemy2.functions import (
     Box2D,
+    ST_Area,
     ST_AsMVTGeom,
     ST_AsMVT,
-    ST_SimplifyVW,
+    ST_SimplifyPreserveTopology,
     ST_Transform,
-    ST_Area,
 )
 
 from sqlalchemy.sql import select
@@ -165,7 +165,11 @@ class MVTPostgreSQLProvider_(MVTPostgreSQLProvider):
 
         # Simplify geometry
         if self.simplify_geometry:
-            geom_column = ST_SimplifyVW(geom_column, 1 / 10 ** (1 + z // 2))
+            # Adjust the tolerance based on zoom
+            tolerance =  1 / 10 ** (z // 2) 
+            geom_column = ST_SimplifyPreserveTopology(
+                geom_column, tolerance
+            )
 
         # Transform geometry to tile CRS if needed
         if same_srid is False:

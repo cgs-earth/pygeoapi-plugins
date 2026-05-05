@@ -148,7 +148,6 @@ providers:
     ...
     disable_at_a: 10
     mix_pixel: 256 # a full pixel in the tile
-    simplify_geometry: # perform geometry simplification
 ```
 
 The second way to filter the features that are rendered in a tile is using a modified CQL expression. The
@@ -192,6 +191,23 @@ providers:
     ...
     disable_at_z: 0 # Apply no CQL or Pixel Size filter
     tile_limit: 1000 # No more than 1000 features in a single tile
+```
+
+The configuration option `simplify_geometry` can be specified to reduce the number of vericies at low zooms.
+This will apply to all tiles regardless of if the other filters are enabled by `disable_at_z`.
+
+```yaml
+providers:
+  - type: tile
+    name: pygeoapi_plugins.provider.mvt_postgresql.MVTPostgreSQLProvider_
+    ...
+    simplify_geometry: true
+    # z{0}: threshold = 1
+    # z{2}: threshold = 0.1
+    # z{4}: threshold = 0.01
+    # z{6}: threshold = 0.001
+    # z{8}: threshold = 0.0001
+    ...
 ```
 
 ### MVT PostgreSQL with Caching
