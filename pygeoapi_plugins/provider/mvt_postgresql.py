@@ -55,6 +55,7 @@ class MVTPostgreSQLProvider_(MVTPostgreSQLProvider):
     Provider for serving tiles rendered on-the-fly from
     feature tables in PostgreSQL
     """
+
     db_search_path = ('public',)
 
     def __init__(self, provider_def):
@@ -153,9 +154,7 @@ class MVTPostgreSQLProvider_(MVTPostgreSQLProvider):
         same_srid = out_srid == storage_srid
         LOGGER.debug(f'out_srid: {out_srid}, storage_srid: {storage_srid}')
         # Store envelope in geometry column's SRID
-        src_envelope = (
-            envelope if same_srid else ST_Transform(envelope, storage_srid)
-        )
+        src_envelope = envelope if same_srid else ST_Transform(envelope, storage_srid)
 
         # Create filters
         filters = [geom_column.intersects(src_envelope)]
@@ -200,9 +199,7 @@ class MVTPostgreSQLProvider_(MVTPostgreSQLProvider):
         filters = []
         if self.tile_threshold:
             # Filter features based on tile_threshold CQL expression
-            tile_threshold = parse_ecql_text(
-                self.tile_threshold.format(z=z or 1)
-            )
+            tile_threshold = parse_ecql_text(self.tile_threshold.format(z=z or 1))
             filters.append(self._get_cql_filters(tile_threshold))
 
         else:

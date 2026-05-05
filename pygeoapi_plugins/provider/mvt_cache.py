@@ -238,9 +238,9 @@ class MVTPostgresFilesystem(MVTCacheProvider):
 
     def _get_tile_path(self, layer, tileset, z, y, x, format_):
         z, y, x = map(str, [z, y, x])
-        return (
-            self.cache_directory / layer / tileset / z / y / x
-        ).with_suffix(f'.{format_}')
+        return (self.cache_directory / layer / tileset / z / y / x).with_suffix(
+            f'.{format_}'
+        )
 
 
 class MVTPostgresCache(MVTCacheProvider):
@@ -336,9 +336,7 @@ def create_cache_table(
         # composite PK enforces uniqueness
         PrimaryKeyConstraint('layer', 'tilematrixset', 'z', 'x', 'y'),
         # covering index for fast lookups by key
-        Index(
-            f'idx_{table_name}_lookup', 'layer', 'tilematrixset', 'z', 'x', 'y'
-        ),
+        Index(f'idx_{table_name}_lookup', 'layer', 'tilematrixset', 'z', 'x', 'y'),
     )
 
     if force_create:
