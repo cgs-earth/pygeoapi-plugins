@@ -69,7 +69,7 @@ class MVTPostgreSQLProvider_(MVTPostgreSQLProvider):
 
         self.layer = provider_def.get('layer', self.table)
         self.disable_at_z = provider_def.get('disable_at_z', 6)
-        self.simplify_geometry = provider_def.get('simplify_geometry', False)
+        self.simplify_geometry = provider_def.get('simplify_geometry', True)
 
         # Apply filters to low zoom levels
         self.tile_threshold = provider_def.get('tile_threshold')

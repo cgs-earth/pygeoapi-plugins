@@ -148,6 +148,7 @@ providers:
     ...
     disable_at_a: 10
     mix_pixel: 256 # a full pixel in the tile
+    simplify_geometry: # perform geometry simplification
 ```
 
 The second way to filter the features that are rendered in a tile is using a modified CQL expression. The
