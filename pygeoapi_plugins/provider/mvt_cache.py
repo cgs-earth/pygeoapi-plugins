@@ -84,7 +84,7 @@ class MVTCacheProvider(MVTPostgreSQLProvider_):
 
         :returns: an encoded mvt tile
         """
-        z, y, x = map(int, [z, y, x])
+        z, y, x = map(int, [z, y, x])  # type: ignore
         layer = layer or self.get_layer()
 
         if z < self.disable_cache_at_z:
@@ -112,7 +112,7 @@ class MVTCacheProvider(MVTPostgreSQLProvider_):
 
         return tile
 
-    def run_pre_cache(self, schema=None):
+    def run_pre_cache(self, schema):
         """
         Run pre-cache to generate tiles for zoom levels
         """
@@ -274,7 +274,7 @@ class MVTPostgresCache(MVTCacheProvider):
         y=None,
         x=None,
     ):
-        x, y, z = map(int, [x, y, z])
+        x, y, z = map(int, [x, y, z])  # type: ignore
 
         query = select(self.cache_model.c.tile).where(
             self.cache_model.c.layer == layer,
