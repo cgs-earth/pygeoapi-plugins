@@ -166,10 +166,8 @@ class MVTPostgreSQLProvider_(MVTPostgreSQLProvider):
         # Simplify geometry
         if self.simplify_geometry:
             # Adjust the tolerance based on zoom
-            tolerance =  1 / 10 ** (z // 2) 
-            geom_column = ST_SimplifyPreserveTopology(
-                geom_column, tolerance
-            )
+            tolerance = 1 / 10 ** (z // 2)
+            geom_column = ST_SimplifyPreserveTopology(geom_column, tolerance)
 
         # Transform geometry to tile CRS if needed
         if same_srid is False:
