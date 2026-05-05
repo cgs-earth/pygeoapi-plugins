@@ -193,7 +193,7 @@ providers:
     tile_limit: 1000 # No more than 1000 features in a single tile
 ```
 
-The configuration option `simplify_geometry` can be specified to reduce the number of vericies at low zooms.
+The configuration option `simplify_geometry` can be specified to reduce the number of vertices at low zooms.
 This will apply to all tiles regardless of if the other filters are enabled by `disable_at_z`.
 
 ```yaml
