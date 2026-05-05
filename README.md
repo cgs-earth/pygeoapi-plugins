@@ -193,6 +193,23 @@ providers:
     tile_limit: 1000 # No more than 1000 features in a single tile
 ```
 
+The configuration option `simplify_geometry` can be specified to reduce the number of vertices at low zooms.
+This will apply to all tiles regardless of if the other filters are enabled by `disable_at_z`.
+
+```yaml
+providers:
+  - type: tile
+    name: pygeoapi_plugins.provider.mvt_postgresql.MVTPostgreSQLProvider_
+    ...
+    simplify_geometry: true
+    # z{0}: threshold = 1
+    # z{2}: threshold = 0.1
+    # z{4}: threshold = 0.01
+    # z{6}: threshold = 0.001
+    # z{8}: threshold = 0.0001
+    ...
+```
+
 ### MVT PostgreSQL with Caching
 
 There are two additional Postgres based MVT providers with caching of tiles to prevent significant server load

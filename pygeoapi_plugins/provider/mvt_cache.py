@@ -63,7 +63,15 @@ class MVTCacheProvider(MVTPostgreSQLProvider_):
 
         self.disable_cache_at_z = provider_def.get('disable_cache_at_z', 6)
 
-    def get_tiles(self, layer=None, tileset=None, z=None, y=None, x=None, format_=None):
+    def get_tiles(
+        self,
+        layer: str | None = 'default',
+        tileset: str | None = None,
+        z: int | None = None,
+        y: int | None = None,
+        x: int | None = None,
+        format_: str = 'pbf',
+    ) -> bytes | None:
         """
         Gets tile
 
@@ -76,7 +84,8 @@ class MVTCacheProvider(MVTPostgreSQLProvider_):
 
         :returns: an encoded mvt tile
         """
-        z, y, x = map(int, [z, y, x])
+        z, y, x = map(int, [z, y, x])  # type: ignore
+        layer = layer or self.get_layer()
 
         if z < self.disable_cache_at_z:
             LOGGER.debug('Checking for cached tile')
@@ -87,15 +96,23 @@ class MVTCacheProvider(MVTPostgreSQLProvider_):
                 return tile
 
         LOGGER.debug('Tile not found in cache, rendering tile')
-        tile = MVTPostgreSQLProvider_.get_tiles(self, layer, tileset, z, y, x, format_)
+        tile = MVTPostgreSQLProvider_.get_tiles(
+            self, layer=layer, tileset=tileset, z=z, y=y, x=x, format_=format_
+        )
+        tile2 = self.get_tiles_from_cache(layer, tileset, z, y, x)
 
-        if z < self.disable_cache_at_z and tile is not None:
+        cache_tile_conditions = [
+            z < self.disable_cache_at_z,  # Only cache configured zoom levels
+            tile is not None,  # Only cache if tile was rendered successfully
+            tile2 is None,  # Avoid caching if tile was cached while rendering
+        ]
+        if all(cache_tile_conditions):
             LOGGER.debug('Caching tile')
             assert self.save_tiles_to_cache(tile, layer, tileset, z, y, x)
 
         return tile
 
-    def run_pre_cache(self, schema=None):
+    def run_pre_cache(self, schema):
         """
         Run pre-cache to generate tiles for zoom levels
         """
@@ -186,8 +203,9 @@ class MVTPostgresFilesystem(MVTCacheProvider):
         z=None,
         y=None,
         x=None,
+        format_='pbf',
     ):
-        tile_ = self._get_tile_path(layer, tileset, z, y, x)
+        tile_ = self._get_tile_path(layer, tileset, z, y, x, format_)
 
         if tile_.exists() and tile_.is_file():
             with open(tile_, 'rb') as fh:
@@ -201,8 +219,9 @@ class MVTPostgresFilesystem(MVTCacheProvider):
         z=None,
         y=None,
         x=None,
+        format_='pbf',
     ):
-        tile_ = self._get_tile_path(layer, tileset, z, y, x)
+        tile_ = self._get_tile_path(layer, tileset, z, y, x, format_)
 
         if tile and isinstance(tile, bytes):
             tile_.parent.mkdir(parents=True, exist_ok=True)
@@ -217,9 +236,11 @@ class MVTPostgresFilesystem(MVTCacheProvider):
 
         return True
 
-    def _get_tile_path(self, layer, tileset, z, y, x):
+    def _get_tile_path(self, layer, tileset, z, y, x, format_):
         z, y, x = map(str, [z, y, x])
-        return (self.cache_directory / layer / tileset / z / y / x).with_suffix('.pbf')
+        return (self.cache_directory / layer / tileset / z / y / x).with_suffix(
+            f'.{format_}'
+        )
 
 
 class MVTPostgresCache(MVTCacheProvider):
@@ -253,7 +274,7 @@ class MVTPostgresCache(MVTCacheProvider):
         y=None,
         x=None,
     ):
-        x, y, z = map(int, [x, y, z])
+        x, y, z = map(int, [x, y, z])  # type: ignore
 
         query = select(self.cache_model.c.tile).where(
             self.cache_model.c.layer == layer,
@@ -295,7 +316,10 @@ class MVTPostgresCache(MVTCacheProvider):
 
 @functools.cache
 def create_cache_table(
-    table_name: str, db_search_path: tuple[str], engine, force_create: bool = False
+    table_name: str,
+    db_search_path: tuple[str],
+    engine,
+    force_create: bool = False,
 ):
     """Create cache table if it does not exist"""
     metadata = MetaData(schema=db_search_path[0])
