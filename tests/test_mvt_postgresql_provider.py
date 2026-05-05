@@ -54,7 +54,10 @@ def config():
         'table': 'hotosm_bdi_waterways',
         'geom_field': 'foo_geom',
         'options': {'zoom': {'min': 0, 'max': 15}},
-        'format': {'name': 'pbf', 'mimetype': 'application/vnd.mapbox-vector-tile'},
+        'format': {
+            'name': 'pbf',
+            'mimetype': 'application/vnd.mapbox-vector-tile',
+        },
         'storage_crs': 'http://www.opengis.net/def/crs/EPSG/0/4326',
     }
 
@@ -63,7 +66,6 @@ def test_disable_at_z(config):
     tileset = 'WebMercatorQuad'
     z, x, y = 10, 595, 521
 
-    config['disable_at_z'] = 11
     p = MVTPostgreSQLProvider_(config)
     tile = p.get_tiles(
         tileset=tileset,
@@ -71,23 +73,24 @@ def test_disable_at_z(config):
         x=x,
         y=y,
     )
-    assert 69000 > len(tile) > 68000
+    assert len(tile) == 74047
 
-    tile = p.get_tiles(
+    config['disable_at_z'] = 11
+    p = MVTPostgreSQLProvider_(config)
+    tile2 = p.get_tiles(
         tileset=tileset,
-        z=2,
-        x=2,
-        y=2,
+        z=z,
+        x=x,
+        y=y,
     )
-    assert 400 > len(tile) > 300
+    assert len(tile2) == 69732
+    assert len(tile2) < len(tile)
 
 
 def test_tile_filter(config):
     tileset = 'WebMercatorQuad'
     z, x, y = 10, 595, 521
 
-    config['tile_threshold'] = "waterway = 'river'"
-    config['disable_at_z'] = 12
     p = MVTPostgreSQLProvider_(config)
     tile = p.get_tiles(
         tileset=tileset,
@@ -95,14 +98,51 @@ def test_tile_filter(config):
         x=x,
         y=y,
     )
-    assert len(tile) == 7519
+    assert len(tile) == 74047
+
+    config['tile_threshold'] = "waterway = 'river'"
+    config['disable_at_z'] = 12
+    p = MVTPostgreSQLProvider_(config)
+    tile2 = p.get_tiles(
+        tileset=tileset,
+        z=z,
+        x=x,
+        y=y,
+    )
+    assert len(tile2) == 7612
+    assert len(tile2) < len(tile)
+
+
+def test_tile_filter_with_z(config):
+    tileset = 'WebMercatorQuad'
+    z, x, y = 10, 595, 521
+
+    p = MVTPostgreSQLProvider_(config)
+    tile = p.get_tiles(
+        tileset=tileset,
+        z=z,
+        x=x,
+        y=y,
+    )
+    assert len(tile) == 74047
+
+    config['tile_threshold'] = "z_index = '-{z}'"
+    config['disable_at_z'] = 12
+    p = MVTPostgreSQLProvider_(config)
+    tile2 = p.get_tiles(
+        tileset=tileset,
+        z=z,
+        x=x,
+        y=y,
+    )
+    assert len(tile2) == 577
+    assert len(tile2) < len(tile)
 
 
 def test_tile_limit(config):
     tileset = 'WebMercatorQuad'
     z, x, y = 10, 595, 521
 
-    config['tile_limit'] = 1000
     p = MVTPostgreSQLProvider_(config)
     tile = p.get_tiles(
         tileset=tileset,
@@ -110,19 +150,49 @@ def test_tile_limit(config):
         x=x,
         y=y,
     )
-    assert 73000 > len(tile) > 72000
+    assert len(tile) == 74047
+
+    config['tile_limit'] = 1000
+    p = MVTPostgreSQLProvider_(config)
+    tile2 = p.get_tiles(
+        tileset=tileset,
+        z=z,
+        x=x,
+        y=y,
+    )
+    assert len(tile2) == 74047
+    assert len(tile2) <= len(tile)
 
     config['tile_limit'] = 500
     p = MVTPostgreSQLProvider_(config)
-    tile = p.get_tiles(
+    tile3 = p.get_tiles(
         tileset=tileset,
         z=z,
         x=x,
         y=y,
     )
-    assert 65000 > len(tile) > 64000
+    assert len(tile3) == 59142
+    assert len(tile3) < len(tile)
+    assert len(tile3) < len(tile2)
 
     config['tile_limit'] = 100
+    p = MVTPostgreSQLProvider_(config)
+    tile4 = p.get_tiles(
+        tileset=tileset,
+        z=z,
+        x=x,
+        y=y,
+    )
+    assert len(tile4) == 18408
+    assert len(tile4) < len(tile)
+    assert len(tile4) < len(tile2)
+    assert len(tile4) < len(tile3)
+
+
+def test_tile_simplify(config):
+    tileset = 'WebMercatorQuad'
+    z, x, y = 10, 595, 521
+
     p = MVTPostgreSQLProvider_(config)
     tile = p.get_tiles(
         tileset=tileset,
@@ -130,4 +200,51 @@ def test_tile_limit(config):
         x=x,
         y=y,
     )
-    assert 32000 > len(tile) > 31000
+
+    config['simplify_geometry'] = True
+    p = MVTPostgreSQLProvider_(config)
+    tile2 = p.get_tiles(
+        tileset=tileset,
+        z=z,
+        x=x,
+        y=y,
+    )
+    assert len(tile2) == 29405
+    assert len(tile2) < len(tile)
+
+    config['disable_at_z'] = 12
+    p = MVTPostgreSQLProvider_(config)
+    tile3 = p.get_tiles(
+        tileset=tileset,
+        z=z,
+        x=x,
+        y=y,
+    )
+    assert len(tile3) == 25372
+    assert len(tile3) < len(tile)
+    assert len(tile3) < len(tile2)
+
+
+def test_simplify_low_zoom(config):
+    tileset = 'WebMercatorQuad'
+    z, x, y = 4, 9, 8
+
+    p = MVTPostgreSQLProvider_(config)
+    tile = p.get_tiles(
+        tileset=tileset,
+        z=z,
+        x=x,
+        y=y,
+    )
+    assert len(tile) == 19922
+
+    config['simplify_geometry'] = True
+    p = MVTPostgreSQLProvider_(config)
+    tile2 = p.get_tiles(
+        tileset=tileset,
+        z=z,
+        x=x,
+        y=y,
+    )
+    assert len(tile2) == 10076
+    assert len(tile2) < len(tile)

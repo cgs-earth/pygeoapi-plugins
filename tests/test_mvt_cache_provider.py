@@ -58,7 +58,10 @@ def config():
         'table': 'hotosm_bdi_waterways',
         'geom_field': 'foo_geom',
         'options': {'zoom': {'min': 0, 'max': 15}},
-        'format': {'name': 'pbf', 'mimetype': 'application/vnd.mapbox-vector-tile'},
+        'format': {
+            'name': 'pbf',
+            'mimetype': 'application/vnd.mapbox-vector-tile',
+        },
         'storage_crs': 'http://www.opengis.net/def/crs/EPSG/0/4326',
     }
 
