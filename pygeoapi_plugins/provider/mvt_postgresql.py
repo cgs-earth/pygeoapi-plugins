@@ -114,9 +114,11 @@ class MVTPostgreSQLProvider_(MVTPostgreSQLProvider):
             LOGGER.warning(f'Tile {z}/{x}/{y} not found')
             raise ProviderTileNotFoundError
 
-        # Build the MVT query
+        # Get the tile envelope from the tiling scheme
         LOGGER.debug(f'Querying {self.table} for MVT tile {z}/{x}/{y}')
-        mvt_cte = self._get_mvt_cte(tileset_schema, z, y, x)
+        envelope = self.get_envelope(z, y, x, tileset_schema.tileMatrixSet)
+        envelope_srid = get_srid(tileset_schema.crs)
+        mvt_cte = self._get_mvt_cte(envelope, envelope_srid, z)
         mvt_query = select(ST_AsMVT(mvt_cte, self.layer))
 
         # Log the compiled query
@@ -131,14 +133,13 @@ class MVTPostgreSQLProvider_(MVTPostgreSQLProvider):
 
         return bytes(result) if result else None
 
-    def _get_mvt_cte(self, tileset_schema, z: int, y: int, x: int):
+    def _get_mvt_cte(self, envelope, envelope_srid, z):
         """
         Gets tile MVT Query
 
-        :param tileset: mvt tileset
-        :param z: z index
-        :param y: y index
-        :param x: x index
+        :param envelope: the tile envelope
+        :param envelope_srid: the SRID of the tile envelope
+        :param z: the zoom level
 
         :returns: a SQLAlchemy CTE query that returns the MVT tile features
         """
@@ -146,32 +147,26 @@ class MVTPostgreSQLProvider_(MVTPostgreSQLProvider):
         feature_id = getattr(self.table_model, self.id_field)
         geom_column = getattr(self.table_model, self.geom)
 
-        # Get the tile envelope from the tiling scheme
-        envelope = self.get_envelope(z, y, x, tileset_schema.tileMatrixSet)
-
-        storage_srid = get_srid(self.storage_crs)
-        out_srid = get_srid(tileset_schema.crs)
-        same_srid = out_srid == storage_srid
-        LOGGER.debug(f'out_srid: {out_srid}, storage_srid: {storage_srid}')
         # Store envelope in geometry column's SRID
+        storage_srid = get_srid(self.storage_crs)
+        same_srid = envelope_srid == storage_srid
+        LOGGER.debug(f'out_srid: {envelope_srid}, storage_srid: {storage_srid}')
         src_envelope = envelope if same_srid else ST_Transform(envelope, storage_srid)
 
         # Create filters
         filters = [geom_column.intersects(src_envelope)]
         if z < self.disable_at_z:
-            # Create zoom-based filters
             filters2 = self._handle_z_filter(src_envelope, z)
             filters.extend(filters2)
 
         # Simplify geometry
         if self.simplify_geometry:
-            # Adjust the tolerance based on zoom
             tolerance = 1 / 10 ** (z // 2)
             geom_column = ST_SimplifyPreserveTopology(geom_column, tolerance)
 
         # Transform geometry to tile CRS if needed
         if same_srid is False:
-            geom_column = ST_Transform(geom_column, out_srid)
+            geom_column = ST_Transform(geom_column, envelope_srid)
 
         # Build the query
         query = select(
