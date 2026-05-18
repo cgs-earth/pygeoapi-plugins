@@ -146,7 +146,7 @@ providers:
   - type: tile
     name: pygeoapi_plugins.provider.mvt_postgresql.MVTPostgreSQLProvider_
     ...
-    disable_at_a: 10
+    disable_at_z: 10
     mix_pixel: 256 # a full pixel in the tile
 ```
 
