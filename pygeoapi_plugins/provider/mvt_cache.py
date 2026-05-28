@@ -31,6 +31,7 @@ import logging
 
 import functools
 from pathlib import Path
+from redis import Redis
 from sqlalchemy import (
     Table,
     MetaData,
@@ -241,6 +242,58 @@ class MVTPostgresFilesystem(MVTCacheProvider):
         return (self.cache_directory / layer / tileset / z / y / x).with_suffix(
             f'.{format_}'
         )
+
+
+class MVTPostgresRedis(MVTCacheProvider):
+    def __init__(self, provider_def):
+        """
+        Initialize object
+
+        :param provider_def: provider definition
+
+        :returns: pygeoapi_plugins.provider.mvt_cache.MVTPostgresRedis
+        """
+        super().__init__(provider_def)
+
+        host = provider_def.get('redis_host', 'localhost')
+        port = provider_def.get('redis_port', 6379)
+        self.db = Redis(host=host, port=port)
+
+    def get_tiles_from_cache(
+        self,
+        layer='default',
+        tileset=None,
+        z=None,
+        y=None,
+        x=None,
+        format_='pbf',
+    ):
+        tile_ = self._get_tile_key(layer, tileset, z, y, x, format_)
+        LOGGER.debug(f'Checking for cached tile with key {tile_}')
+        if self.db.exists(tile_):
+            return self.db.get(tile_)
+
+    def save_tiles_to_cache(
+        self,
+        tile,
+        layer='default',
+        tileset=None,
+        z=None,
+        y=None,
+        x=None,
+        format_='pbf',
+    ):
+        tile_ = self._get_tile_key(layer, tileset, z, y, x, format_)
+
+        if tile and isinstance(tile, bytes):
+            LOGGER.debug(f'Saving tile to {tile_}')
+            if self.db.set(tile_, tile) is False:
+                LOGGER.error('Error while saving tile to Redis')
+                return False
+
+    def _get_tile_key(self, layer, tileset, z, y, x, format_):
+        z, y, x = map(str, [z, y, x])
+        return '.'.join([layer, tileset, z, y, x, format_])
 
 
 class MVTPostgresCache(MVTCacheProvider):

@@ -24,6 +24,7 @@ dependencies = [
     "pyarrow",
     "pygeoapi",
     "pygeofilter[backend-sqlalchemy]",
+    "redis>=7.4.0",
     "requests",
     "shapely>=2.1.0",
     "sparqlwrapper",

@@ -31,7 +31,9 @@ import os
 import pytest
 
 from tempfile import TemporaryDirectory
-from pygeoapi_plugins.provider.mvt_cache import MVTPostgresFilesystem, MVTPostgresCache
+from pygeoapi_plugins.provider.mvt_cache import (
+    MVTPostgresFilesystem, MVTPostgresCache, MVTPostgresRedis
+)
 
 
 PASSWORD = os.environ.get('POSTGRESQL_PASSWORD', 'postgres')
@@ -159,6 +161,35 @@ def test_disable_at_z(config):
     config['disable_cache_at_z'] = 14
 
     p = MVTPostgresCache(config)
+    assert (
+        p.get_tiles_from_cache(
+            tileset=TILESET,
+            z=Z,
+            x=X,
+            y=Y,
+        )
+        is None
+    )
+
+    tile = p.get_tiles(tileset=TILESET, z=Z, x=X, y=Y)
+
+    assert (
+        p.get_tiles_from_cache(
+            tileset=TILESET,
+            z=Z,
+            x=X,
+            y=Y,
+        )
+        == tile
+    )
+
+
+def test_redis_cache(config):
+    config['redis_host'] = 'localhost'
+    config['redis_port'] = 6379
+    config['disable_cache_at_z'] = 14
+
+    p = MVTPostgresRedis(config)
     assert (
         p.get_tiles_from_cache(
             tileset=TILESET,
