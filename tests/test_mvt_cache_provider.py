@@ -32,7 +32,9 @@ import pytest
 
 from tempfile import TemporaryDirectory
 from pygeoapi_plugins.provider.mvt_cache import (
-    MVTPostgresFilesystem, MVTPostgresCache, MVTPostgresRedis
+    MVTPostgresFilesystem,
+    MVTPostgresCache,
+    MVTPostgresRedis,
 )
 
 
