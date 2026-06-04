@@ -244,6 +244,19 @@ providers:
     disable_cache_at_z: 25 # Cache everything (eventually)
 ```
 
+#### Redis Cache
+
+The Redis cache uses a combined tile key for the lookup in a Redis service.
+
+```yaml
+providers:
+  - type: tile
+    name: pygeoapi_plugins.provider.mvt_cache.MVTPostgresRedis
+    ...
+    redis_host: ${REDIS_HOST} # Use REDIS_HOST from environment
+    redis_port: ${REDIS_PORT} # Use REDIS_PORT from environment
+```
+
 ## OGC API - Processes
 
 Additional OGC API - Processes are listed below
