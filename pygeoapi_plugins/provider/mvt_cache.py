@@ -128,6 +128,12 @@ class MVTCacheProvider(MVTPostgreSQLProvider_):
             for y in range(schema.tileMatrices[z]['matrixHeight'])
             for x in range(schema.tileMatrices[z]['matrixWidth'])
         ]
+
+        first_layer = layers[0]
+        if self.get_tiles_from_cache(*first_layer):
+            LOGGER.debug('Pre-cache skipped, tiles already exist in cache')
+            return
+
         for layer in layers:
             try:
                 self.get_tiles(*layer)
