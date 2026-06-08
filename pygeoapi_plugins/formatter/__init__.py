@@ -1,3 +1,4 @@
+# ruff: noqa
 # =================================================================
 #
 # Author: Benjamin Webb <bwebb@lincolninst.edu>
@@ -28,3 +29,16 @@
 # =================================================================
 
 """Output formatter package"""
+
+from pygeoapi_plugins.formatter.jsonfg import JSONFGFormatter as JSONFG
+
+from pygeoapi_plugins.formatter.parquet import ParquetFormatter as Parquet
+
+from pygeoapi_plugins.formatter.shape import (
+    ShapefileFormatter as Shapefile,
+    GPKGFormatter as GPKG,
+    KMLFormatter as KML,
+    PGDUMPFormatter as PGDUMP,
+)
+
+from pygeoapi_plugins.formatter.xml import XMLFormatter as XML

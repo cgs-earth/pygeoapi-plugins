@@ -52,7 +52,7 @@ class ShapefileFormatter(BaseFormatter):
         :returns: `pygeoapi_plugins.formatter.shape.ShapefileFormatter`
         """
 
-        super().__init__({'name': 'SHP', 'attachment': True})
+        super().__init__({'name': 'shp', 'attachment': True})
 
         self.mimetype = 'application/zip'
         self.f = 'shp'
@@ -151,7 +151,7 @@ class KMLFormatter(BaseShapeFormatter):
         :returns: `pygeoapi_plugins.formatter.shape.KMLFormatter`
         """
 
-        super().__init__({'name': 'KML', 'attachment': True})
+        super().__init__({'name': 'kml', 'attachment': True})
 
         self.f = 'kml'
         self.mimetype = 'application/vnd.google-earth.kml+xml'
@@ -179,7 +179,7 @@ class GPKGFormatter(BaseShapeFormatter):
         :returns: `pygeoapi_plugins.formatter.shape.GPKGFormatter`
         """
 
-        super().__init__({'name': 'GPKG', 'attachment': True})
+        super().__init__({'name': 'gpkg', 'attachment': True})
 
         self.f = 'gpkg'
         self.mimetype = 'application/geopackage+sqlite3'
@@ -207,7 +207,7 @@ class PGDUMPFormatter(BaseShapeFormatter):
         :returns: `pygeoapi_plugins.formatter.shape.PGDUMPFormatter`
         """
 
-        super().__init__({'name': 'PGDUMP', 'attachment': True})
+        super().__init__({'name': 'pgdump', 'attachment': True})
 
         self.f = 'pgdump'
         self.mimetype = 'application/sql'

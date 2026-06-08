@@ -66,7 +66,7 @@ class JSONFGFormatter(BaseFormatter):
         if 'geom' in formatter_def:
             geom = formatter_def['geom']
 
-        super().__init__({'name': 'JSONFG', 'geom': geom})
+        super().__init__({'name': 'jsonfg', 'geom': geom})
         self.mimetype = 'application/geo+json'
         self.f = 'jsonfg'
         self.extension = 'json'

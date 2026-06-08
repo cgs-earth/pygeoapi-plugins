@@ -61,7 +61,7 @@ class XMLFormatter(BaseFormatter):
 
         :returns: `pygeoapi_plugins.formatter.xml.XMLFormatter`
         """
-        super().__init__({'name': 'XML', 'attachment': False})
+        super().__init__({'name': 'xml', 'attachment': False})
 
         self.f = 'xml'
         self.mimetype = 'application/xml'

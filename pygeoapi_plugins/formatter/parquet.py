@@ -49,7 +49,7 @@ class ParquetFormatter(BaseFormatter):
         :returns: `pygeoapi_plugins.formatter.parquet.ParquetFormatter`
         """
 
-        super().__init__({'name': 'Parquet', 'attachment': True})
+        super().__init__({'name': 'parquet', 'attachment': True})
 
         self.mimetype = 'application/vnd.apache.parquet'
         self.f = 'parquet'
