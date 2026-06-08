@@ -309,6 +309,7 @@ body from OGC API - Feature and OGC API - EDR GeoJSON responses. The following f
 - **XML (Sitemap)**: `pygeoapi_plugins.formatter.XML` — generates a sitemap XML from feature collections (`application/xml`).
 
 Usage
+
 - To enable any of these formatters for a resource, add them to the resource `formatters` list in your pygeoapi configuration. Example (see [docker/pygeoapi.config.yml](docker/pygeoapi.config.yml) for a full example):
 
 ```yaml
