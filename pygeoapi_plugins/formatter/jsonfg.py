@@ -32,10 +32,6 @@
 Returns content as JSON-FG representations
 """
 
-<<<<<<< HEAD
-=======
-
->>>>>>> 25b671f795ae719b3e881c88ecce2dfdda29c114
 import logging
 
 # import osgeo if using geojson2jsonfg
@@ -104,22 +100,13 @@ class JSONFGFormatter(BaseFormatter):
 
         jsonfg = {
             'type': 'FeatureCollection',
-<<<<<<< HEAD
             'featureType': 'OGRGeoJSON',
             'featureSchema': None,
             'coordRefSys': content_crs,
-=======
->>>>>>> 25b671f795ae719b3e881c88ecce2dfdda29c114
             'conformsTo': [
                 'http://www.opengis.net/spec/json-fg-1/1.0/conf/core',
                 'http://www.opengis.net/spec/json-fg-1/1.0/conf/types-schemas',
             ],
-<<<<<<< HEAD
-=======
-            'coordRefSys': content_crs,
-            'featureType': 'OGRGeoJSON',
-            'featureSchema': None,
->>>>>>> 25b671f795ae719b3e881c88ecce2dfdda29c114
             'features': [],
             'links': data.get('links', []),
         }
@@ -147,18 +134,11 @@ class JSONFGFormatter(BaseFormatter):
 
         # The following code is an alternative implementation that uses GDAL
         # to convert GeoJSON to JSON-FG. It is currently commented out because
-<<<<<<< HEAD
         # the direct manipulation of the GeoJSON structure is more
         # straightforward and does not require GDAL as a dependency. However,
         # if there are issues with the direct approach or if there is a need
         # for more complex transformations, the GDAL-based implementation can
         # be considered.
-=======
-        # the direct manipulation of the GeoJSON structure is more straightforward
-        # and does not require GDAL as a dependency. However, if there are issues
-        # with the direct approach or if there is a need for more complex
-        # transformations, the GDAL-based implementation can be considered.
->>>>>>> 25b671f795ae719b3e881c88ecce2dfdda29c114
         #
         # try:
         #     links = data.get('links')
