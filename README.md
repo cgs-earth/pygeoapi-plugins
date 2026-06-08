@@ -294,3 +294,40 @@ sitemap-generator:
   processor:
     name: pygeoapi_plugins.process.sitemap.SitemapProcessor
 ```
+
+## Formatters
+
+The pygeoapi plugins repository includes a variety of custom formatters to modify the response
+body from OGC API - Feature and OGC API - EDR GeoJSON responses. The following formatters are supported:
+
+- **JSON-FG**: `pygeoapi_plugins.formatter.JSONFG` — returns JSON-FG compliant GeoJSON (`application/geo+json`). Useful for systems that require OGR-style JSON-FG output.
+- **Parquet**: `pygeoapi_plugins.formatter.Parquet` — returns an Apache Parquet binary (`application/vnd.apache.parquet`). Good for analytical workflows and columnar storage.
+- **Shapefile**: `pygeoapi_plugins.formatter.Shapefile` — returns a zipped Shapefile (`application/zip`).
+- **KML**: `pygeoapi_plugins.formatter.KML` — returns KML formatted output (`application/vnd.google-earth.kml+xml`).
+- **GPKG**: `pygeoapi_plugins.formatter.GPKG` — returns a GeoPackage (`application/geopackage+sqlite3`).
+- **PGDUMP**: `pygeoapi_plugins.formatter.PGDUMP` — returns SQL dump suitable for importing into PostGIS (`application/sql`).
+- **XML (Sitemap)**: `pygeoapi_plugins.formatter.XML` — generates a sitemap XML from feature collections (`application/xml`).
+
+Usage
+
+- To enable any of these formatters for a resource, add them to the resource `formatters` list in your pygeoapi configuration. Example (see [docker/pygeoapi.config.yml](docker/pygeoapi.config.yml) for a full example):
+
+```yaml
+resources:
+  my_collection:
+    type: collection
+    title: My Collection
+    providers:
+      - type: feature
+        name: pygeoapi_plugins.provider.geopandas_.GeoPandasProvider
+        data: /path/to/data.geojson
+        id_field: id
+    formatters:
+      - name: pygeoapi_plugins.formatter.JSONFG
+      - name: pygeoapi_plugins.formatter.Shapefile
+      - name: pygeoapi_plugins.formatter.GPKG
+      - name: pygeoapi_plugins.formatter.KML
+      - name: pygeoapi_plugins.formatter.PGDUMP
+      - name: pygeoapi_plugins.formatter.XML
+      - name: pygeoapi_plugins.formatter.Parquet
+```
