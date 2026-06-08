@@ -54,7 +54,7 @@ def test_xml_formatter(config):
     fc = p.query()
     f_xml = f.write(data=fc)
 
-    assert f.mimetype == 'application/xml; charset=utf-8'
+    assert f.mimetype == 'application/xml'
 
     root = ET.fromstring(f_xml)
     assert all(i.tag == j.tag for (i, j) in zip(root, root.findall('url')))
@@ -84,7 +84,7 @@ def test_xml_formatter_no_uri(config):
     ]
     f_xml = f.write(data=fc)
 
-    assert f.mimetype == 'application/xml; charset=utf-8'
+    assert f.mimetype == 'application/xml'
 
     root = ET.fromstring(f_xml)
     assert all(i.tag == j.tag for (i, j) in zip(root, root.findall('url')))
