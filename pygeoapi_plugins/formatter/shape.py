@@ -35,6 +35,7 @@ import io
 import logging
 
 from pygeoapi.formatter.base import BaseFormatter
+from pygeoapi.crs import DEFAULT_CRS
 
 LOGGER = logging.getLogger(__name__)
 
@@ -57,7 +58,7 @@ class ShapefileFormatter(BaseFormatter):
         self.f = 'shp'
         self.extension = 'zip'
 
-    def write(self, options: dict = {}, data: dict = None) -> str:
+    def write(self, options: dict = {}, data: dict | None = {}) -> str:
         """
         Generate data in Zipped Shapefile format
 
@@ -66,9 +67,19 @@ class ShapefileFormatter(BaseFormatter):
 
         :returns: string representation of format
         """
-        dataset = options.get('dataset', 'data')
 
-        gdf = gpd.GeoDataFrame.from_features(data['features'])
+        format_conditions = [
+            data is None,
+            isinstance(data, dict) and not data.get('features'),
+        ]
+        if any(format_conditions):
+            LOGGER.warning('No features to write to Shapefile')
+            return str()
+
+        dataset = options.get('dataset', 'data')
+        content_crs = options.get('content_crs') or DEFAULT_CRS
+
+        gdf = gpd.GeoDataFrame.from_features(data, crs=content_crs)
 
         # Create a temporary directory for shapefile components
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -93,7 +104,9 @@ class ShapefileFormatter(BaseFormatter):
 class BaseShapeFormatter(BaseFormatter):
     """Base Shape formatter"""
 
-    def _write(self, driver=str, options: dict = {}, data: dict = None) -> str:
+    def _write(
+        self, driver: str, options: dict = {}, data: dict | None = {}
+    ) -> str:
         """
         Generate data in driver format
 
@@ -104,12 +117,24 @@ class BaseShapeFormatter(BaseFormatter):
         :returns: string representation of format
         """
 
-        gdf = gpd.GeoDataFrame.from_features(data['features'])
+        format_conditions = [
+            data is None,
+            isinstance(data, dict) and not data.get('features'),
+        ]
+        if any(format_conditions):
+            LOGGER.warning(f'No features to write to {driver}')
+            return str()
+
         output = io.BytesIO()
+        content_crs = options.get('content_crs') or DEFAULT_CRS
+        gdf = gpd.GeoDataFrame.from_features(data, crs=content_crs)
         try:
             gdf.to_file(output, driver=driver, use_arrow=True)
         except ModuleNotFoundError:
             gdf.to_file(output, driver=driver)
+        except ValueError:
+            LOGGER.info('No features to write')
+            return str()
 
         return output.getvalue()
 
@@ -132,7 +157,7 @@ class KMLFormatter(BaseShapeFormatter):
         self.mimetype = 'application/vnd.google-earth.kml+xml'
         self.extension = 'kml'
 
-    def write(self, options: dict = {}, data: dict = None) -> str:
+    def write(self, options: dict = {}, data: dict | None = {}) -> str:
         """
         Generate data in KML format
         """
@@ -168,3 +193,31 @@ class GPKGFormatter(BaseShapeFormatter):
 
     def __repr__(self):
         return f'<GPKGFormatter> {self.name}'
+
+
+class PGDUMPFormatter(BaseShapeFormatter):
+    """PGDUMP formatter"""
+
+    def __init__(self, formatter_def: dict):
+        """
+        Initialize object
+
+        :param formatter_def: formatter definition
+
+        :returns: `pygeoapi_plugins.formatter.shape.PGDUMPFormatter`
+        """
+
+        super().__init__({'name': 'PGDUMP', 'attachment': True})
+
+        self.f = 'pgdump'
+        self.mimetype = 'application/sql'
+        self.extension = 'sql'
+
+    def write(self, options: dict = {}, data: dict = None) -> str:
+        """
+        Generate data in PGDUMP format
+        """
+        return self._write('PGDUMP', options, data)
+
+    def __repr__(self):
+        return f'<PGDUMPFormatter> {self.name}'
