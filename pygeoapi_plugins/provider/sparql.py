@@ -32,7 +32,11 @@ import json
 import logging
 
 from pygeoapi.plugin import load_plugin
-from pygeoapi.provider.base import ProviderQueryError, ProviderNoDataError, BaseProvider
+from pygeoapi.provider.base import (
+    ProviderQueryError,
+    ProviderNoDataError,
+    BaseProvider,
+)
 from pygeoapi.util import is_url
 
 
@@ -126,7 +130,9 @@ class SPARQLProvider(BaseProvider):
                 LOGGER.warning(f'Unable to add where filter for: {triple}')
 
         self.filter = ' '.join(query.get('filter', []))
-        self.groupby = f'GROUP BY {query["groupby"]}' if query.get('groupby') else ''
+        self.groupby = (
+            f'GROUP BY {query["groupby"]}' if query.get('groupby') else ''
+        )
 
     def get_fields(self):
         """
@@ -244,7 +250,9 @@ class SPARQLProvider(BaseProvider):
             ]
         )
 
-        qs = self._makeQuery(value, where, self.prefix, self.select, self.filter)
+        qs = self._makeQuery(
+            value, where, self.prefix, self.select, self.filter
+        )
 
         result = self._sendQuery(qs)
 
@@ -331,7 +339,9 @@ class SPARQLProvider(BaseProvider):
             for k, v in results.items():
                 # Join query results by key
                 values = [
-                    self.parse(item.get('value') if isinstance(item, dict) else item)
+                    self.parse(
+                        item.get('value') if isinstance(item, dict) else item
+                    )
                     for item in (v if isinstance(v, list) else [v])
                 ]
                 # Return item or list of items
@@ -346,7 +356,9 @@ class SPARQLProvider(BaseProvider):
 
         return properties
 
-    def _makeQuery(self, value, where, prefix=_PREFIX, select=_SELECT, filter=''):
+    def _makeQuery(
+        self, value, where, prefix=_PREFIX, select=_SELECT, filter=''
+    ):
         """
         Private function to make SPARQL querystring
 
@@ -362,7 +374,9 @@ class SPARQLProvider(BaseProvider):
         _where = _WHERE.format(
             alias=self.alias, value=value, where=where, filter=filter
         )
-        querystring = ''.join([prefix, select, _where, self.groupby, self.limit])
+        querystring = ''.join(
+            [prefix, select, _where, self.groupby, self.limit]
+        )
 
         LOGGER.debug(f'SPARQL query: {querystring}')
 

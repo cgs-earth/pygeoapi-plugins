@@ -56,3 +56,8 @@ exclude = ["tests"]
 
 [tool.uv.sources]
 pygeoapi = { git = "https://github.com/internetofwater/pygeoapi.git", branch="dev" }
+
+[tool.ruff]
+format.quote-style = "single"
+line-length = 79
+

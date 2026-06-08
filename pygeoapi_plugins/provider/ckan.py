@@ -185,7 +185,9 @@ class CKANProvider(BaseProvider):
             required = [self.id_field, self.x_field, self.y_field]
             select_properties.extend(required)
 
-            params['fields'] = ','.join(set(self.properties) | set(select_properties))
+            params['fields'] = ','.join(
+                set(self.properties) | set(select_properties)
+            )
 
         # Add queryables to request params
         if properties:
@@ -226,7 +228,10 @@ class CKANProvider(BaseProvider):
             if len(response['records']) == 0:
                 break
             else:
-                _ = [self._make_feature(f, skip_geometry) for f in response['records']]
+                _ = [
+                    self._make_feature(f, skip_geometry)
+                    for f in response['records']
+                ]
                 v.extend(_)
 
         fc['features'] = v
@@ -272,7 +277,11 @@ class CKANProvider(BaseProvider):
 
         :returns: STA response
         """
-        f = {'type': 'Feature', 'id': feature.pop(self.id_field), 'geometry': None}
+        f = {
+            'type': 'Feature',
+            'id': feature.pop(self.id_field),
+            'geometry': None,
+        }
 
         if not skip_geometry:
             f['geometry'] = {

@@ -150,8 +150,12 @@ class MVTPostgreSQLProvider_(MVTPostgreSQLProvider):
         # Store envelope in geometry column's SRID
         storage_srid = get_srid(self.storage_crs)
         same_srid = envelope_srid == storage_srid
-        LOGGER.debug(f'out_srid: {envelope_srid}, storage_srid: {storage_srid}')
-        src_envelope = envelope if same_srid else ST_Transform(envelope, storage_srid)
+        LOGGER.debug(
+            f'out_srid: {envelope_srid}, storage_srid: {storage_srid}'
+        )
+        src_envelope = (
+            envelope if same_srid else ST_Transform(envelope, storage_srid)
+        )
 
         # Create filters
         filters = [geom_column.intersects(src_envelope)]
@@ -196,7 +200,9 @@ class MVTPostgreSQLProvider_(MVTPostgreSQLProvider):
         filters = []
         if self.tile_threshold:
             # Filter features based on tile_threshold CQL expression
-            tile_threshold = parse_ecql_text(self.tile_threshold.format(z=z or 1))
+            tile_threshold = parse_ecql_text(
+                self.tile_threshold.format(z=z or 1)
+            )
             filters.append(self._get_cql_filters(tile_threshold))
 
         else:

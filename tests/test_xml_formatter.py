@@ -90,7 +90,10 @@ def test_xml_formatter_no_uri(config):
     assert all(i.tag == j.tag for (i, j) in zip(root, root.findall('url')))
 
     node = root.find('url')
-    assert node.find('loc').text == 'http://example.com/collections/cities/items/0'
+    assert (
+        node.find('loc').text
+        == 'http://example.com/collections/cities/items/0'
+    )
 
     lastmod = node.find('lastmod').text
     strptime = datetime.strptime(lastmod, '%Y-%m-%dT%H:%M:%SZ')

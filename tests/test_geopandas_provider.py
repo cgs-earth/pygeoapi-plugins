@@ -202,7 +202,8 @@ def test_gpkg_bbox_query(gpkg_config):
     )
 
     results = p.query(
-        bbox=(0, 0, 0, 0), properties=[('uri', 'https://geoconnex.us/ref/hu02/07')]
+        bbox=(0, 0, 0, 0),
+        properties=[('uri', 'https://geoconnex.us/ref/hu02/07')],
     )
     assert len(results['features']) == 0
 
@@ -224,7 +225,8 @@ def test_gpkg_date_query(gpkg_config):
     results = p.query(datetime_='2019-10-10')
     assert len(results['features']) == 1
     assert (
-        results['features'][0]['properties']['LOADDATE'] == '2019-10-10 20:08:56+00:00'
+        results['features'][0]['properties']['LOADDATE']
+        == '2019-10-10 20:08:56+00:00'
     )
 
     results = p.query(datetime_='../1900-09-18T17:34:02.666+00:00')
@@ -239,28 +241,34 @@ def test_gpkg_date_query(gpkg_config):
     results = p.query(datetime_='2016-09-22/2016-11-23')
     assert len(results['features']) == 2
     assert (
-        results['features'][0]['properties']['LOADDATE'] == '2016-10-11 21:37:03+00:00'
+        results['features'][0]['properties']['LOADDATE']
+        == '2016-10-11 21:37:03+00:00'
     )
     assert (
-        results['features'][1]['properties']['LOADDATE'] == '2016-09-22 06:01:28+00:00'
+        results['features'][1]['properties']['LOADDATE']
+        == '2016-09-22 06:01:28+00:00'
     )
 
     results = p.query(datetime_='2000-01-01T00:00:00Z/2016-11-23')
     assert len(results['features']) == 2
     assert (
-        results['features'][0]['properties']['LOADDATE'] == '2016-10-11 21:37:03+00:00'
+        results['features'][0]['properties']['LOADDATE']
+        == '2016-10-11 21:37:03+00:00'
     )
     assert (
-        results['features'][1]['properties']['LOADDATE'] == '2016-09-22 06:01:28+00:00'
+        results['features'][1]['properties']['LOADDATE']
+        == '2016-09-22 06:01:28+00:00'
     )
 
     results = p.query(datetime_='2016')
     assert len(results['features']) == 2
     assert (
-        results['features'][0]['properties']['LOADDATE'] == '2016-10-11 21:37:03+00:00'
+        results['features'][0]['properties']['LOADDATE']
+        == '2016-10-11 21:37:03+00:00'
     )
     assert (
-        results['features'][1]['properties']['LOADDATE'] == '2016-09-22 06:01:28+00:00'
+        results['features'][1]['properties']['LOADDATE']
+        == '2016-09-22 06:01:28+00:00'
     )
 
 
@@ -270,7 +278,8 @@ def test_gpkg_sort_query(gpkg_config):
     results = p.query(sortby=[{'property': 'LOADDATE', 'order': '-'}])
     # Sort by descending so we expect the newest date first
     assert (
-        results['features'][0]['properties']['LOADDATE'] == '2019-10-31 16:20:07+00:00'
+        results['features'][0]['properties']['LOADDATE']
+        == '2019-10-31 16:20:07+00:00'
     )
 
     # Create a dummy row In order to test breaking ties
@@ -281,7 +290,9 @@ def test_gpkg_sort_query(gpkg_config):
         'GNIS_ID': '_',
         'HUC2': '_',
         # Tie for the latest date in the dataset
-        'LOADDATE': datetime.datetime.fromisoformat('2019-10-31T16:20:07+00:00'),
+        'LOADDATE': datetime.datetime.fromisoformat(
+            '2019-10-31T16:20:07+00:00'
+        ),
         'geometry': shapely.box(0, 0, 0, 0),
     }
 
@@ -310,7 +321,9 @@ def test_transaction(gpkg_config):
         'gnis_url': '_',
         'GNIS_ID': '',
         'HUC2': '1111',
-        'LOADDATE': datetime.datetime.fromisoformat('2019-10-31T16:20:07+00:00'),
+        'LOADDATE': datetime.datetime.fromisoformat(
+            '2019-10-31T16:20:07+00:00'
+        ),
         'geometry': shapely.box(0, 0, 0, 0),
     }
 
@@ -326,7 +339,9 @@ def test_transaction(gpkg_config):
         'gnis_url': '_',
         'GNIS_ID': '',
         'HUC2': '1111',
-        'LOADDATE': datetime.datetime.fromisoformat('2019-10-31T16:20:08+00:00'),
+        'LOADDATE': datetime.datetime.fromisoformat(
+            '2019-10-31T16:20:08+00:00'
+        ),
         'geometry': shapely.box(0, 0, 0, 0),
     }
 

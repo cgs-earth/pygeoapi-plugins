@@ -59,7 +59,9 @@ PROCESS_DEF.update(
         'version': '0.1.0',
         'id': 'sitemap-generator',
         'title': 'Sitemap Generator',
-        'description': ('A process that returns a sitemap ofall pygeoapi endpoints.'),
+        'description': (
+            'A process that returns a sitemap ofall pygeoapi endpoints.'
+        ),
         'links': [
             {
                 'type': 'text/html',
@@ -76,7 +78,9 @@ PROCESS_DEF.update(
                     'en': 'Boolean value controlling the generation of a sitemap '
                     'for OGC API - Common endpoints'
                 },
-                'keywords': {'en': ['sitemap', 'ogc', 'OGC API - Common', 'pygeoapi']},
+                'keywords': {
+                    'en': ['sitemap', 'ogc', 'OGC API - Common', 'pygeoapi']
+                },
                 'schema': {'type': 'boolean', 'default': True},
                 'minOccurs': 0,
                 'maxOccurs': 1,
@@ -113,12 +117,18 @@ PROCESS_DEF.update(
                     'en': 'A sitemap of the OGC API - Common end points for the '
                     'pygeoapi instance.'
                 },
-                'schema': {'type': 'object', 'contentMediaType': 'application/json'},
+                'schema': {
+                    'type': 'object',
+                    'contentMediaType': 'application/json',
+                },
             },
             'sitemap.zip': {
                 'title': {'en': 'Sitemap'},
                 'description': {'en': 'A sitemap of the pygeoapi instance'},
-                'schema': {'type': 'object', 'contentMediaType': 'application/zip'},
+                'schema': {
+                    'type': 'object',
+                    'contentMediaType': 'application/zip',
+                },
             },
         },
         'example': {'inputs': {'include-features': False}},
@@ -215,7 +225,10 @@ class SitemapProcessor(BaseProcessor):
 
                 iterations = range(math.ceil(hits / 50000))
                 for i in iterations:
-                    yield (f'{name}__{i}.xml', self._generate(i, name, provider))
+                    yield (
+                        f'{name}__{i}.xml',
+                        self._generate(i, name, provider),
+                    )
 
     def _generate(self, index, dataset, provider, n=50000):
         """
@@ -229,7 +242,9 @@ class SitemapProcessor(BaseProcessor):
         :returns: List of GeoJSON Features
         """
 
-        content = provider.query(offset=(n * index), limit=n, skip_geometry=True)
+        content = provider.query(
+            offset=(n * index), limit=n, skip_geometry=True
+        )
         content['links'] = [
             {
                 'rel': 'collection',

@@ -98,7 +98,9 @@ class XMLFormatter(BaseFormatter):
 
         if not self.uri_field:
             [collection_url] = [
-                link['href'] for link in data['links'] if link['rel'] == 'collection'
+                link['href']
+                for link in data['links']
+                if link['rel'] == 'collection'
             ]
 
         try:
