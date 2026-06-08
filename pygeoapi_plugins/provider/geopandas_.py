@@ -120,7 +120,9 @@ class GeoPandasProvider(BaseProvider):
                 LOGGER.warning('No time field found')
                 return
 
-        self.gdf[self.time_field] = pandas.to_datetime(self.gdf[self.time_field])
+        self.gdf[self.time_field] = pandas.to_datetime(
+            self.gdf[self.time_field]
+        )
 
     def _filter_by_date(
         self, df: geopandas.GeoDataFrame, datetime_: str
@@ -164,7 +166,9 @@ class GeoPandasProvider(BaseProvider):
 
             # If the user just passes in 2019/.. this still handles the match for all days in 2019
             # since the iso format will create the start as 2019-01-01
-            return df[(df[self.time_field] >= start) & (df[self.time_field] <= end)]
+            return df[
+                (df[self.time_field] >= start) & (df[self.time_field] <= end)
+            ]
 
         elif _ONLY_MATCH_ONE_DATE := len(dateRange) == 1:  # noqa
             dates: geopandas.GeoSeries = df[self.time_field]
@@ -234,7 +238,9 @@ class GeoPandasProvider(BaseProvider):
                 f'Tried to read GeoDataFrame: {ex} but it does not exist'
             )
         except Exception as ex:
-            raise ProviderInvalidDataError(f'Failed to read GeoDataFrame: {ex}')
+            raise ProviderInvalidDataError(
+                f'Failed to read GeoDataFrame: {ex}'
+            )
 
         # These fields should not be returned in the property list for a query
         self._exclude_from_fields: list[str] = []
@@ -252,13 +258,15 @@ class GeoPandasProvider(BaseProvider):
         if 'value' in self.gdf.columns:
             self.gdf['value'] = self.gdf['value'].astype('float64')
 
-        self._exclude_from_properties: list[str] = self._exclude_from_fields + [
-            self.id_field
-        ]
+        self._exclude_from_properties: list[str] = (
+            self._exclude_from_fields + [self.id_field]
+        )
 
         self._fields = None  # Initialize _fields attribute before it is set
 
-        self.fields = self.get_fields()  # Assign initial fields using get_fields()
+        self.fields = (
+            self.get_fields()
+        )  # Assign initial fields using get_fields()
 
     def get_fields(self) -> dict[str, any]:
         """
@@ -341,7 +349,9 @@ class GeoPandasProvider(BaseProvider):
         """
 
         if q is not None:
-            raise NotImplementedError('q not implemented for GeoPandasProvider')
+            raise NotImplementedError(
+                'q not implemented for GeoPandasProvider'
+            )
 
         found, result = False, False
         feature_collection: FeatureCollection = {
@@ -388,7 +398,10 @@ class GeoPandasProvider(BaseProvider):
             sort_keys = [sort_key['property'] for sort_key in sortby]
 
             for sort_specifier in sortby:
-                if '+' != sort_specifier['order'] and '-' != sort_specifier['order']:
+                if (
+                    '+' != sort_specifier['order']
+                    and '-' != sort_specifier['order']
+                ):
                     raise ProviderQueryError(
                         'sortby order must be + or - got {}'.format(
                             sort_specifier['order']
@@ -396,7 +409,8 @@ class GeoPandasProvider(BaseProvider):
                     )
 
             sort_directions = [
-                True if sort_key['order'] == '+' else False for sort_key in sortby
+                True if sort_key['order'] == '+' else False
+                for sort_key in sortby
             ]
 
             df = df.sort_values(by=sort_keys, ascending=sort_directions)
@@ -425,14 +439,18 @@ class GeoPandasProvider(BaseProvider):
                     feature['geometry']['coordinates'] = shapely.to_geojson(
                         row[self.geometry_col]
                     )
-                    feature['geometry']['type'] = row[self.geometry_col].geom_type
+                    feature['geometry']['type'] = row[
+                        self.geometry_col
+                    ].geom_type
                 else:
                     raise ProviderQueryError(
                         'The config passed in does not specify which geometry column to use'
                     )
 
             for key, value in row.items():
-                properties_to_keep = set(self.properties) | (set(select_properties))
+                properties_to_keep = set(self.properties) | (
+                    set(select_properties)
+                )
 
                 # If no properties are specified to filter by, we have a no-op filter
                 KEEP_ALL = len(properties_to_keep) == 0
@@ -446,7 +464,9 @@ class GeoPandasProvider(BaseProvider):
                 result = feature
 
             feature_collection['features'].append(feature)
-            feature_collection['numberMatched'] = len(feature_collection['features'])
+            feature_collection['numberMatched'] = len(
+                feature_collection['features']
+            )
 
         if identifier:
             return None if not found else result
@@ -454,7 +474,9 @@ class GeoPandasProvider(BaseProvider):
         feature_collection['features'] = feature_collection['features'][
             offset : offset + limit
         ]
-        feature_collection['numberReturned'] = len(feature_collection['features'])
+        feature_collection['numberReturned'] = len(
+            feature_collection['features']
+        )
 
         # After we have used the timestamps for querying we need to convert them back to strings
         for feature in feature_collection['features']:
@@ -499,7 +521,9 @@ class GeoPandasProvider(BaseProvider):
         """
 
         if len(item) != len(self.gdf.columns):
-            raise ProviderQueryError('Item to update does not match dataframe shape')
+            raise ProviderQueryError(
+                'Item to update does not match dataframe shape'
+            )
 
         new_row = geopandas.GeoDataFrame([item], crs=self.gdf.crs)
         self.gdf = pandas.concat([self.gdf, new_row], ignore_index=True)
@@ -520,7 +544,9 @@ class GeoPandasProvider(BaseProvider):
             raise ProviderNoDataError('No data in provider')
 
         if len(item) != len(self.gdf.columns):
-            raise ProviderQueryError('Item to update does not match dataframe shape')
+            raise ProviderQueryError(
+                'Item to update does not match dataframe shape'
+            )
 
         if identifier not in self.gdf[self.id_field].values:
             return False

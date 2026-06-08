@@ -167,14 +167,18 @@ def test_query(config):
     assert feature['id'] == '0'
     assert feature['properties']['city'] == 'Berlin'
     assert feature['properties']['population'] == '3596999'
-    assert feature['properties']['country'] == 'http://dbpedia.org/resource/Germany'  # noqa
+    assert (
+        feature['properties']['country']
+        == 'http://dbpedia.org/resource/Germany'
+    )
     assert feature['geometry']['coordinates'][0] == 13.405
     assert feature['geometry']['coordinates'][1] == 52.52
 
     feature2 = p.get('2')
     assert feature2['properties']['city'] == 'New York'
     assert (
-        feature2['properties']['country'] == 'http://dbpedia.org/resource/United_States'  # noqa
+        feature2['properties']['country']
+        == 'http://dbpedia.org/resource/United_States'
     )
 
 
@@ -185,7 +189,10 @@ def test_query_missing_where(config):
     assert feature['id'] == '0'
     assert feature['properties']['city'] == 'Berlin'
     assert 'population' not in feature['properties']
-    assert feature['properties']['country'] == 'http://dbpedia.org/resource/Germany'  # noqa
+    assert (
+        feature['properties']['country']
+        == 'http://dbpedia.org/resource/Germany'
+    )
     assert feature['geometry']['coordinates'][0] == 13.405
     assert feature['geometry']['coordinates'][1] == 52.52
 

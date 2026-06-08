@@ -113,17 +113,26 @@ def test_query_with_property_filter(config):
     feature_collection = p.query(properties=[('waterway', 'stream')])
     features = feature_collection.get('features')
     stream_features = list(
-        filter(lambda feature: feature['properties']['waterway'] == 'stream', features)
+        filter(
+            lambda feature: feature['properties']['waterway'] == 'stream',
+            features,
+        )
     )
     assert len(features) == len(stream_features)
 
     feature_collection = p.query(limit=50)
     features = feature_collection.get('features')
     stream_features = list(
-        filter(lambda feature: feature['properties']['waterway'] == 'stream', features)
+        filter(
+            lambda feature: feature['properties']['waterway'] == 'stream',
+            features,
+        )
     )
     other_features = list(
-        filter(lambda feature: feature['properties']['waterway'] != 'stream', features)
+        filter(
+            lambda feature: feature['properties']['waterway'] != 'stream',
+            features,
+        )
     )
     assert len(features) != len(stream_features)
     assert len(other_features) != 0
@@ -182,7 +191,9 @@ def test_query_hits_with_property_filter(config, property_filter, expected):
 def test_query_bbox(config):
     """Test query with a specified bounding box"""
     psp = PostgreSQLProvider(config)
-    boxed_feature_collection = psp.query(bbox=[29.3373, -3.4099, 29.3761, -3.3924])
+    boxed_feature_collection = psp.query(
+        bbox=[29.3373, -3.4099, 29.3761, -3.3924]
+    )
     assert len(boxed_feature_collection['features']) == 5
 
 
@@ -208,7 +219,11 @@ def test_query_skip_geometry(config):
 
 @pytest.mark.parametrize(
     'properties',
-    [['name'], ['name', 'waterway'], ['name', 'waterway', 'this does not exist']],
+    [
+        ['name'],
+        ['name', 'waterway'],
+        ['name', 'waterway', 'this does not exist'],
+    ],
 )
 def test_query_select_properties(config, properties):
     """Test query with selected properties"""
@@ -283,17 +298,26 @@ def test_get_not_existing_item_raise_exception(config):
                 80835486,
             ],
         ),
-        ("osm_id BETWEEN 80800000 AND 80900000 AND waterway = 'stream'", [80835470]),
+        (
+            "osm_id BETWEEN 80800000 AND 80900000 AND waterway = 'stream'",
+            [80835470],
+        ),
         (
             "osm_id BETWEEN 80800000 AND 80900000 AND waterway ILIKE 'sTrEam'",
             [80835470],
         ),
-        ("osm_id BETWEEN 80800000 AND 80900000 AND waterway LIKE 's%'", [80835470]),
+        (
+            "osm_id BETWEEN 80800000 AND 80900000 AND waterway LIKE 's%'",
+            [80835470],
+        ),
         (
             "osm_id BETWEEN 80800000 AND 80900000 AND name IN ('Muhira', 'Mpanda')",
             [80835468, 80835472, 80835475, 80835478],
         ),
-        ('osm_id BETWEEN 80800000 AND 80900000 AND name IS NULL', [80835474, 80835483]),
+        (
+            'osm_id BETWEEN 80800000 AND 80900000 AND name IS NULL',
+            [80835474, 80835483],
+        ),
         (
             'osm_id BETWEEN 80800000 AND 80900000 AND BBOX(foo_geom, 29, -2.8, 29.2, -2.9)',  # noqa
             [80827793, 80835470, 80835472, 80835483, 80835489],

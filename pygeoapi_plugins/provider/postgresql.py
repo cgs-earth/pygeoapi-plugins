@@ -178,7 +178,9 @@ class PseudoPostgreSQLProvider(PostgreSQLProvider):
 
             crs_transform_out = self._get_crs_transform(crs_transform_spec)
 
-            for item in results.order_by(*order_by_clauses).offset(offset).limit(limit):  # noqa
+            for item in (
+                results.order_by(*order_by_clauses).offset(offset).limit(limit)
+            ):
                 response['numberReturned'] += 1
                 response['features'].append(
                     self._sqlalchemy_to_feature(item, crs_transform_out)

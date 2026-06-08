@@ -192,7 +192,11 @@ def test_literal_geojson(process_def, url, bounds, ctx):
             None,
             pytest.raises(Exception),
         ),  # Error case - non-vector
-        ('https://example.com', None, pytest.raises(Exception)),  # Error case - bad URL
+        (
+            'https://example.com',
+            None,
+            pytest.raises(Exception),
+        ),  # Error case - bad URL
     ],
 )
 def test_execute(process_def, url, hits, ctx):
