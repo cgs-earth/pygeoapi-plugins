@@ -55,6 +55,13 @@ class ParquetFormatter(BaseFormatter):
         self.f = 'parquet'
         self.extension = 'parquet'
 
+        # Parquet specific configuration
+        self.index: bool = formatter_def.get('schema_version') is True
+        self.schema_version: str = formatter_def.get('schema_version', '1.1')
+        self.write_covering_bbox: bool = formatter_def.get(
+            'write_covering_bbox', False
+        )
+
     def write(self, options: dict = {}, data: dict | None = {}) -> str:
         """
         Generate data in Parquet format
@@ -79,7 +86,12 @@ class ParquetFormatter(BaseFormatter):
         gdf = gpd.GeoDataFrame.from_features(data, crs=f'{auth}:{code}')
 
         output = io.BytesIO()
-        gdf.to_parquet(output, index=True)
+        gdf.to_parquet(
+            output,
+            index=self.index,
+            write_covering_bbox=self.write_covering_bbox,
+            schema_version=self.schema_version,
+        )
         return output.getvalue()
 
     def __repr__(self):
