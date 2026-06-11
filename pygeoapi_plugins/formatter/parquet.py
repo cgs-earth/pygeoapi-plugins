@@ -57,7 +57,7 @@ class ParquetFormatter(BaseFormatter):
 
         # Parquet specific configuration
         self.index: bool = formatter_def.get('index') is False
-        self.schema_version: str = formatter_def.get('schema_version', '1.1')
+        self.schema_version: str = formatter_def.get('schema_version', '1.1.0')
         self.write_covering_bbox: bool = formatter_def.get(
             'write_covering_bbox', False
         )
