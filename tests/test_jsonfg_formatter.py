@@ -97,7 +97,7 @@ def test_jsonfg__formatter(fixture):
     result = f.write(data=fixture)
     f_jsonfg = json.loads(result)
 
-    assert f.mimetype == 'application/geo+json'
+    assert f.mimetype == 'application/fg+json'
 
     assert f_jsonfg['type'] == 'FeatureCollection'
     assert f_jsonfg['features'][0]['type'] == 'Feature'
@@ -125,7 +125,7 @@ def test_jsonfg_spatiotemporal_formatter(spatiotemporal_fixture):
     result = f.write(data=spatiotemporal_fixture, options=options)
     f_jsonfg = json.loads(result)
 
-    assert f.mimetype == 'application/geo+json'
+    assert f.mimetype == 'application/fg+json'
 
     assert f_jsonfg['type'] == 'FeatureCollection'
     assert f_jsonfg['features'][0]['type'] == 'Feature'
