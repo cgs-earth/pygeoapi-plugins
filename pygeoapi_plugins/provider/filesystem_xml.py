@@ -222,9 +222,8 @@ def _describe_file(filepath):
 
     _ = tree.getroot().itertext()
     result = [line.strip() for line in ''.join(_).split('\n') if line.strip()]
-    for i in range(0, len(result), 2):
+    for i in range(0, len(result)):
         href = result[i]
-        lastmod = result[i + 1]
         title = href.split('/')[-1]
 
         links.append(
@@ -233,7 +232,6 @@ def _describe_file(filepath):
                 'href': href,
                 'title': title,
                 'type': 'application/ld+json',
-                'lastmod': lastmod,
             }
         )
 
