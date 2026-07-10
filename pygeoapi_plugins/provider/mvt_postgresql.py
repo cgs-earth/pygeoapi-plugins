@@ -29,18 +29,21 @@
 
 import logging
 
+from copy import deepcopy
 from enum import Enum
 from geoalchemy2.functions import (
     Box2D,
     ST_Area,
     ST_AsMVTGeom,
     ST_AsMVT,
+    ST_Extent,
     ST_Simplify,
     ST_SimplifyVW,
     ST_SimplifyPreserveTopology,
     ST_SnapToGrid,
     ST_Transform,
 )
+import re
 
 from sqlalchemy.sql import select
 from sqlalchemy.orm import Session
@@ -48,7 +51,10 @@ from pygeofilter.parsers.ecql import parse as parse_ecql_text
 
 from pygeoapi.provider.mvt_postgresql import MVTPostgreSQLProvider
 from pygeoapi.provider.tile import ProviderTileNotFoundError
+from pygeoapi.provider.sql import PostgreSQLProvider
 from pygeoapi.crs import get_srid
+
+from pygeoapi.util import url_join
 
 LOGGER = logging.getLogger(__name__)
 
@@ -88,7 +94,9 @@ class MVTPostgreSQLProvider_(MVTPostgreSQLProvider):
         self.layer = provider_def.get('layer', self.table)
         self.disable_at_z = provider_def.get('disable_at_z', 6)
         self.simplify_geometry = provider_def.get('simplify_geometry', True)
-        simplify_method = provider_def.get('simplify_method', 'ST_SimplifyPreserveTopology')
+        simplify_method = provider_def.get(
+            'simplify_method', 'ST_SimplifyPreserveTopology'
+        )
         try:
             self.simplify_method = SimplifyMethod[simplify_method]
         except KeyError:
@@ -103,6 +111,9 @@ class MVTPostgreSQLProvider_(MVTPostgreSQLProvider):
 
         # Maximum number of features in a tile
         self.tile_limit = provider_def.get('tile_limit', 0)
+
+        self.min_zoom = provider_def['options']['zoom']['min']
+        self.max_zoom = provider_def['options']['zoom']['max']
 
     def get_layer(self):
         """
@@ -157,6 +168,66 @@ class MVTPostgreSQLProvider_(MVTPostgreSQLProvider):
             result = session.execute(mvt_query).scalar()
 
         return bytes(result) if result else None
+
+    def get_vendor_metadata(self, dataset, server_url, layer=None,
+                            tileset=None, title=None, description=None,
+                            keywords=None, **kwargs):
+        """Create TileJSON representation"""
+        service_url = url_join(
+            server_url,
+            f'collections/{dataset}/tiles/{tileset}')
+        tiles_url = url_join(
+            service_url, '{tileMatrix}/{tileRow}/{tileCol}?f=mvt')
+        tilejson_url = url_join(service_url, 'metadata?f=tilejson')
+
+        metadata = dict()
+        metadata['tilejson'] = '3.0.0'
+        metadata['name'] = title
+        metadata['attribution'] = None
+        metadata['description'] = description
+        metadata['tiles'] = tiles_url
+        metadata['tilejson_url'] = tilejson_url
+        metadata['minzoom'] = self.min_zoom
+        metadata['maxzoom'] = self.max_zoom
+
+        geom_column = getattr(self.table_model, self.geom)
+        mvt_extent = select(ST_Extent(geom_column))
+        with Session(self._engine) as session:
+            extent = str(session.execute(mvt_extent).scalar())
+
+        m = re.match(
+            r"BOX\(([-\d.]+) ([-\d.]+),([-\d.]+) ([-\d.]+)\)",
+            extent
+        )
+        if m:
+            minx, miny, maxx, maxy = map(float, m.groups())
+            metadata['bounds'] = f'{minx}, {miny}, {maxx}, {maxy}'
+            metadata['center'] = f'{maxx - minx}, {maxy - miny}'
+
+        _fields = deepcopy(self._fields)
+        self._fields = {}
+        metadata['vector_layers'] = [{
+            'id': layer,
+            'description': '',
+            'minzoom': self.min_zoom,
+            'maxzoom': self.max_zoom,
+            'fields': {
+                c: v['type']
+                for c, v in PostgreSQLProvider.get_fields(self).items()
+            }
+        }]
+        self._fields = _fields
+
+        return metadata
+
+    def get_metadata(self, *args, **kwargs):
+        """Create Tile Metadata"""
+        metadata = MVTPostgreSQLProvider.get_metadata(self, *args, **kwargs)
+        if kwargs.get('metadata_format') == 'html':
+            metadata['metadata'] = self.get_vendor_metadata(*args, **kwargs)
+            metadata['tilejson_url'] = metadata['metadata']['tilejson_url']
+
+        return metadata
 
     def _get_mvt_cte(self, envelope, envelope_srid, z):
         """
