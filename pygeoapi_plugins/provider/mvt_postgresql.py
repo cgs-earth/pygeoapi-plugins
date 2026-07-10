@@ -191,16 +191,20 @@ class MVTPostgreSQLProvider_(MVTPostgreSQLProvider):
         metadata['maxzoom'] = self.max_zoom
 
         geom_column = getattr(self.table_model, self.geom)
-        mvt_extent = select(ST_Extent(geom_column))
+        stmt = select(ST_Extent(geom_column))
         with Session(self._engine) as session:
-            extent = str(session.execute(mvt_extent).scalar())
-
-        m = re.match(
-            r"BOX\(([-\d.]+) ([-\d.]+),([-\d.]+) ([-\d.]+)\)",
-            extent
-        )
-        if m:
-            minx, miny, maxx, maxy = map(float, m.groups())
+            extent = (
+                str(
+                    session
+                    .execute(stmt)
+                    .scalar()
+                )
+                .removeprefix("BOX(")
+                .removesuffix(")")
+                .replace(",", " ")
+                .split()
+            )
+            minx, miny, maxx, maxy = map(float, extent)
             metadata['bounds'] = f'{minx}, {miny}, {maxx}, {maxy}'
             metadata['center'] = f'{maxx - minx}, {maxy - miny}'
 
