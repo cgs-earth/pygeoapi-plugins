@@ -264,3 +264,61 @@ def test_simplify_low_zoom(config):
     assert tile2 is not None
     assert len(tile2) == pytest.approx(10076, rel=10)
     assert len(tile2) < len(tile)
+
+
+def test_simplify_alt_methods(config):
+    tileset = 'WebMercatorQuad'
+    z, x, y = 4, 9, 8
+
+    config['simplify_geometry'] = True
+    config['simplify_method'] = 'ST_SimplifyPreserveTopology'
+    p = MVTPostgreSQLProvider_(config)
+    tile = p.get_tiles(
+        tileset=tileset,
+        z=z,
+        x=x,
+        y=y,
+    )
+    assert tile is not None
+    assert len(tile) == pytest.approx(10076, 0.1)
+
+    config['simplify_method'] = 'ST_Simplify'
+    p = MVTPostgreSQLProvider_(config)
+    tile2 = p.get_tiles(
+        tileset=tileset,
+        z=z,
+        x=x,
+        y=y,
+    )
+    assert tile2 is not None
+    assert len(tile2) == pytest.approx(10076, 0.1)
+    assert len(tile) >= len(tile2)
+
+    config['simplify_method'] = 'ST_SimplifyVW'
+    p = MVTPostgreSQLProvider_(config)
+    tile3 = p.get_tiles(
+        tileset=tileset,
+        z=z,
+        x=x,
+        y=y,
+    )
+    assert tile3 is not None
+    assert len(tile3) == pytest.approx(9863, 0.1)
+    assert len(tile) >= len(tile3)
+
+    config['simplify_method'] = 'ST_SnapToGrid'
+    p = MVTPostgreSQLProvider_(config)
+    tile4 = p.get_tiles(
+        tileset=tileset,
+        z=z,
+        x=x,
+        y=y,
+    )
+    assert tile4 is not None
+    assert len(tile4) == pytest.approx(15172, 0.1)
+    assert len(tile) <= len(tile4)
+
+
+    config['simplify_method'] = 'ST_FakeSimplify'
+    with pytest.raises(RuntimeError):
+        p = MVTPostgreSQLProvider_(config)
