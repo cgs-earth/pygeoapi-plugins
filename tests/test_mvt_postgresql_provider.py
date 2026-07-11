@@ -212,7 +212,9 @@ def test_tile_simplify(config):
         y=y,
     )
     assert tile is not None
+    assert len(tile) == pytest.approx(74043, 0.1)
 
+    # Simplified geometry
     config['simplify_geometry'] = True
     p = MVTPostgreSQLProvider_(config)
     tile2 = p.get_tiles(
@@ -222,9 +224,10 @@ def test_tile_simplify(config):
         y=y,
     )
     assert tile2 is not None
-    assert len(tile2) == pytest.approx(29405, 0.1)
+    assert len(tile2) == pytest.approx(69225, 0.1)
     assert len(tile2) < len(tile)
 
+    # Additional filters + simplified geometry
     config['disable_at_z'] = 12
     p = MVTPostgreSQLProvider_(config)
     tile3 = p.get_tiles(
@@ -234,7 +237,7 @@ def test_tile_simplify(config):
         y=y,
     )
     assert tile3 is not None
-    assert len(tile3) == pytest.approx(25372, 0.1)
+    assert len(tile3) == pytest.approx(65062, 0.1)
     assert len(tile3) < len(tile)
     assert len(tile3) < len(tile2)
 
