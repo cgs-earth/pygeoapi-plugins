@@ -58,7 +58,7 @@ from pygeoapi.util import url_join
 LOGGER = logging.getLogger(__name__)
 
 
-class SimplifyMethod(Enum):
+class SimplifyMethods(Enum):
     """Enum for geometry simplification methods"""
 
     ST_Simplify = ST_Simplify
@@ -93,19 +93,26 @@ class MVTPostgreSQLProvider_(MVTPostgreSQLProvider):
         self.layer = provider_def.get('layer', self.table)
         self.disable_at_z = provider_def.get('disable_at_z', 6)
         self.simplify_geometry = provider_def.get('simplify_geometry', True)
-        simplify_method = provider_def.get(
-            'simplify_method', 'ST_SimplifyPreserveTopology'
-        )
         try:
+            simplify_method = provider_def.get(
+                'simplify_method', 'ST_SimplifyPreserveTopology'
+            )
             if self.simplify_geometry:
-                self.simplify_method = SimplifyMethod[simplify_method]
+                self.simplify_method = SimplifyMethods[simplify_method]
         except KeyError:
-            msg = 'Incorrect simplification method provided'
+            msg = (
+                'Incorrect simplification method provided. Must be one of: '
+                + ', '.join(SimplifyMethods._member_names_)
+            )
             LOGGER.error(msg)
             raise RuntimeError(msg)
 
         # Apply filters to low zoom levels
         self.tile_threshold = provider_def.get('tile_threshold')
+        # Filter based on on features bigger than a grid 
+        # within the tiles of dimensions `min_pixel` x `min_pixel`.
+        # The larger the value, the smaller a feature needs to be
+        # for it to be rendered as a pixel in the tile.
         self.min_pixel = provider_def.get('min_pixel', 512)
 
         # Maximum number of features in a tile
