@@ -208,7 +208,7 @@ providers:
     #   z{6}: tolerance = 0.001
     #   z{8}: tolerance = 0.0001
     simplify_method: ST_SimplifyPreserveTopology # default
-    # Must be one of: 
+    # Must be one of:
     #   ST_Simplify
     #   ST_SimplifyPreserveTopology
     #   ST_SimplifyVW

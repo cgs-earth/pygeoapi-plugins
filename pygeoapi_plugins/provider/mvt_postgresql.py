@@ -109,7 +109,7 @@ class MVTPostgreSQLProvider_(MVTPostgreSQLProvider):
 
         # Apply filters to low zoom levels
         self.tile_threshold = provider_def.get('tile_threshold')
-        # Filter based on on features bigger than a grid 
+        # Filter based on on features bigger than a grid
         # within the tiles of dimensions `min_pixel` x `min_pixel`.
         # The larger the value, the smaller a feature needs to be
         # for it to be rendered as a pixel in the tile.
