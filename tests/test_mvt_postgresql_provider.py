@@ -318,7 +318,6 @@ def test_simplify_alt_methods(config):
     assert len(tile4) == pytest.approx(15172, 0.1)
     assert len(tile) <= len(tile4)
 
-
     config['simplify_method'] = 'ST_FakeSimplify'
     with pytest.raises(RuntimeError):
         p = MVTPostgreSQLProvider_(config)

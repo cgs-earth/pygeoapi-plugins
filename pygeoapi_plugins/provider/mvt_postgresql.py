@@ -43,7 +43,6 @@ from geoalchemy2.functions import (
     ST_SnapToGrid,
     ST_Transform,
 )
-import re
 
 from sqlalchemy.sql import select
 from sqlalchemy.orm import Session
@@ -169,15 +168,24 @@ class MVTPostgreSQLProvider_(MVTPostgreSQLProvider):
 
         return bytes(result) if result else None
 
-    def get_vendor_metadata(self, dataset, server_url, layer=None,
-                            tileset=None, title=None, description=None,
-                            keywords=None, **kwargs):
+    def get_vendor_metadata(
+        self,
+        dataset,
+        server_url,
+        layer=None,
+        tileset=None,
+        title=None,
+        description=None,
+        keywords=None,
+        **kwargs,
+    ):
         """Create TileJSON representation"""
         service_url = url_join(
-            server_url,
-            f'collections/{dataset}/tiles/{tileset}')
+            server_url, f'collections/{dataset}/tiles/{tileset}'
+        )
         tiles_url = url_join(
-            service_url, '{tileMatrix}/{tileRow}/{tileCol}?f=mvt')
+            service_url, '{tileMatrix}/{tileRow}/{tileCol}?f=mvt'
+        )
         tilejson_url = url_join(service_url, 'metadata?f=tilejson')
 
         metadata = dict()
@@ -194,14 +202,10 @@ class MVTPostgreSQLProvider_(MVTPostgreSQLProvider):
         stmt = select(ST_Extent(geom_column))
         with Session(self._engine) as session:
             extent = (
-                str(
-                    session
-                    .execute(stmt)
-                    .scalar()
-                )
-                .removeprefix("BOX(")
-                .removesuffix(")")
-                .replace(",", " ")
+                str(session.execute(stmt).scalar())
+                .removeprefix('BOX(')
+                .removesuffix(')')
+                .replace(',', ' ')
                 .split()
             )
             minx, miny, maxx, maxy = map(float, extent)
@@ -210,16 +214,18 @@ class MVTPostgreSQLProvider_(MVTPostgreSQLProvider):
 
         _fields = deepcopy(self._fields)
         self._fields = {}
-        metadata['vector_layers'] = [{
-            'id': layer,
-            'description': '',
-            'minzoom': self.min_zoom,
-            'maxzoom': self.max_zoom,
-            'fields': {
-                c: v['type']
-                for c, v in PostgreSQLProvider.get_fields(self).items()
+        metadata['vector_layers'] = [
+            {
+                'id': layer,
+                'description': '',
+                'minzoom': self.min_zoom,
+                'maxzoom': self.max_zoom,
+                'fields': {
+                    c: v['type']
+                    for c, v in PostgreSQLProvider.get_fields(self).items()
+                },
             }
-        }]
+        ]
         self._fields = _fields
 
         return metadata
