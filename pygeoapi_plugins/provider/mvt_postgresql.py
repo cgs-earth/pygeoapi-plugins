@@ -97,12 +97,12 @@ class MVTPostgreSQLProvider_(MVTPostgreSQLProvider):
             'simplify_method', 'ST_SimplifyPreserveTopology'
         )
         try:
-            self.simplify_method = SimplifyMethod[simplify_method]
+            if self.simplify_geometry:
+                self.simplify_method = SimplifyMethod[simplify_method]
         except KeyError:
             msg = 'Incorrect simplification method provided'
             LOGGER.error(msg)
-            if self.simplify_geometry:
-                raise RuntimeError(msg)
+            raise RuntimeError(msg)
 
         # Apply filters to low zoom levels
         self.tile_threshold = provider_def.get('tile_threshold')
