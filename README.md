@@ -180,7 +180,7 @@ providers:
     # z{4}: population_served_count > 25000
 ```
 
-The configuration option `tile_limit` can be specified to enforce a maximum number of features in a single tile.
+The third configuration option `tile_limit` can be specified to enforce a maximum number of features in a single tile.
 This will apply to all tiles regardless of if the other filters are enabled by `disable_at_z`. Features will be ordered
 by the size of there bounding box, pruning the smallest feature until the feature limit is met for the tile.
 
@@ -193,20 +193,26 @@ providers:
     tile_limit: 1000 # No more than 1000 features in a single tile
 ```
 
-The configuration option `simplify_geometry` can be specified to reduce the number of vertices at low zooms.
+The fourth configuration option `simplify_geometry` can be specified to reduce the number of vertices at low zooms.
 This will apply to all tiles regardless of if the other filters are enabled by `disable_at_z`.
 
 ```yaml
 providers:
   - type: tile
     name: pygeoapi_plugins.provider.mvt_postgresql.MVTPostgreSQLProvider_
-    ...
     simplify_geometry: true
-    # z{0}: threshold = 1
-    # z{2}: threshold = 0.1
-    # z{4}: threshold = 0.01
-    # z{6}: threshold = 0.001
-    # z{8}: threshold = 0.0001
+    # Simplification tolerance value scales with zoom level:
+    #   z{0}: tolerance = 0.1
+    #   z{2}: tolerance = 0.1
+    #   z{4}: tolerance = 0.01
+    #   z{6}: tolerance = 0.001
+    #   z{8}: tolerance = 0.0001
+    simplify_method: ST_SimplifyPreserveTopology # default
+    # Must be one of:
+    #   ST_Simplify
+    #   ST_SimplifyPreserveTopology
+    #   ST_SimplifyVW
+    #   ST_SnapToGrid
     ...
 ```
 

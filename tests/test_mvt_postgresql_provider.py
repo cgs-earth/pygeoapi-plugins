@@ -75,7 +75,7 @@ def test_disable_at_z(config):
         y=y,
     )
     assert tile is not None
-    assert len(tile) == pytest.approx(74047, rel=10)
+    assert len(tile) == pytest.approx(74047, 0.1)
 
     config['disable_at_z'] = 11
     p = MVTPostgreSQLProvider_(config)
@@ -86,7 +86,7 @@ def test_disable_at_z(config):
         y=y,
     )
     assert tile2 is not None
-    assert len(tile2) == pytest.approx(69732, rel=10)
+    assert len(tile2) == pytest.approx(69732, 0.1)
     assert len(tile2) < len(tile)
 
 
@@ -102,7 +102,7 @@ def test_tile_filter(config):
         y=y,
     )
     assert tile is not None
-    assert len(tile) == pytest.approx(74047, rel=10)
+    assert len(tile) == pytest.approx(74047, 0.1)
 
     config['tile_threshold'] = "waterway = 'river'"
     config['disable_at_z'] = 12
@@ -114,7 +114,7 @@ def test_tile_filter(config):
         y=y,
     )
     assert tile2 is not None
-    assert len(tile2) == pytest.approx(7612, rel=10)
+    assert len(tile2) == pytest.approx(7612, 0.1)
     assert len(tile2) < len(tile)
 
 
@@ -130,7 +130,7 @@ def test_tile_filter_with_z(config):
         y=y,
     )
     assert tile is not None
-    assert len(tile) == pytest.approx(74047, rel=10)
+    assert len(tile) == pytest.approx(74047, 0.1)
 
     config['tile_threshold'] = "z_index = '-{z}'"
     config['disable_at_z'] = 12
@@ -142,7 +142,7 @@ def test_tile_filter_with_z(config):
         y=y,
     )
     assert tile2 is not None
-    assert len(tile2) == pytest.approx(577, rel=10)
+    assert len(tile2) == pytest.approx(577, 0.1)
     assert len(tile2) < len(tile)
 
 
@@ -158,7 +158,7 @@ def test_tile_limit(config):
         y=y,
     )
     assert tile is not None
-    assert len(tile) == pytest.approx(74047, rel=10)
+    assert len(tile) == pytest.approx(74047, 0.1)
 
     config['tile_limit'] = 1000
     p = MVTPostgreSQLProvider_(config)
@@ -169,7 +169,7 @@ def test_tile_limit(config):
         y=y,
     )
     assert tile2 is not None
-    assert len(tile2) == pytest.approx(74047, rel=10)
+    assert len(tile2) == pytest.approx(74047, 0.1)
     assert len(tile2) <= len(tile)
 
     config['tile_limit'] = 500
@@ -181,7 +181,7 @@ def test_tile_limit(config):
         y=y,
     )
     assert tile3 is not None
-    assert len(tile3) == pytest.approx(59142, rel=10)
+    assert len(tile3) == pytest.approx(59142, 0.1)
     assert len(tile3) < len(tile)
     assert len(tile3) < len(tile2)
 
@@ -194,7 +194,7 @@ def test_tile_limit(config):
         y=y,
     )
     assert tile4 is not None
-    assert len(tile4) == pytest.approx(18408, rel=10)
+    assert len(tile4) == pytest.approx(18408, 0.1)
     assert len(tile4) < len(tile)
     assert len(tile4) < len(tile2)
     assert len(tile4) < len(tile3)
@@ -212,7 +212,9 @@ def test_tile_simplify(config):
         y=y,
     )
     assert tile is not None
+    assert len(tile) == pytest.approx(74043, 0.1)
 
+    # Simplified geometry
     config['simplify_geometry'] = True
     p = MVTPostgreSQLProvider_(config)
     tile2 = p.get_tiles(
@@ -222,9 +224,10 @@ def test_tile_simplify(config):
         y=y,
     )
     assert tile2 is not None
-    assert len(tile2) == pytest.approx(29405, 10)
+    assert len(tile2) == pytest.approx(69225, 0.1)
     assert len(tile2) < len(tile)
 
+    # Additional filters + simplified geometry
     config['disable_at_z'] = 12
     p = MVTPostgreSQLProvider_(config)
     tile3 = p.get_tiles(
@@ -234,7 +237,7 @@ def test_tile_simplify(config):
         y=y,
     )
     assert tile3 is not None
-    assert len(tile3) == pytest.approx(25372, 10)
+    assert len(tile3) == pytest.approx(65062, 0.1)
     assert len(tile3) < len(tile)
     assert len(tile3) < len(tile2)
 
@@ -251,7 +254,7 @@ def test_simplify_low_zoom(config):
         y=y,
     )
     assert tile is not None
-    assert len(tile) == pytest.approx(19922, rel=10)
+    assert len(tile) == pytest.approx(19922, 0.1)
 
     config['simplify_geometry'] = True
     p = MVTPostgreSQLProvider_(config)
@@ -262,5 +265,62 @@ def test_simplify_low_zoom(config):
         y=y,
     )
     assert tile2 is not None
-    assert len(tile2) == pytest.approx(10076, rel=10)
+    assert len(tile2) == pytest.approx(10076, 0.1)
     assert len(tile2) < len(tile)
+
+
+def test_simplify_alt_methods(config):
+    tileset = 'WebMercatorQuad'
+    z, x, y = 4, 9, 8
+
+    config['simplify_geometry'] = True
+    config['simplify_method'] = 'ST_SimplifyPreserveTopology'
+    p = MVTPostgreSQLProvider_(config)
+    tile = p.get_tiles(
+        tileset=tileset,
+        z=z,
+        x=x,
+        y=y,
+    )
+    assert tile is not None
+    assert len(tile) == pytest.approx(10076, 0.1)
+
+    config['simplify_method'] = 'ST_Simplify'
+    p = MVTPostgreSQLProvider_(config)
+    tile2 = p.get_tiles(
+        tileset=tileset,
+        z=z,
+        x=x,
+        y=y,
+    )
+    assert tile2 is not None
+    assert len(tile2) == pytest.approx(10076, 0.1)
+    assert len(tile) >= len(tile2)
+
+    config['simplify_method'] = 'ST_SimplifyVW'
+    p = MVTPostgreSQLProvider_(config)
+    tile3 = p.get_tiles(
+        tileset=tileset,
+        z=z,
+        x=x,
+        y=y,
+    )
+    assert tile3 is not None
+    assert len(tile3) == pytest.approx(9863, 0.1)
+    assert len(tile) >= len(tile3)
+
+    config['simplify_method'] = 'ST_SnapToGrid'
+    p = MVTPostgreSQLProvider_(config)
+    tile4 = p.get_tiles(
+        tileset=tileset,
+        z=z,
+        x=x,
+        y=y,
+    )
+    assert tile4 is not None
+    assert len(tile4) == pytest.approx(15172, 0.1)
+    assert len(tile) <= len(tile4)
+
+    config['simplify_method'] = 'ST_FakeSimplify'
+    with pytest.raises(RuntimeError):
+        p = MVTPostgreSQLProvider_(config)
