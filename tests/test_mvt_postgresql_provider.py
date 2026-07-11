@@ -222,7 +222,7 @@ def test_tile_simplify(config):
         y=y,
     )
     assert tile2 is not None
-    assert len(tile2) == pytest.approx(29405, 10)
+    assert len(tile2) == pytest.approx(29405, 0.1)
     assert len(tile2) < len(tile)
 
     config['disable_at_z'] = 12
@@ -234,7 +234,7 @@ def test_tile_simplify(config):
         y=y,
     )
     assert tile3 is not None
-    assert len(tile3) == pytest.approx(25372, 10)
+    assert len(tile3) == pytest.approx(25372, 0.1)
     assert len(tile3) < len(tile)
     assert len(tile3) < len(tile2)
 
