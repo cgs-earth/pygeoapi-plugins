@@ -44,7 +44,7 @@ from geoalchemy2.functions import (
     ST_Transform,
 )
 
-from sqlalchemy.sql import select
+from sqlalchemy.sql import select, func
 from sqlalchemy.orm import Session
 from pygeofilter.parsers.ecql import parse as parse_ecql_text
 
@@ -295,7 +295,7 @@ class MVTPostgreSQLProvider_(MVTPostgreSQLProvider):
 
         # Apply tile limit if set
         if self.tile_limit:
-            query = query.limit(self.tile_limit)
+            query = query.order_by(func.random()).limit(self.tile_limit)
 
         # Return as CTE
         return query.cte('mvtcte').table_valued()
