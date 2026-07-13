@@ -123,7 +123,8 @@ class MVTPostgreSQLProvider_(MVTPostgreSQLProvider):
                 func.ST_GeometryType(geom_column).label('geom_type')
             ).first()  # type: ignore
             self.tile_limit_order = (
-                func.random() if 'point' in geom_type.lower()
+                func.random()
+                if 'point' in geom_type.lower()
                 else ST_Area(Box2D(geom_column)).desc()
             )
         # Maximum tile size (in MB)
@@ -172,7 +173,8 @@ class MVTPostgreSQLProvider_(MVTPostgreSQLProvider):
         envelope = self.get_envelope(z, y, x, tileset_schema.tileMatrixSet)
         envelope_srid = get_srid(tileset_schema.crs)
         mvt_cte = self._get_mvt_cte(
-            envelope, envelope_srid, z, self.tile_limit)
+            envelope, envelope_srid, z, self.tile_limit
+        )
         mvt_query = select(ST_AsMVT(mvt_cte, self.layer))
 
         # Log the compiled query
@@ -200,7 +202,8 @@ class MVTPostgreSQLProvider_(MVTPostgreSQLProvider):
                 new_limit = int(matched * (self.tile_size / result_size))
 
                 new_mvt_cte = self._get_mvt_cte(
-                    envelope, envelope_srid, z, new_limit)
+                    envelope, envelope_srid, z, new_limit
+                )
 
                 new_mvt_query = select(ST_AsMVT(new_mvt_cte, self.layer))
                 new_result = session.execute(new_mvt_query).scalar()
