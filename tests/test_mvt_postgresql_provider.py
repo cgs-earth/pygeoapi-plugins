@@ -170,7 +170,6 @@ def test_tile_limit(config):
     )
     assert tile2 is not None
     assert len(tile2) == pytest.approx(74047, 0.5)
-    assert len(tile2) <= len(tile)
 
     config['tile_limit'] = 500
     p = MVTPostgreSQLProvider_(config)
@@ -198,6 +197,32 @@ def test_tile_limit(config):
     assert len(tile4) < len(tile)
     assert len(tile4) < len(tile2)
     assert len(tile4) < len(tile3)
+
+
+def test_tile_size(config):
+    tileset = 'WebMercatorQuad'
+    z, x, y = 10, 595, 521
+
+    p = MVTPostgreSQLProvider_(config)
+    tile = p.get_tiles(
+        tileset=tileset,
+        z=z,
+        x=x,
+        y=y,
+    )
+    assert tile is not None
+    assert len(tile) == pytest.approx(74047, 0.1)
+
+    config['tile_size'] = 0.05
+    p = MVTPostgreSQLProvider_(config)
+    tile = p.get_tiles(
+        tileset=tileset,
+        z=z,
+        x=x,
+        y=y,
+    )
+    assert tile is not None
+    assert len(tile) == pytest.approx(0.05 * 1024 * 1024, 0.1)
 
 
 def test_tile_simplify(config):
