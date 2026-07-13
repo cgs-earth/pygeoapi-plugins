@@ -197,22 +197,18 @@ class MVTPostgreSQLProvider_(MVTPostgreSQLProvider):
                 )
 
                 matched = session.query(func.count(mvt_cte)).scalar()
-                i_size = int(
-                    matched - matched * (self.tile_size / result_size)
-                )
+                new_limit = int(matched * (self.tile_size / result_size))
 
-                while self.tile_size < result_size:
-                    matched -= i_size
-                    new_mvt_cte = self._get_mvt_cte(
-                        envelope, envelope_srid, z, matched)
+                new_mvt_cte = self._get_mvt_cte(
+                    envelope, envelope_srid, z, new_limit)
 
-                    new_mvt_query = select(ST_AsMVT(new_mvt_cte, self.layer))
-                    new_result = session.execute(new_mvt_query).scalar()
-                    if new_result is None:
-                        return
+                new_mvt_query = select(ST_AsMVT(new_mvt_cte, self.layer))
+                new_result = session.execute(new_mvt_query).scalar()
+                if new_result is None:
+                    return
 
-                    result_bytes = bytes(new_result)
-                    result_size = len(result_bytes)
+                result_bytes = bytes(new_result)
+                result_size = len(result_bytes)
 
         LOGGER.debug(f'Returning tile of size: {human_size(result_size)}')
         return result_bytes
