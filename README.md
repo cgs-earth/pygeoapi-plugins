@@ -182,7 +182,7 @@ providers:
 
 The third configuration option `tile_limit` can be specified to enforce a maximum number of features in a single tile.
 This will apply to all tiles regardless of if the other filters are enabled by `disable_at_z`. Features will be ordered
-by the size of there bounding box, pruning the smallest feature until the feature limit is met for the tile.
+by the size of there bounding box, pruning the smallest feature until the feature limit is met for the tile. Point-based geometry are pruned at random.
 
 ```yaml
 providers:
@@ -214,6 +214,18 @@ providers:
     #   ST_SimplifyVW
     #   ST_SnapToGrid
     ...
+```
+
+The fifth configuration option `tile_limit` can be specified to enforce a maximum size (in Mb) for a single tile.
+This will apply to all tiles regardless of if the other filters are enabled by `disable_at_z`.
+
+```yaml
+providers:
+  - type: tile
+    name: pygeoapi_plugins.provider.mvt_postgresql.MVTPostgreSQLProvider_
+    ...
+    disable_at_z: 0 # Apply no CQL or Pixel Size filter
+    tile_size: 10 # Tile size shall be no more than 10Mb
 ```
 
 ### MVT PostgreSQL with Caching

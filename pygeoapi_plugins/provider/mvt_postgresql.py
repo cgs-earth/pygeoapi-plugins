@@ -53,7 +53,7 @@ from pygeoapi.provider.tile import ProviderTileNotFoundError
 from pygeoapi.provider.sql import PostgreSQLProvider
 from pygeoapi.crs import get_srid
 
-from pygeoapi.util import url_join
+from pygeoapi.util import url_join, human_size
 
 LOGGER = logging.getLogger(__name__)
 
@@ -117,6 +117,17 @@ class MVTPostgreSQLProvider_(MVTPostgreSQLProvider):
 
         # Maximum number of features in a tile
         self.tile_limit = provider_def.get('tile_limit', 0)
+        geom_column = getattr(self.table_model, self.geom)
+        with Session(self._engine) as session:
+            (geom_type,) = session.query(
+                func.ST_GeometryType(geom_column).label('geom_type')
+            ).first()  # type: ignore
+            self.tile_limit_order = (
+                func.random() if 'point' in geom_type.lower()
+                else ST_Area(Box2D(geom_column)).desc()
+            )
+        # Maximum tile size (in MB)
+        self.tile_size = provider_def.get('tile_size', 0) * 1024 * 1024
 
         self.min_zoom = provider_def['options']['zoom']['min']
         self.max_zoom = provider_def['options']['zoom']['max']
@@ -160,7 +171,8 @@ class MVTPostgreSQLProvider_(MVTPostgreSQLProvider):
         LOGGER.debug(f'Querying {self.table} for MVT tile {z}/{x}/{y}')
         envelope = self.get_envelope(z, y, x, tileset_schema.tileMatrixSet)
         envelope_srid = get_srid(tileset_schema.crs)
-        mvt_cte = self._get_mvt_cte(envelope, envelope_srid, z)
+        mvt_cte = self._get_mvt_cte(
+            envelope, envelope_srid, z, self.tile_limit)
         mvt_query = select(ST_AsMVT(mvt_cte, self.layer))
 
         # Log the compiled query
@@ -172,8 +184,38 @@ class MVTPostgreSQLProvider_(MVTPostgreSQLProvider):
         # Execute the query
         with Session(self._engine) as session:
             result = session.execute(mvt_query).scalar()
+            if result is None:
+                return
 
-        return bytes(result) if result else None
+            result_bytes = bytes(result)
+            result_size = len(result_bytes)
+            if self.tile_size and self.tile_size < result_size:
+                LOGGER.debug(
+                    'Tile exceeds configured size\n'
+                    f'Provider maximum size: {human_size(self.tile_size)}\n'
+                    f'Tile size: {human_size(result_size)}'
+                )
+
+                matched = session.query(func.count(mvt_cte)).scalar()
+                i_size = int(
+                    matched - matched * (self.tile_size / result_size)
+                )
+
+                while self.tile_size < result_size:
+                    matched -= i_size
+                    new_mvt_cte = self._get_mvt_cte(
+                        envelope, envelope_srid, z, matched)
+
+                    new_mvt_query = select(ST_AsMVT(new_mvt_cte, self.layer))
+                    new_result = session.execute(new_mvt_query).scalar()
+                    if new_result is None:
+                        return
+
+                    result_bytes = bytes(new_result)
+                    result_size = len(result_bytes)
+
+        LOGGER.debug(f'Returning tile of size: {human_size(result_size)}')
+        return result_bytes
 
     def get_vendor_metadata(
         self,
@@ -246,13 +288,14 @@ class MVTPostgreSQLProvider_(MVTPostgreSQLProvider):
 
         return metadata
 
-    def _get_mvt_cte(self, envelope, envelope_srid, z):
+    def _get_mvt_cte(self, envelope, envelope_srid, z, tile_limit):
         """
         Gets tile MVT Query
 
         :param envelope: the tile envelope
         :param envelope_srid: the SRID of the tile envelope
         :param z: the zoom level
+        :param tile_limit: limit tiles based on number of features
 
         :returns: a SQLAlchemy CTE query that returns the MVT tile features
         """
@@ -294,8 +337,8 @@ class MVTPostgreSQLProvider_(MVTPostgreSQLProvider):
         ).filter(*filters)
 
         # Apply tile limit if set
-        if self.tile_limit:
-            query = query.order_by(func.random()).limit(self.tile_limit)
+        if tile_limit:
+            query = query.order_by(self.tile_limit_order).limit(tile_limit)
 
         # Return as CTE
         return query.cte('mvtcte').table_valued()
