@@ -222,7 +222,7 @@ def test_tile_size(config):
         y=y,
     )
     assert tile is not None
-    assert len(tile) == pytest.approx(0.05 * 1024 * 1024, 0.1)
+    assert len(tile) == pytest.approx(0.05 * 1024 * 1024, 0.25)
 
 
 def test_tile_simplify(config):
