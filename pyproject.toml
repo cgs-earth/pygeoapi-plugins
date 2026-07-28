@@ -1,6 +1,6 @@
 [project]
 name = "pygeoapi_plugins"
-version = "0.6.dev0"
+version = "0.6.0"
 description = "pygeoapi plugins"
 readme = "README.md"
 requires-python = ">=3.12"
