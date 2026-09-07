@@ -27,28 +27,26 @@
 #
 # =================================================================
 
-import logging
-
 import functools
+import logging
 from pathlib import Path
-from redis import Redis
-from sqlalchemy import (
-    Table,
-    MetaData,
-    String,
-    Column,
-    Integer,
-    LargeBinary,
-    PrimaryKeyConstraint,
-    Index,
-)
-from sqlalchemy.sql import select
-from sqlalchemy.orm import Session
 
 from pygeoapi.provider.tile import ProviderTileNotFoundError
+from redis import Redis
+from sqlalchemy import (
+    Column,
+    Index,
+    Integer,
+    LargeBinary,
+    MetaData,
+    PrimaryKeyConstraint,
+    String,
+    Table,
+)
+from sqlalchemy.orm import Session
+from sqlalchemy.sql import select
 
 from pygeoapi_plugins.provider.mvt_postgresql import MVTPostgreSQLProvider_
-
 
 LOGGER = logging.getLogger(__name__)
 

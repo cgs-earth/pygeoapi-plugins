@@ -27,18 +27,17 @@
 #
 # =================================================================
 
-from SPARQLWrapper import SPARQLWrapper, JSON
 import json
 import logging
 
 from pygeoapi.plugin import load_plugin
 from pygeoapi.provider.base import (
-    ProviderQueryError,
-    ProviderNoDataError,
     BaseProvider,
+    ProviderNoDataError,
+    ProviderQueryError,
 )
 from pygeoapi.util import is_url
-
+from SPARQLWrapper import JSON, SPARQLWrapper
 
 LOGGER = logging.getLogger(__name__)
 

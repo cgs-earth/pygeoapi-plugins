@@ -39,12 +39,11 @@
 # test database in Docker
 
 import os
+
 import pytest
-
-from pygeofilter.parsers.ecql import parse
-
 from pygeoapi.provider.base import ProviderItemNotFoundError
 from pygeoapi.provider.sql import PostgreSQLProvider
+from pygeofilter.parsers.ecql import parse
 
 PASSWORD = os.environ.get('POSTGRESQL_PASSWORD', 'postgres')
 DEFAULT_CRS = 'http://www.opengis.net/def/crs/OGC/1.3/CRS84'
@@ -319,7 +318,7 @@ def test_get_not_existing_item_raise_exception(config):
             [80835474, 80835483],
         ),
         (
-            'osm_id BETWEEN 80800000 AND 80900000 AND BBOX(foo_geom, 29, -2.8, 29.2, -2.9)',  # noqa
+            'osm_id BETWEEN 80800000 AND 80900000 AND BBOX(foo_geom, 29, -2.8, 29.2, -2.9)',
             [80827793, 80835470, 80835472, 80835483, 80835489],
         ),
         (

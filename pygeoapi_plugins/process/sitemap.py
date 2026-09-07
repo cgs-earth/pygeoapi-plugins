@@ -28,24 +28,23 @@
 # =================================================================
 
 import io
-import math
 import logging
+import math
 import zipfile
 
 from pygeoapi.config import get_config
+from pygeoapi.openapi import get_oas
 from pygeoapi.plugin import load_plugin
 from pygeoapi.process.base import BaseProcessor
 from pygeoapi.provider import get_provider_by_type
 from pygeoapi.provider.base import ProviderTypeError
-from pygeoapi.openapi import get_oas
 from pygeoapi.util import (
-    url_join,
     filter_dict_by_key_value,
     get_base_url,
+    url_join,
 )
 
 from pygeoapi_plugins.formatter.xml import XMLFormatter
-
 
 LOGGER = logging.getLogger(__name__)
 
@@ -67,7 +66,7 @@ PROCESS_DEF.update(
                 'type': 'text/html',
                 'rel': 'about',
                 'title': 'information',
-                'href': 'https://developers.google.com/search/docs/crawling-indexing/sitemaps/overview',  # noqa
+                'href': 'https://developers.google.com/search/docs/crawling-indexing/sitemaps/overview',
                 'hreflang': 'en-US',
             }
         ],
