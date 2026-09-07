@@ -28,8 +28,8 @@
 # =================================================================
 
 import os
-import pytest
 
+import pytest
 
 from pygeoapi_plugins.provider.mvt_postgresql import MVTPostgreSQLProvider_
 

@@ -29,18 +29,18 @@
 
 import logging
 import tempfile
-from osgeo import gdal, ogr
-from typing import Tuple, Any
+from typing import Any
 from zipfile import ZipFile
-from pyproj import CRS
 
-from pygeoapi.crs import transform_bbox
+from osgeo import gdal, ogr
 from pygeoapi.config import get_config
+from pygeoapi.crs import transform_bbox
 from pygeoapi.plugin import load_plugin
 from pygeoapi.process.base import BaseProcessor, ProcessorExecuteError
-from pygeoapi.provider import get_provider_by_type, filter_providers_by_type
+from pygeoapi.provider import filter_providers_by_type, get_provider_by_type
 from pygeoapi.provider.ogr import GdalErrorHandler
 from pygeoapi.util import filter_dict_by_key_value, to_json
+from pyproj import CRS
 
 LOGGER = logging.getLogger(__name__)
 
@@ -117,7 +117,7 @@ PROCESS_DEF.update(
         },
         'example': {
             'inputs': {
-                'url': 'https://demo.pygeoapi.io/master/collections/obs/items/238',  # noqa
+                'url': 'https://demo.pygeoapi.io/master/collections/obs/items/238',
                 'collection': FIRST_COLLECTION,
             }
         },
@@ -228,7 +228,7 @@ class IntersectionProcessor(BaseProcessor):
 
     def get_layer(
         self, url: str | None = None, file: Any = None
-    ) -> Tuple[ogr.Geometry, list[float]]:
+    ) -> tuple[ogr.Geometry, list[float]]:
         """
         Private Function: Load feature WKT from URL or bytes of OGR
         like file.

@@ -27,7 +27,6 @@
 #
 # =================================================================
 
-import io
 import logging
 import os
 import xml.etree.ElementTree as ET
@@ -118,7 +117,7 @@ class FileSystemXMLProvider(FileSystemProvider):
             raise ProviderNotFoundError(msg)
 
         if resource_type == 'raw_file':
-            with io.open(data_path, 'rb') as fh:
+            with open(data_path, 'rb') as fh:
                 return fh.read()
 
         elif resource_type == 'directory':
@@ -222,7 +221,7 @@ def _describe_file(filepath):
 
     _ = tree.getroot().itertext()
     result = [line.strip() for line in ''.join(_).split('\n') if line.strip()]
-    for i in range(0, len(result)):
+    for i in range(len(result)):
         href = result[i]
         title = href.split('/')[-1]
 

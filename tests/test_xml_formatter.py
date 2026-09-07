@@ -27,10 +27,10 @@
 #
 # =================================================================
 
-from datetime import datetime
-import pytest
 import xml.etree.ElementTree as ET
+from datetime import datetime
 
+import pytest
 from pygeoapi.provider.csv_ import CSVProvider
 
 from pygeoapi_plugins.formatter.xml import XMLFormatter
