@@ -119,12 +119,12 @@ class MVTPostgreSQLProvider_(MVTPostgreSQLProvider):
         self.tile_limit = provider_def.get('tile_limit', 0)
         geom_column = getattr(self.table_model, self.geom)
         with Session(self._engine) as session:
-            (geom_type,) = session.query(
+            row = session.query(
                 func.ST_GeometryType(geom_column).label('geom_type')
             ).first()  # type: ignore
             self.tile_limit_order = (
                 func.random()
-                if 'point' in geom_type.lower()
+                if row and 'point' in row[0].lower()
                 else ST_Area(Box2D(geom_column)).desc()
             )
         # Maximum tile size (in MB)
