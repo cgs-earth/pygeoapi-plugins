@@ -27,11 +27,11 @@
 #
 # =================================================================
 
-from datetime import datetime
 import io
 import logging
 import xml.etree.ElementTree as ET
-import xml.sax.saxutils as saxutils
+from datetime import datetime
+from xml.sax import saxutils
 
 from pygeoapi.formatter.base import BaseFormatter, FormatterSerializationError
 from pygeoapi.util import url_join
@@ -83,7 +83,7 @@ class XMLFormatter(BaseFormatter):
             feature = list(data['features'][0])
         except IndexError:
             LOGGER.error('no features')
-            return str()
+            return ''
 
         lastmod = datetime.now().strftime('%Y-%m-%dT%H:%M:%SZ')
         root = ET.fromstring(URLSET)

@@ -28,13 +28,13 @@
 # =================================================================
 
 import io
-import pytest
-from requests import Session
 import xml.etree.ElementTree as ET
-from xml.sax.saxutils import unescape
 import zipfile
+from xml.sax.saxutils import unescape
 
+import pytest
 from pygeoapi.util import url_join
+from requests import Session
 
 PYGEOAPI_URL = 'http://localhost:5000'
 PROCESS_URL = url_join(PYGEOAPI_URL, 'processes/sitemap-generator/execution')
