@@ -27,12 +27,12 @@
 #
 # =================================================================
 
-import geopandas as gpd
 import io
 import logging
 
-from pygeoapi.formatter.base import BaseFormatter
+import geopandas as gpd
 from pygeoapi.crs import DEFAULT_CRS, get_crs
+from pygeoapi.formatter.base import BaseFormatter
 
 LOGGER = logging.getLogger(__name__)
 
@@ -78,7 +78,7 @@ class ParquetFormatter(BaseFormatter):
         ]
         if any(format_conditions):
             LOGGER.warning('No features to write to Parquet')
-            return str()
+            return ''
 
         content_crs = options.get('content_crs') or DEFAULT_CRS
         crs = get_crs(content_crs)

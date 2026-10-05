@@ -28,15 +28,15 @@
 # =================================================================
 
 import os
+from tempfile import TemporaryDirectory
+
 import pytest
 
-from tempfile import TemporaryDirectory
 from pygeoapi_plugins.provider.mvt_cache import (
-    MVTPostgresFilesystem,
     MVTPostgresCache,
+    MVTPostgresFilesystem,
     MVTPostgresRedis,
 )
-
 
 PASSWORD = os.environ.get('POSTGRESQL_PASSWORD', 'postgres')
 SERVER_URL = 'http://localhost'

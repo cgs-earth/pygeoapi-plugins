@@ -27,12 +27,13 @@
 #
 # =================================================================
 
-import requests
-import pytest
 import contextlib
+
+import pytest
+import requests
 from pygeoapi.process.base import ProcessorExecuteError
 
-import pygeoapi_plugins.process.intersect as intersect
+from pygeoapi_plugins.process import intersect
 
 
 @pytest.fixture

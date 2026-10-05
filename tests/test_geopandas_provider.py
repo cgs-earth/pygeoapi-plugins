@@ -33,7 +33,6 @@ import geopandas as gpd
 import pandas as pd
 import pytest
 import shapely
-
 from pygeoapi.provider.base import ProviderItemNotFoundError
 
 from pygeoapi_plugins.provider.geopandas_ import GeoPandasProvider
@@ -172,8 +171,8 @@ def test_intersection():
 
     assert isinstance(huc_range, shapely.geometry.MultiPolygon)
     assert isinstance(polygon, shapely.geometry.Polygon)
-    assert shapely.intersects(polygon, huc_range) == True  # noqa
-    assert shapely.intersects(box, huc_range) == True  # noqa
+    assert shapely.intersects(polygon, huc_range) == True
+    assert shapely.intersects(box, huc_range) == True
 
     gdf = gpd.read_file('tests/data/hu02.gpkg')
     box = shapely.box(minx, miny, maxx, maxy)
