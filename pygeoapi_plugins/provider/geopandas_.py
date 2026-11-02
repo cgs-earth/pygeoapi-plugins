@@ -28,15 +28,14 @@
 # =================================================================
 
 import datetime
+import logging
+from collections import OrderedDict, defaultdict
+from typing import Literal, TypedDict
+
 import geopandas
 import pandas
 import shapely.geometry
-import logging
-from shapely import box
-from collections import OrderedDict
-from typing import Literal, Optional
-from typing import TypedDict
-from collections import defaultdict
+from pygeoapi.crs import crs_transform
 from pygeoapi.provider.base import (
     BaseProvider,
     ProviderInvalidDataError,
@@ -44,7 +43,7 @@ from pygeoapi.provider.base import (
     ProviderNoDataError,
     ProviderQueryError,
 )
-from pygeoapi.crs import crs_transform
+from shapely import box
 
 LOGGER = logging.getLogger(__name__)
 
@@ -78,7 +77,7 @@ class FeatureProperties(TypedDict):
 class Feature(TypedDict):
     type: Literal['Feature']
     # Optional if skipping geometry
-    geometry: Optional[PossibleGeometries]
+    geometry: PossibleGeometries | None
     properties: FeatureProperties
     id: str
 
@@ -132,7 +131,7 @@ class GeoPandasProvider(BaseProvider):
         """
         dateRange = datetime_.split('/')
 
-        if _START_AND_END := len(dateRange) == 2:  # noqa F841
+        if _START_AND_END := len(dateRange) == 2:
             start, end = dateRange
 
             # python does not accept Z at the end of the datetime even though that is a valid ISO 8601 datetime
@@ -153,15 +152,13 @@ class GeoPandasProvider(BaseProvider):
                 else datetime.datetime.fromisoformat(end)
             )
             start, end = (
-                start.replace(tzinfo=datetime.timezone.utc),
-                end.replace(tzinfo=datetime.timezone.utc),
+                start.replace(tzinfo=datetime.UTC),
+                end.replace(tzinfo=datetime.UTC),
             )
 
             if start > end:
                 raise ProviderQueryError(
-                    'Start date must be before end date but got {} and {}'.format(
-                        start, end
-                    )
+                    f'Start date must be before end date but got {start} and {end}'
                 )
 
             # If the user just passes in 2019/.. this still handles the match for all days in 2019
@@ -170,7 +167,7 @@ class GeoPandasProvider(BaseProvider):
                 (df[self.time_field] >= start) & (df[self.time_field] <= end)
             ]
 
-        elif _ONLY_MATCH_ONE_DATE := len(dateRange) == 1:  # noqa
+        elif _ONLY_MATCH_ONE_DATE := len(dateRange) == 1:
             dates: geopandas.GeoSeries = df[self.time_field]
 
             # By casting to a string we can use .str.contains to coarsely check.
@@ -178,9 +175,7 @@ class GeoPandasProvider(BaseProvider):
             return df[dates.astype(str).str.startswith(datetime_)]
         else:
             raise ProviderQueryError(
-                "datetime_ must be a date or date range with two dates separated by '/' but got {}".format(
-                    datetime_
-                )
+                f"datetime_ must be a date or date range with two dates separated by '/' but got {datetime_}"
             )
 
     def _set_geometry_fields(self, provider_def: dict):
@@ -323,7 +318,7 @@ class GeoPandasProvider(BaseProvider):
         resulttype: Literal['results', 'hits'] = 'results',
         identifier=None,
         bbox: list[float] = [],
-        datetime_: Optional[str] = None,
+        datetime_: str | None = None,
         properties: list[tuple[str, str]] = [],
         select_properties=[],
         sortby: list[SortDict] = [],
@@ -385,13 +380,13 @@ class GeoPandasProvider(BaseProvider):
             feature_collection['numberMatched'] = len(df)
             return feature_collection
 
-        if _BBOX_DEFINED := len(bbox) == 4:  # noqa
+        if _BBOX_DEFINED := len(bbox) == 4:
             minx, miny, maxx, maxy = bbox
             bbox_geom = box(minx, miny, maxx, maxy)
             df = df[df['geometry'].intersects(bbox_geom)]
-        elif _INVALID_BBOX := (len(bbox) != 4 and len(bbox) != 0):  # noqa
+        elif _INVALID_BBOX := (len(bbox) != 4 and len(bbox) != 0):
             raise ProviderQueryError(
-                'bbox must be a list of 4 values got {}'.format(len(bbox))
+                f'bbox must be a list of 4 values got {len(bbox)}'
             )
 
         if sortby:
@@ -496,7 +491,6 @@ class GeoPandasProvider(BaseProvider):
 
         :returns: dict of single GeoJSON feature
         """
-        #
         res: geopandas.GeoSeries = self.gdf[
             self.gdf[self.id_field].astype(str) == identifier
         ].squeeze(axis=0)

@@ -53,7 +53,7 @@ def config():
                 {'predicate': 'dbpedia2:leaderName', 'object': '?leader'},
             ],
             'filter': [
-                'FILTER (isIRI(?leader) || (isLiteral(?leader) && (!bound(datatype(?leader)) || datatype(?leader) = xsd:string)))'  # noqa
+                'FILTER (isIRI(?leader) || (isLiteral(?leader) && (!bound(datatype(?leader)) || datatype(?leader) = xsd:string)))'
             ],
         },
     }

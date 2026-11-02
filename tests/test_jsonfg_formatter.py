@@ -30,6 +30,7 @@
 # =================================================================
 
 import json
+
 import pytest
 
 from pygeoapi_plugins.formatter.jsonfg import JSONFGFormatter

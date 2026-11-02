@@ -27,15 +27,15 @@
 #
 # =================================================================
 
-import geopandas as gpd
+import io
+import logging
 import os
 import tempfile
 import zipfile
-import io
-import logging
 
-from pygeoapi.formatter.base import BaseFormatter
+import geopandas as gpd
 from pygeoapi.crs import DEFAULT_CRS
+from pygeoapi.formatter.base import BaseFormatter
 
 LOGGER = logging.getLogger(__name__)
 
@@ -74,7 +74,7 @@ class ShapefileFormatter(BaseFormatter):
         ]
         if any(format_conditions):
             LOGGER.warning('No features to write to Shapefile')
-            return str()
+            return ''
 
         dataset = options.get('dataset', 'data')
         content_crs = options.get('content_crs') or DEFAULT_CRS
@@ -123,7 +123,7 @@ class BaseShapeFormatter(BaseFormatter):
         ]
         if any(format_conditions):
             LOGGER.warning(f'No features to write to {driver}')
-            return str()
+            return ''
 
         output = io.BytesIO()
         content_crs = options.get('content_crs') or DEFAULT_CRS
@@ -134,7 +134,7 @@ class BaseShapeFormatter(BaseFormatter):
             gdf.to_file(output, driver=driver)
         except ValueError:
             LOGGER.info('No features to write')
-            return str()
+            return ''
 
         return output.getvalue()
 

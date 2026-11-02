@@ -36,16 +36,14 @@ import logging
 
 # import osgeo if using geojson2jsonfg
 # from osgeo import gdal
-
 from pygeoapi.crs import (
     DEFAULT_CRS,
     crs_transform_feature,
-    get_transform_from_crs,
     get_crs,
+    get_transform_from_crs,
 )
 from pygeoapi.formatter.base import BaseFormatter
 from pygeoapi.util import to_json, url_join
-
 
 LOGGER = logging.getLogger(__name__)
 
@@ -87,7 +85,7 @@ class JSONFGFormatter(BaseFormatter):
         ]
         if any(format_conditions):
             LOGGER.warning('No features to write to JSON-FG')
-            return str()
+            return ''
 
         provider_def = options.get('provider_def', {})
         time_field = provider_def.get('time_field')

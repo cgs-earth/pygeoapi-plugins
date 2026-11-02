@@ -28,32 +28,29 @@
 # =================================================================
 
 import logging
-
 from copy import deepcopy
 from enum import Enum
+
 from geoalchemy2.functions import (
     Box2D,
     ST_Area,
-    ST_AsMVTGeom,
     ST_AsMVT,
+    ST_AsMVTGeom,
     ST_Extent,
     ST_Simplify,
-    ST_SimplifyVW,
     ST_SimplifyPreserveTopology,
+    ST_SimplifyVW,
     ST_SnapToGrid,
     ST_Transform,
 )
-
-from sqlalchemy.sql import select, func
-from sqlalchemy.orm import Session
-from pygeofilter.parsers.ecql import parse as parse_ecql_text
-
-from pygeoapi.provider.mvt_postgresql import MVTPostgreSQLProvider
-from pygeoapi.provider.tile import ProviderTileNotFoundError
-from pygeoapi.provider.sql import PostgreSQLProvider
 from pygeoapi.crs import get_srid
-
-from pygeoapi.util import url_join, human_size
+from pygeoapi.provider.mvt_postgresql import MVTPostgreSQLProvider
+from pygeoapi.provider.sql import PostgreSQLProvider
+from pygeoapi.provider.tile import ProviderTileNotFoundError
+from pygeoapi.util import human_size, url_join
+from pygeofilter.parsers.ecql import parse as parse_ecql_text
+from sqlalchemy.orm import Session
+from sqlalchemy.sql import func, select
 
 LOGGER = logging.getLogger(__name__)
 

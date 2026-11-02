@@ -28,17 +28,16 @@
 # =================================================================
 
 import json
-from json.decoder import JSONDecodeError
-from requests import Session
-
 import logging
+from json.decoder import JSONDecodeError
 
+from pygeoapi.crs import crs_transform
 from pygeoapi.provider.base import (
     BaseProvider,
-    ProviderQueryError,
     ProviderConnectionError,
+    ProviderQueryError,
 )
-from pygeoapi.crs import crs_transform
+from requests import Session
 
 LOGGER = logging.getLogger(__name__)
 
