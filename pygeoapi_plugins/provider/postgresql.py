@@ -35,6 +35,7 @@
 #
 # =================================================================
 
+import json
 import logging
 
 import os
@@ -242,7 +243,7 @@ class PostgreSQLGeoJSONProvider(PostgreSQLProvider):
                 .filter(id_column == feature['id'])
                 .scalar()
             )
-        feature['geometry'] = geojson if geojson else None
+        feature['geometry'] = json.loads(geojson) if geojson else None
 
         return feature
 
@@ -274,12 +275,13 @@ class PostgreSQLGeoJSONProvider(PostgreSQLProvider):
         :returns: `dict` of GeoJSON feature
         """
         item_dict = item.__dict__
+        geojson = item_dict.get(_GEOJSON)
         keys = select_properties or self.fields.keys()
 
         return {
             'type': 'Feature',
             'id': item_dict[self.id_field],
-            'geometry': item_dict.get(_GEOJSON),
+            'geometry': json.loads(geojson) if geojson else None,
             'properties': {
                 key: item_dict[key] for key in keys if key in item_dict
             }
