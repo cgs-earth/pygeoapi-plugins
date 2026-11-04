@@ -45,7 +45,9 @@ from pygeofilter.parsers.ecql import parse
 
 from pygeoapi.provider.base import ProviderItemNotFoundError
 
-from pygeoapi_plugins.provider.postgresql import PseudoPostgreSQLProvider, PostgreSQLGeoJSONProvider
+from pygeoapi_plugins.provider.postgresql import (
+    PseudoPostgreSQLProvider, PostgreSQLGeoJSONProvider
+)
 
 PASSWORD = os.environ.get('POSTGRESQL_PASSWORD', 'postgres')
 DEFAULT_CRS = 'http://www.opengis.net/def/crs/OGC/1.3/CRS84'

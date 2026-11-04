@@ -44,21 +44,7 @@ from geoalchemy2.functions import ST_AsGeoJSON
 
 from pygeoapi.crs import get_transform_from_spec
 from pygeoapi.provider.sql import PostgreSQLProvider
-from pygeoapi.provider.base import ProviderQueryError
-$func$
-DECLARE
-    rec   record;
-    rows  integer;
-BEGIN
-    FOR rec IN EXECUTE 'EXPLAIN ' || query LOOP
-        rows := substring(rec."QUERY PLAN" FROM ' rows=([[:digit:]]+)');
-        EXIT WHEN rows IS NOT NULL;
-    END LOOP;
 
-    RETURN rows;
-END
-$func$;
-"""
 PSUEDO_COUNT_LIMIT = int(os.getenv('PSUEDO_COUNT_LIMIT', '5000000'))
 
 LOGGER = logging.getLogger(__name__)
@@ -125,10 +111,6 @@ class PseudoPostgreSQLProvider(PostgreSQLProvider):
         """
 
         LOGGER.debug('Preparing filters')
-        property_filters = self._get_property_filters(properties)
-        cql_filters = self._get_cql_filters(filterq)
-        bbox_filter = self._get_bbox_filter(bbox)
-        time_filter = self._get_datetime_filter(datetime_)
         # Filter helpers return True when there is nothing to filter
         filters = [
             f
@@ -136,6 +118,10 @@ class PseudoPostgreSQLProvider(PostgreSQLProvider):
                 self._get_property_filters(properties),
                 self._get_cql_filters(filterq),
                 self._get_bbox_filter(bbox),
+                self._get_datetime_filter(datetime_),
+            )
+            if f is not True
+        ]
         order_by_clauses = self._get_order_by_clauses(sortby, self.table_model)
         selected_properties = self._select_properties_clause(
             select_properties, skip_geometry
@@ -146,20 +132,10 @@ class PseudoPostgreSQLProvider(PostgreSQLProvider):
         with Session(self._engine) as session:
             results = (
                 session.query(self.table_model)
-                .filter(bbox_filter)
-                .filter(time_filter)
+                .filter(*filters)
                 .options(selected_properties)
             )
 
-            try:
-                if filterq:
-                    raise ProviderQueryError('No Pseudo-count during CQL')
-                elif resulttype == 'hits':
-                    raise ProviderQueryError('No Pseudo-count during hits')
-
-                matched = self._get_pseudo_count(results)
-
-            except ProviderQueryError as err:
             if resulttype == 'hits':
                 LOGGER.debug('No pseudo-count during hits')
                 matched = results.count()
@@ -194,7 +170,9 @@ class PseudoPostgreSQLProvider(PostgreSQLProvider):
             ):
                 response['numberReturned'] += 1
                 response['features'].append(
-                    self._sqlalchemy_to_feature(item, crs_transform_out)
+                    self._sqlalchemy_to_feature(
+                        item, crs_transform_out, select_properties
+                    )
                 )
 
         return response
