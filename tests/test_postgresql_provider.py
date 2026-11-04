@@ -44,7 +44,8 @@ import pytest
 from pygeofilter.parsers.ecql import parse
 
 from pygeoapi.provider.base import ProviderItemNotFoundError
-from pygeoapi.provider.sql import PostgreSQLProvider
+
+from pygeoapi_plugins.provider.postgresql import PseudoPostgreSQLProvider, PostgreSQLGeoJSONProvider
 
 PASSWORD = os.environ.get('POSTGRESQL_PASSWORD', 'postgres')
 DEFAULT_CRS = 'http://www.opengis.net/def/crs/OGC/1.3/CRS84'
@@ -83,9 +84,10 @@ def test_valid_connection_options(config):
             ]
 
 
-def test_query(config):
+@pytest.mark.parametrize('provider_class', [PseudoPostgreSQLProvider, PostgreSQLGeoJSONProvider])
+def test_query(config, provider_class):
     """Testing query for a valid JSON object with geometry"""
-    p = PostgreSQLProvider(config)
+    p = provider_class(config)
     feature_collection = p.query()
     assert feature_collection.get('type') == 'FeatureCollection'
     features = feature_collection.get('features')
@@ -97,19 +99,21 @@ def test_query(config):
     assert geometry is not None
 
 
-def test_query_materialised_view(config):
+@pytest.mark.parametrize('provider_class', [PseudoPostgreSQLProvider, PostgreSQLGeoJSONProvider])
+def test_query_materialised_view(config, provider_class):
     """Testing query using a materialised view"""
     config_materialised_view = config.copy()
     config_materialised_view['table'] = 'hotosm_bdi_drains'
-    provider = PostgreSQLProvider(config_materialised_view)
+    provider = provider_class(config_materialised_view)
 
     # Only ID, width and depth properties should be available
     assert set(provider.get_fields().keys()) == {'osm_id', 'width', 'depth'}
 
 
-def test_query_with_property_filter(config):
+@pytest.mark.parametrize('provider_class', [PseudoPostgreSQLProvider, PostgreSQLGeoJSONProvider])
+def test_query_with_property_filter(config, provider_class):
     """Test query valid features when filtering by property"""
-    p = PostgreSQLProvider(config)
+    p = provider_class(config)
     feature_collection = p.query(properties=[('waterway', 'stream')])
     features = feature_collection.get('features')
     stream_features = list(
@@ -140,9 +144,10 @@ def test_query_with_property_filter(config):
     assert feature_collection['numberReturned'] == 50
 
 
-def test_query_with_paging(config):
+@pytest.mark.parametrize('provider_class', [PseudoPostgreSQLProvider, PostgreSQLGeoJSONProvider])
+def test_query_with_paging(config, provider_class):
     """Test query valid features with paging"""
-    p = PostgreSQLProvider(config)
+    p = provider_class(config)
     feature_collection = p.query(limit=50)
 
     assert feature_collection['numberMatched'] == 14776
@@ -155,7 +160,8 @@ def test_query_with_paging(config):
     assert feature_collection['numberReturned'] == 10
 
 
-def test_query_with_config_properties(config):
+@pytest.mark.parametrize('provider_class', [PseudoPostgreSQLProvider, PostgreSQLGeoJSONProvider])
+def test_query_with_config_properties(config, provider_class):
     """
     Test that query is restricted by properties in the config.
     No properties should be returned that are not requested.
@@ -164,7 +170,7 @@ def test_query_with_config_properties(config):
     properties_subset = ['name', 'waterway', 'width', 'does_not_exist']
     config.update({'properties': properties_subset})
     properties_subset.append('osm_id')
-    provider = PostgreSQLProvider(config)
+    provider = provider_class(config)
     assert provider.properties == properties_subset
     result = provider.query()
     feature = result.get('features')[0]
@@ -181,25 +187,28 @@ def test_query_with_config_properties(config):
         ([('waterway', 'this does not exist')], 0),
     ],
 )
-def test_query_hits_with_property_filter(config, property_filter, expected):
+@pytest.mark.parametrize('provider_class', [PseudoPostgreSQLProvider, PostgreSQLGeoJSONProvider])
+def test_query_hits_with_property_filter(config, provider_class, property_filter, expected):
     """Test query resulttype=hits"""
-    provider = PostgreSQLProvider(config)
+    provider = provider_class(config)
     results = provider.query(properties=property_filter, resulttype='hits')
     assert results['numberMatched'] == expected
 
 
-def test_query_bbox(config):
+@pytest.mark.parametrize('provider_class', [PseudoPostgreSQLProvider, PostgreSQLGeoJSONProvider])
+def test_query_bbox(config, provider_class):
     """Test query with a specified bounding box"""
-    psp = PostgreSQLProvider(config)
+    psp = provider_class(config)
     boxed_feature_collection = psp.query(
         bbox=[29.3373, -3.4099, 29.3761, -3.3924]
     )
     assert len(boxed_feature_collection['features']) == 5
 
 
-def test_query_sortby(config):
+@pytest.mark.parametrize('provider_class', [PseudoPostgreSQLProvider, PostgreSQLGeoJSONProvider])
+def test_query_sortby(config, provider_class):
     """Test query with sorting"""
-    psp = PostgreSQLProvider(config)
+    psp = provider_class(config)
     up = psp.query(sortby=[{'property': 'osm_id', 'order': '+'}])
     assert up['features'][0]['id'] == 13990765
     down = psp.query(sortby=[{'property': 'osm_id', 'order': '-'}])
@@ -209,9 +218,10 @@ def test_query_sortby(config):
     assert name['features'][0]['properties']['name'] == 'Agasasa'
 
 
-def test_query_skip_geometry(config):
+@pytest.mark.parametrize('provider_class', [PseudoPostgreSQLProvider, PostgreSQLGeoJSONProvider])
+def test_query_skip_geometry(config, provider_class):
     """Test query without geometry"""
-    provider = PostgreSQLProvider(config)
+    provider = provider_class(config)
     result = provider.query(skip_geometry=True)
     feature = result['features'][0]
     assert feature['geometry'] is None
@@ -225,9 +235,10 @@ def test_query_skip_geometry(config):
         ['name', 'waterway', 'this does not exist'],
     ],
 )
-def test_query_select_properties(config, properties):
+@pytest.mark.parametrize('provider_class', [PseudoPostgreSQLProvider, PostgreSQLGeoJSONProvider])
+def test_query_select_properties(config, provider_class, properties):
     """Test query with selected properties"""
-    provider = PostgreSQLProvider(config)
+    provider = provider_class(config)
     result = provider.query(select_properties=properties)
     feature = result['features'][0]
 
@@ -243,9 +254,10 @@ def test_query_select_properties(config, properties):
         (620735702, 620420337, 620735702),  # Last item, next should be id_
     ],
 )
-def test_get_simple(config, id_, prev, next_):
+@pytest.mark.parametrize('provider_class', [PseudoPostgreSQLProvider, PostgreSQLGeoJSONProvider])
+def test_get_simple(config, provider_class, id_, prev, next_):
     """Testing query for a specific object and identifying prev/next"""
-    p = PostgreSQLProvider(config)
+    p = provider_class(config)
     result = p.get(id_)
     assert result['id'] == id_
     assert 'geometry' in result
@@ -257,7 +269,8 @@ def test_get_simple(config, id_, prev, next_):
     assert result['next'] == next_
 
 
-def test_get_with_config_properties(config):
+@pytest.mark.parametrize('provider_class', [PseudoPostgreSQLProvider, PostgreSQLGeoJSONProvider])
+def test_get_with_config_properties(config, provider_class):
     """
     Test that get is restricted by properties in the config.
     No properties should be returned that are not requested.
@@ -265,7 +278,7 @@ def test_get_with_config_properties(config):
     """
     properties_subset = ['name', 'waterway', 'width', 'does_not_exist']
     config.update({'properties': properties_subset})
-    provider = PostgreSQLProvider(config)
+    provider = provider_class(config)
     assert provider.properties == properties_subset
     result = provider.get(80835483)
     properties = result.get('properties')
@@ -273,9 +286,10 @@ def test_get_with_config_properties(config):
         assert property_name in config['properties']
 
 
-def test_get_not_existing_item_raise_exception(config):
+@pytest.mark.parametrize('provider_class', [PseudoPostgreSQLProvider, PostgreSQLGeoJSONProvider])
+def test_get_not_existing_item_raise_exception(config, provider_class):
     """Testing query for a not existing object"""
-    p = PostgreSQLProvider(config)
+    p = provider_class(config)
     with pytest.raises(ProviderItemNotFoundError):
         p.get(-1)
 
@@ -329,10 +343,11 @@ def test_get_not_existing_item_raise_exception(config):
         ),
     ],
 )
-def test_query_cql(config, cql, expected_ids):
+@pytest.mark.parametrize('provider_class', [PseudoPostgreSQLProvider, PostgreSQLGeoJSONProvider])
+def test_query_cql(config, provider_class, cql, expected_ids):
     """Test a variety of CQL queries"""
     ast = parse(cql)
-    provider = PostgreSQLProvider(config)
+    provider = provider_class(config)
 
     feature_collection = provider.query(filterq=ast)
     assert feature_collection.get('type') == 'FeatureCollection'
@@ -342,7 +357,8 @@ def test_query_cql(config, cql, expected_ids):
     assert ids == expected_ids
 
 
-def test_query_cql_properties_bbox_filters(config):
+@pytest.mark.parametrize('provider_class', [PseudoPostgreSQLProvider, PostgreSQLGeoJSONProvider])
+def test_query_cql_properties_bbox_filters(config, provider_class):
     """Test query with CQL, properties and bbox filters"""
     # Arrange
     properties = [('waterway', 'stream')]
@@ -351,7 +367,7 @@ def test_query_cql_properties_bbox_filters(config):
     expected_ids = [80835470]
 
     # Act
-    provider = PostgreSQLProvider(config)
+    provider = provider_class(config)
     feature_collection = provider.query(
         filterq=filterq, properties=properties, bbox=bbox
     )
@@ -361,7 +377,8 @@ def test_query_cql_properties_bbox_filters(config):
     assert ids == expected_ids
 
 
-def test_get_fields(config):
+@pytest.mark.parametrize('provider_class', [PseudoPostgreSQLProvider, PostgreSQLGeoJSONProvider])
+def test_get_fields(config, provider_class):
     # Arrange
     expected_fields = {
         'blockage': {'type': 'string', 'format': None},
@@ -379,17 +396,18 @@ def test_get_fields(config):
     }
 
     # Act
-    provider = PostgreSQLProvider(config)
+    provider = provider_class(config)
 
     # Assert
     assert provider.get_fields() == expected_fields
     assert provider.fields == expected_fields  # API uses .fields attribute
 
 
-def test_instantiation(config):
+@pytest.mark.parametrize('provider_class', [PseudoPostgreSQLProvider, PostgreSQLGeoJSONProvider])
+def test_instantiation(config, provider_class):
     """Test attributes are correctly set during instantiation."""
     # Act
-    provider = PostgreSQLProvider(config)
+    provider = provider_class(config)
 
     # Assert
     assert provider.name == 'PostgreSQL'
@@ -397,11 +415,12 @@ def test_instantiation(config):
     assert provider.id_field == 'osm_id'
 
 
-def test_engine_and_table_model_stores(config):
-    provider0 = PostgreSQLProvider(config)
+@pytest.mark.parametrize('provider_class', [PseudoPostgreSQLProvider, PostgreSQLGeoJSONProvider])
+def test_engine_and_table_model_stores(config, provider_class):
+    provider0 = provider_class(config)
 
     # Same config should return same engine and table_model
-    provider1 = PostgreSQLProvider(config)
+    provider1 = provider_class(config)
     assert repr(provider1._engine) == repr(provider0._engine)
     assert provider1._engine is provider0._engine
     assert provider1.table_model is provider0.table_model
@@ -409,7 +428,7 @@ def test_engine_and_table_model_stores(config):
     # Same database connection details, but different table
     different_table = config.copy()
     different_table.update(table='hotosm_bdi_drains')
-    provider2 = PostgreSQLProvider(different_table)
+    provider2 = provider_class(different_table)
     assert repr(provider2._engine) == repr(provider0._engine)
     assert provider2._engine is provider0._engine
     assert provider2.table_model is not provider0.table_model
@@ -419,6 +438,6 @@ def test_engine_and_table_model_stores(config):
     # tables with the same name
     different_host = config.copy()
     different_host['data']['host'] = 'localhost'
-    provider3 = PostgreSQLProvider(different_host)
+    provider3 = provider_class(different_host)
     assert provider3._engine is not provider0._engine
     assert provider3.table_model is not provider0.table_model
