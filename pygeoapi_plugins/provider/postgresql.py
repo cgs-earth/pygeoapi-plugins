@@ -35,9 +35,9 @@
 #
 # =================================================================
 
-import json
 import logging
 
+import orjson
 import os
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session, query_expression
@@ -46,7 +46,13 @@ from geoalchemy2.functions import ST_AsGeoJSON
 from pygeoapi.crs import get_transform_from_spec
 from pygeoapi.provider.sql import PostgreSQLProvider
 
-PSUEDO_COUNT_LIMIT = int(os.getenv('PSUEDO_COUNT_LIMIT', '5000000'))
+# Tables estimated below this many rows are counted precisely.
+# PSUEDO_COUNT_LIMIT is the original, misspelled name of the variable.
+PSEUDO_COUNT_LIMIT = int(
+    os.getenv('PSEUDO_COUNT_LIMIT')
+    or os.getenv('PSUEDO_COUNT_LIMIT')
+    or '5000000'
+)
 
 LOGGER = logging.getLogger(__name__)
 
@@ -55,21 +61,20 @@ _GEOJSON = '_pygeoapi_geojson'
 
 
 class PseudoPostgreSQLProvider(PostgreSQLProvider):
-    """Generic provider for Postgresql based on psycopg2
-    using sync approach and server side
-    cursor (using support class DatabaseCursor)
+    """
+    A PostgreSQL provider that estimates `numberMatched` for large
+    queries from the query planner, instead of counting every row
     """
 
     def __init__(self, provider_def):
         """
-        PostgreSQLProvider Class constructor
+        PseudoPostgreSQLProvider Class constructor
 
         :param provider_def: provider definitions from yml pygeoapi-config.
-                             data,id_field, name set in parent class
+                             data, id_field, name set in parent class
                              data contains the connection information
-                             for class DatabaseCursor
 
-        :returns: pygeoapi_plugins.provider.postgres.PseudoPostgreSQLProvider
+        :returns: pygeoapi_plugins.provider.postgresql.PseudoPostgreSQLProvider
         """
         LOGGER.debug('Initialising Pseudo-count PostgreSQL provider.')
         super().__init__(provider_def)
@@ -137,25 +142,26 @@ class PseudoPostgreSQLProvider(PostgreSQLProvider):
                 .options(selected_properties)
             )
 
-            if resulttype == 'hits':
-                LOGGER.debug('No pseudo-count during hits')
-                matched = results.count()
-            else:
-                try:
-                    matched = self._get_pseudo_count(results)
-                except (SQLAlchemyError, LookupError, TypeError) as err:
-                    LOGGER.warning(f'Error during pseudo-count {err}')
-                    matched = results.count()
-
-            LOGGER.debug(f'Found {matched} result(s)')
-
             LOGGER.debug('Preparing response')
             response = {
                 'type': 'FeatureCollection',
                 'features': [],
-                'numberMatched': matched,
                 'numberReturned': 0,
             }
+
+            if resulttype == 'hits':
+                LOGGER.debug('No pseudo-count during hits')
+                response['numberMatched'] = results.count()
+            elif self.count:
+                try:
+                    response['numberMatched'] = self._get_pseudo_count(results)
+                except (SQLAlchemyError, LookupError, TypeError) as err:
+                    LOGGER.warning(f'Error during pseudo-count {err}')
+                    response['numberMatched'] = results.count()
+            else:
+                LOGGER.debug('Count disabled')
+
+            LOGGER.debug(f'Found {response.get("numberMatched")} result(s)')
 
             if resulttype == 'hits' or not results:
                 return response
@@ -180,13 +186,13 @@ class PseudoPostgreSQLProvider(PostgreSQLProvider):
 
     def _get_pseudo_count(self, results):
         """
-        This function calculates the pseudo-count by executing a SQL query on
-        the PostGIS database. If the obtained pseudo-count is less than a
-        predefined limit, the function falls back to using the precise count.
+        Estimate the number of matching rows from the query planner, using
+        `EXPLAIN`. If the estimate is below `PSEUDO_COUNT_LIMIT`, the precise
+        count is returned instead.
 
-        :param results: Results object containing the query results
+        :param results: SQLAlchemy `Query` of the filtered table
 
-        :returns matched: `int` of the pseudo-count for the given results
+        :returns matched: `int` of the estimated or precise count
         """
         LOGGER.debug('Getting pseudo-count')
         compiled = results.statement.compile(self._engine)
@@ -198,7 +204,7 @@ class PseudoPostgreSQLProvider(PostgreSQLProvider):
             ).scalar_one()
         matched = plan[0]['Plan']['Plan Rows']
 
-        if matched < PSUEDO_COUNT_LIMIT:
+        if matched < PSEUDO_COUNT_LIMIT:
             LOGGER.debug('Using precise count')
             matched = results.count()
 
@@ -209,8 +215,8 @@ class PseudoPostgreSQLProvider(PostgreSQLProvider):
 
 class PostgreSQLGeoJSONProvider(PostgreSQLProvider):
     """
-    A provider for querying a PostgreSQL database, rendering
-    geometries in the database with ST_AsGeoJSON
+    A PostgreSQL provider that renders geometries as GeoJSON in the
+    database with ST_AsGeoJSON, instead of converting them in Python
     """
 
     def __init__(self, provider_def: dict):
@@ -219,7 +225,7 @@ class PostgreSQLGeoJSONProvider(PostgreSQLProvider):
 
         :param provider_def: provider definitions from yml pygeoapi-config.
 
-        :returns: pygeoapi.provider.sql.PostgreSQLGeoJSONProvider
+        :returns: pygeoapi_plugins.provider.postgresql.PostgreSQLGeoJSONProvider
         """
         super().__init__(provider_def)
 
@@ -227,33 +233,26 @@ class PostgreSQLGeoJSONProvider(PostgreSQLProvider):
         if not hasattr(self.table_model, _GEOJSON):
             setattr(self.table_model, _GEOJSON, query_expression())
 
-    def get(self, identifier, crs_transform_spec=None, **kwargs) -> dict:
-        """
-        Query the provider for a specific feature id, see
-        `GenericSQLProvider.get` for parameters
-
-        :returns: GeoJSON Feature
-        """
-        feature = super().get(identifier, **kwargs)
-
-        id_column = getattr(self.table_model, self.id_field)
-        with Session(self._engine) as session:
-            geojson = (
-                session.query(self._geojson)
-                .filter(id_column == feature['id'])
-                .scalar()
-            )
-        feature['geometry'] = json.loads(geojson) if geojson else None
-
-        return feature
-
     @property
     def _geojson(self):
+        """
+        SQL expression rendering the geometry column as GeoJSON
+
+        :returns: `ST_AsGeoJSON` expression
+        """
         geom_column = getattr(self.table_model, self.geom)
         return ST_AsGeoJSON(geom_column)
 
     def _select_properties_clause(self, select_properties, skip_geometry):
-        # Load the geometry as GeoJSON instead of the geometry column
+        """
+        Load the selected properties, and the geometry as GeoJSON in place
+        of the geometry column
+
+        :param select_properties: list of property names
+        :param skip_geometry: bool of whether to skip geometry
+
+        :returns: SQLAlchemy load options
+        """
         clause = super()._select_properties_clause(select_properties, True)
         if skip_geometry:
             return clause
@@ -275,13 +274,21 @@ class PostgreSQLGeoJSONProvider(PostgreSQLProvider):
         :returns: `dict` of GeoJSON feature
         """
         item_dict = item.__dict__
-        geojson = item_dict.get(_GEOJSON)
+        if _GEOJSON not in item_dict:
+            # Items loaded without the GeoJSON expression, such as by
+            # `get`, still hold the geometry column
+            return super()._sqlalchemy_to_feature(
+                item, crs_transform_out, select_properties
+            )
+
+        geojson = item_dict[_GEOJSON]
         keys = select_properties or self.fields.keys()
 
         return {
             'type': 'Feature',
             'id': item_dict[self.id_field],
-            'geometry': json.loads(geojson) if geojson else None,
+            # orjson parses GeoJSON geometries faster than json
+            'geometry': orjson.loads(geojson) if geojson else None,
             'properties': {
                 key: item_dict[key] for key in keys if key in item_dict
             }

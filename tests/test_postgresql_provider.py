@@ -198,6 +198,21 @@ def test_query_hits_with_property_filter(config, provider_class, property_filter
 
 
 @pytest.mark.parametrize('provider_class', [PseudoPostgreSQLProvider, PostgreSQLGeoJSONProvider])
+def test_query_count_disabled(config, provider_class):
+    """Test numberMatched is omitted when count is disabled"""
+    config['count'] = False
+    provider = provider_class(config)
+
+    results = provider.query(limit=5)
+    assert 'numberMatched' not in results
+    assert results['numberReturned'] == 5
+
+    # hits always counts
+    results = provider.query(resulttype='hits')
+    assert results['numberMatched'] == 14776
+
+
+@pytest.mark.parametrize('provider_class', [PseudoPostgreSQLProvider, PostgreSQLGeoJSONProvider])
 def test_query_bbox(config, provider_class):
     """Test query with a specified bounding box"""
     psp = provider_class(config)
@@ -262,7 +277,7 @@ def test_get_simple(config, provider_class, id_, prev, next_):
     p = provider_class(config)
     result = p.get(id_)
     assert result['id'] == id_
-    assert 'geometry' in result
+    assert result['geometry']['type'] == 'MultiLineString'
     assert 'properties' in result
     assert result['type'] == 'Feature'
     assert 'foo_geom' not in result['properties']  # geometry is separate

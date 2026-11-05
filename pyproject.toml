@@ -20,6 +20,7 @@ dependencies = [
     "geoalchemy",
     "geopandas",
     "numpy",
+    "orjson",
     "psycopg2",
     "pyarrow",
     "pygeoapi",
