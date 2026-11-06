@@ -115,7 +115,13 @@ class MVTCacheProvider(MVTPostgreSQLProvider_):
 
     def run_pre_cache(self, schema):
         """
-        Run pre-cache to generate tiles for zoom levels
+        Render and cache every tile of a tiling scheme, from the minimum
+        zoom up to (not including) `disable_cache_at_z`. Skipped if the
+        first tile is already cached.
+
+        Run with `pygeoapi plugins mvt-cache pre-cache CONFIG_FILE`.
+
+        :param schema: tiling scheme to pre-cache
         """
         min_zoom = max(self.options['zoom']['min'], 0)
         max_zoom = min(
@@ -198,10 +204,6 @@ class MVTPostgresFilesystem(MVTCacheProvider):
         self.cache_directory = Path(
             provider_def.get('cache_directory', '/tmp/mvt_cache')
         )
-
-        if provider_def.get('pre_cache', False):
-            for schema in self.get_tiling_schemes():
-                self.run_pre_cache(schema)
 
     def get_tiles_from_cache(
         self,
@@ -322,10 +324,6 @@ class MVTPostgresCache(MVTCacheProvider):
             self._engine,
             provider_def.get('force_create', False),
         )
-
-        if provider_def.get('pre_cache', False):
-            for schema in self.get_tiling_schemes():
-                self.run_pre_cache(schema)
 
     def get_tiles_from_cache(
         self,

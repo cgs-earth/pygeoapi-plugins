@@ -334,6 +334,26 @@ providers:
     redis_port: ${REDIS_PORT} # Use REDIS_PORT from environment
 ```
 
+#### Pre-caching tiles
+
+Tiles are cached the first time they are requested. To fill a cache ahead of time, run the `mvt-cache pre-cache`
+command with your pygeoapi configuration. It renders and caches every tile from each cached collection's minimum zoom
+up to (not including) `disable_cache_at_z`, for each tiling scheme. A collection whose cache already holds its first
+tile is skipped.
+
+```bash
+# All collections with an MVT cache provider
+pygeoapi plugins mvt-cache pre-cache $PYGEOAPI_CONFIG
+
+# Only some collections
+pygeoapi plugins mvt-cache pre-cache $PYGEOAPI_CONFIG --collection osm_waterways
+
+# The configuration file defaults to the PYGEOAPI_CONFIG environment variable
+pygeoapi plugins mvt-cache pre-cache
+```
+
+This replaces the `pre_cache` provider option, which rendered the tiles when the provider was loaded.
+
 ## OGC API - Processes
 
 Additional OGC API - Processes are listed below
