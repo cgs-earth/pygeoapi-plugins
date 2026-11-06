@@ -349,3 +349,64 @@ def test_simplify_alt_methods(config):
     config['simplify_method'] = 'ST_FakeSimplify'
     with pytest.raises(RuntimeError):
         p = MVTPostgreSQLProvider_(config)
+
+
+TILESET = 'WebMercatorQuad'
+METADATA_ARGS = {
+    'dataset': DATASET,
+    'server_url': SERVER_URL,
+    'tileset': TILESET,
+    'title': 'Waterways',
+    'description': 'Burundi waterways',
+}
+TILES_URL = (
+    f'{SERVER_URL}/collections/{DATASET}/tiles/{TILESET}'
+    '/{tileMatrix}/{tileRow}/{tileCol}?f=mvt'
+)
+
+
+def _floats(value):
+    return [float(v) for v in value.split(',')]
+
+
+def test_get_metadata_tilejson(config):
+    p = MVTPostgreSQLProvider_(config)
+    fields = list(p.get_fields())
+
+    metadata = p.get_metadata(
+        layer=p.get_layer(), metadata_format='tilejson', **METADATA_ARGS
+    )
+
+    assert metadata['tilejson'] == '3.0.0'
+    assert metadata['name'] == 'Waterways'
+    assert metadata['description'] == 'Burundi waterways'
+    assert metadata['tiles'] == TILES_URL
+    assert metadata['tilejson_url'] == (
+        f'{SERVER_URL}/collections/{DATASET}/tiles/{TILESET}'
+        '/metadata?f=tilejson'
+    )
+    assert metadata['minzoom'] == 0
+    assert metadata['maxzoom'] == 15
+
+    # Extent of the waterways table
+    minx, miny, maxx, maxy = _floats(metadata['bounds'])
+    assert [minx, miny, maxx, maxy] == pytest.approx(
+        [28.984538, -4.481743, 30.866397, -2.309680], abs=1e-6
+    )
+
+    # The middle of the extent
+    assert _floats(metadata['center']) == pytest.approx(
+        [(minx + maxx) / 2, (miny + maxy) / 2]
+    )
+
+    [layer] = metadata['vector_layers']
+    assert layer['id'] == p.get_layer()
+    assert layer['minzoom'] == 0
+    assert layer['maxzoom'] == 15
+    assert layer['fields']['osm_id'] == 'integer'
+    assert layer['fields']['name'] == 'string'
+
+    # The provider's own fields are put back, so tiles still render
+    assert list(p.get_fields()) == fields
+    tile = p.get_tiles(tileset=TILESET, z=10, x=595, y=521)
+    assert isinstance(tile, bytes) and len(tile) > 0

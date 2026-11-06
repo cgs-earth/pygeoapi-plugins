@@ -34,7 +34,7 @@ import xml.etree.ElementTree as ET
 
 from pygeoapi.provider.base import ProviderNotFoundError
 from pygeoapi.provider.filesystem import FileSystemProvider
-from pygeoapi.util import file_modified_iso8601, get_path_basename, url_join
+from pygeoapi.util import file_modified_iso8601, get_path_basename
 
 LOGGER = logging.getLogger(__name__)
 
@@ -56,16 +56,15 @@ class FileSystemXMLProvider(FileSystemProvider):
         thispath = os.path.join(baseurl, urlpath)
 
         resource_type = None
-        root_link = None
         child_links = []
 
         data_path = os.path.join(self.data, dirpath)
         data_path = self.data + dirpath
 
-        if '/' not in dirpath:  # root
-            root_link = baseurl
-        else:
-            parentpath = url_join(thispath, '.')
+        # Links to the STAC root, and to the catalog one level up
+        root_link = baseurl
+        if '/' in dirpath:
+            parentpath = thispath.rstrip('/').rsplit('/', 1)[0]
             child_links.append(
                 {
                     'rel': 'parent',
@@ -76,10 +75,6 @@ class FileSystemXMLProvider(FileSystemProvider):
             child_links.append(
                 {'rel': 'parent', 'href': parentpath, 'type': 'text/html'}
             )
-
-            depth = dirpath.count('/')
-            root_path = '/'.replace('/', '../' * depth, 1)
-            root_link = url_join(thispath, root_path)
 
         content = {
             'links': [
@@ -216,14 +211,22 @@ def _describe_file(filepath):
     content = {'bbox': None, 'geometry': None, 'properties': {}}
 
     LOGGER.debug('Could not detect raster or vector data')
-    tree = ET.parse(filepath)
+    root = ET.parse(filepath).getroot()
     content['properties']['links'] = []
     links = content['properties']['links']
 
-    _ = tree.getroot().itertext()
-    result = [line.strip() for line in ''.join(_).split('\n') if line.strip()]
-    for i in range(0, len(result)):
-        href = result[i]
+    # Sitemaps list their URLs in <loc> elements
+    hrefs = [
+        el.text.strip()
+        for el in root.iter()
+        if el.tag.rsplit('}', 1)[-1] == 'loc' and el.text and el.text.strip()
+    ]
+    if not hrefs:
+        # Other XML: every line of text
+        text = ''.join(root.itertext())
+        hrefs = [line.strip() for line in text.split('\n') if line.strip()]
+
+    for href in hrefs:
         title = href.split('/')[-1]
 
         links.append(

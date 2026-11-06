@@ -35,8 +35,9 @@ import logging
 
 from pygeoapi.provider.base import (
     BaseProvider,
-    ProviderQueryError,
     ProviderConnectionError,
+    ProviderItemNotFoundError,
+    ProviderQueryError,
 )
 from pygeoapi.crs import crs_transform
 
@@ -143,8 +144,11 @@ class CKANProvider(BaseProvider):
         ]
         params = {'filters': self._make_where(properties)}
         response = self._get_response(self.data, params)
-        [feature] = [self._make_feature(f, False) for f in response['records']]
-        return feature
+        if not response['records']:
+            msg = f'No such item: {self.id_field}={identifier}'
+            raise ProviderItemNotFoundError(msg)
+
+        return self._make_feature(response['records'][0], False)
 
     def _load(
         self,
@@ -182,8 +186,9 @@ class CKANProvider(BaseProvider):
         params = {'offset': offset, 'limit': limit}
 
         if self.properties or select_properties:
+            # A new list, so the caller's (or the shared default) is unchanged
             required = [self.id_field, self.x_field, self.y_field]
-            select_properties.extend(required)
+            select_properties = [*select_properties, *required]
 
             params['fields'] = ','.join(
                 set(self.properties) | set(select_properties)

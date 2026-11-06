@@ -409,7 +409,7 @@ class SPARQLProvider(BaseProvider):
         return self.p.get_metadata()
 
     def create(self, new_feature):
-        return self.p.creat(new_feature)
+        return self.p.create(new_feature)
 
     def update(self, identifier, new_feature):
         return self.p.update(identifier, new_feature)

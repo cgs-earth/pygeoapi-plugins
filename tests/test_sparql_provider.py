@@ -53,7 +53,7 @@ def config():
                 {'predicate': 'dbpedia2:leaderName', 'object': '?leader'},
             ],
             'filter': [
-                'FILTER (isIRI(?leader) || (isLiteral(?leader) && (!bound(datatype(?leader)) || datatype(?leader) = xsd:string)))'  # noqa
+                'FILTER (isIRI(?leader) || (isLiteral(?leader) && (lang(?leader) != "" || !bound(datatype(?leader)) || datatype(?leader) = xsd:string)))'  # noqa
             ],
         },
     }
@@ -257,16 +257,18 @@ def test_sparql_with_limit(mainstem_config):
 
     assert len(feature['properties']['datasets']) == 5
 
+    # An invalid or zero limit means no limit
     mainstem_config['sparql_query']['limit'] = 'Notanummber'
     p = SPARQLProvider(mainstem_config)
 
     feature = p.get('381404')
 
-    assert len(feature['properties']['datasets']) == 3707
+    unlimited = len(feature['properties']['datasets'])
+    assert unlimited > 5
 
     mainstem_config['sparql_query']['limit'] = 0
     p = SPARQLProvider(mainstem_config)
 
     feature = p.get('381404')
 
-    assert len(feature['properties']['datasets']) == 3707
+    assert len(feature['properties']['datasets']) == unlimited

@@ -27,12 +27,79 @@
 #
 # =================================================================
 
-import requests
-import pytest
 import contextlib
+import functools
+import re
+import threading
+from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
+from pathlib import Path
+
+import pytest
+import requests
 from pygeoapi.process.base import ProcessorExecuteError
 
 import pygeoapi_plugins.process.intersect as intersect
+
+DATA = Path(__file__).parent / 'data'
+
+# Test files, served from tests/data by a local web server
+STATES_08 = 'intersect/states_08.geojson'  # geoconnex.us/ref/states/08
+STATES_36 = 'intersect/states_36.geojson'  # geoconnex.us/ref/states/36
+STATES = 'states.gpkg'
+HU02 = 'hu02.gpkg'
+DUTCH = 'intersect/dutch_addresses_shape_28992.zip'
+LANDING = 'intersect/landing.json'  # JSON, but not GeoJSON
+RASTER = 'intersect/raster.png'  # Not vector data
+PAGE = 'intersect/page.html'  # Not geospatial
+MISSING = 'intersect/missing.geojson'  # 404
+
+STATES_36_BOUNDS = [-79.762152, 40.496103, -71.856214, 45.01585]
+
+
+class _RangeHandler(SimpleHTTPRequestHandler):
+    """Static files, with the byte ranges GDAL uses to read remote zips"""
+
+    def do_GET(self):
+        match = re.fullmatch(
+            r'bytes=(\d*)-(\d*)', self.headers.get('Range', '')
+        )
+        path = Path(self.translate_path(self.path))
+        if not match or not path.is_file():
+            return super().do_GET()
+
+        data = path.read_bytes()
+        start, end = match.groups()
+        if start:
+            start, end = int(start), int(end or len(data) - 1)
+        else:  # The last n bytes
+            start, end = len(data) - int(end), len(data) - 1
+        end = min(end, len(data) - 1)
+
+        self.send_response(206)
+        self.send_header('Content-Type', self.guess_type(str(path)))
+        self.send_header('Content-Range', f'bytes {start}-{end}/{len(data)}')
+        self.send_header('Content-Length', str(end - start + 1))
+        self.send_header('Accept-Ranges', 'bytes')
+        self.end_headers()
+        self.wfile.write(data[start : end + 1])
+
+    def log_message(self, *args):
+        pass
+
+
+@pytest.fixture(scope='module')
+def server():
+    """Base URL of a local web server for tests/data"""
+    handler = functools.partial(_RangeHandler, directory=str(DATA))
+    httpd = ThreadingHTTPServer(('127.0.0.1', 0), handler)
+    thread = threading.Thread(target=httpd.serve_forever, daemon=True)
+    thread.start()
+
+    host, port = httpd.server_address[:2]
+    yield f'http://{host}:{port}'
+
+    httpd.shutdown()
+    httpd.server_close()
 
 
 @pytest.fixture
@@ -45,7 +112,7 @@ def process_def():
 
 @pytest.fixture
 def bytes_data():
-    return '{"type": "Feature", "geometry": {"type": "Polygon", "coordinates": [[[-109, 37], [-102, 37], [-102, 41], [-109, 41], [-109, 37]]]}}'
+    return '{"type": "Feature", "geometry": {"type": "Polygon", "coordinates": [[[-109, 37], [-102, 37], [-102, 41], [-109, 41], [-109, 37]]]}}'  # noqa
 
 
 def test_execute_raises_when_missing_collection(process_def, bytes_data):
@@ -74,25 +141,25 @@ def test_execute_raises_when_missing_collection(process_def, bytes_data):
 
 
 @pytest.mark.parametrize(
-    'url,bounds,ctx',
+    'path,bounds,ctx',
     [
         (
-            'http://geoconnex.us/ref/states/08',
+            STATES_08,
             [-109.060253, 36.992426, -102.041524, 41.003443999999995],
             contextlib.nullcontext(),
         ),
         (
-            'https://reference.geoconnex.us/collections/states/items',
+            STATES,
             [-179.148909, -14.548699, 179.77847011250077, 71.365162],
             contextlib.nullcontext(),
         ),
         (
-            'https://www.hydroshare.org/resource/3295a17b4cc24d34bd6a5c5aaf753c50/data/contents/hu02.gpkg',
+            HU02,
             [-179.2294676, -14.42442, 179.8564841, 71.439451],
             contextlib.nullcontext(),
         ),
         (
-            'https://github.com/geopython/pygeoapi/raw/refs/heads/master/tests/data/dutch_addresses_shape_28992.zip',
+            DUTCH,
             [
                 52.04308374228452,
                 5.670269218772358,
@@ -101,28 +168,16 @@ def test_execute_raises_when_missing_collection(process_def, bytes_data):
             ],
             contextlib.nullcontext(),
         ),
-        (
-            'https://github.com/geopython/pygeoapi/raw/refs/heads/master/tests/data/coads_sst.nc',
-            None,
-            pytest.raises(ProcessorExecuteError),
-        ),  # Error case - non-vector
-        (
-            'http://example.com',
-            None,
-            pytest.raises(ProcessorExecuteError),
-        ),  # Error case - non-geospatial URL
-        (
-            'https://reference.geoconnex.us/ref',
-            None,
-            pytest.raises(ProcessorExecuteError),
-        ),  # Error case - 404 URL
+        (RASTER, None, pytest.raises(ProcessorExecuteError)),
+        (PAGE, None, pytest.raises(ProcessorExecuteError)),
+        (MISSING, None, pytest.raises(ProcessorExecuteError)),
     ],
 )
-def test_get_bbox(process_def, url, bounds, ctx):
+def test_get_bbox(process_def, server, path, bounds, ctx):
+    url = f'{server}/{path}'
     proc = intersect.IntersectionProcessor(process_def)
     with ctx:
         _, bbox = proc.get_layer(url=url)
-        print(bbox)
         assert pytest.approx(bbox) == bounds
 
     with ctx:
@@ -132,74 +187,43 @@ def test_get_bbox(process_def, url, bounds, ctx):
 
 
 @pytest.mark.parametrize(
-    'url,bounds,ctx',
+    'path,bounds,ctx',
     [
         (
-            'http://geoconnex.us/ref/states/08',
+            STATES_08,
             [-109.060253, 36.992426, -102.041524, 41.003443999999995],
             contextlib.nullcontext(),
         ),
         (
-            'https://reference.geoconnex.us/collections/states/items',
-            [-179.148909, -14.548699, 179.77847011250077, 71.365162],
+            STATES_36,
+            STATES_36_BOUNDS,
             contextlib.nullcontext(),
         ),
-        (
-            'https://reference.geoconnex.us',
-            None,
-            pytest.raises(ProcessorExecuteError),
-        ),
+        (LANDING, None, pytest.raises(ProcessorExecuteError)),
     ],
 )
-def test_literal_geojson(process_def, url, bounds, ctx):
+def test_literal_geojson(process_def, server, path, bounds, ctx):
     proc = intersect.IntersectionProcessor(process_def)
-    content = requests.get(url).json()
+    content = requests.get(f'{server}/{path}').json()
     with ctx:
         _, bbox = proc.get_layer(file=content)
         assert pytest.approx(bbox) == bounds
 
 
 @pytest.mark.parametrize(
-    'url,hits,ctx',
+    'path,hits,ctx',
     [
-        (
-            'http://geoconnex.us/ref/states/08',
-            0,
-            contextlib.nullcontext(),
-        ),
-        (
-            'http://geoconnex.us/ref/states/36',
-            2,
-            contextlib.nullcontext(),
-        ),
-        (
-            'https://reference.geoconnex.us/collections/states/items',
-            3,
-            contextlib.nullcontext(),
-        ),
-        (
-            'https://www.hydroshare.org/resource/3295a17b4cc24d34bd6a5c5aaf753c50/data/contents/hu02.gpkg',
-            5,
-            contextlib.nullcontext(),
-        ),
-        (
-            'https://github.com/geopython/pygeoapi/raw/refs/heads/master/tests/data/dutch_addresses_shape_28992.zip',
-            0,
-            contextlib.nullcontext(),
-        ),
-        (
-            'https://github.com/geopython/pygeoapi/raw/refs/heads/master/tests/data/coads_sst.nc',
-            None,
-            pytest.raises(Exception),
-        ),  # Error case - non-vector
-        (
-            'https://example.com',
-            None,
-            pytest.raises(Exception),
-        ),  # Error case - bad URL
+        (STATES_08, 0, contextlib.nullcontext()),
+        (STATES_36, 2, contextlib.nullcontext()),
+        (STATES, 3, contextlib.nullcontext()),
+        (HU02, 5, contextlib.nullcontext()),
+        (DUTCH, 0, contextlib.nullcontext()),
+        (RASTER, None, pytest.raises(Exception)),
+        (PAGE, None, pytest.raises(Exception)),
     ],
 )
-def test_execute(process_def, url, hits, ctx):
+def test_execute(process_def, server, path, hits, ctx):
+    url = f'{server}/{path}'
     proc = intersect.IntersectionProcessor(process_def)
 
     with ctx:
