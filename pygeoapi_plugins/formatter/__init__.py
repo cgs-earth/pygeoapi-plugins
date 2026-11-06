@@ -30,6 +30,8 @@
 
 """Output formatter package"""
 
+from pygeoapi_plugins.formatter.json_ import JSONFormatter as JSON
+
 from pygeoapi_plugins.formatter.jsonfg import JSONFGFormatter as JSONFG
 
 from pygeoapi_plugins.formatter.parquet import ParquetFormatter as Parquet

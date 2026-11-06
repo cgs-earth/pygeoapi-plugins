@@ -37,7 +37,6 @@
 
 import logging
 
-import orjson
 import os
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session, query_expression
@@ -45,6 +44,8 @@ from geoalchemy2.functions import ST_AsGeoJSON
 
 from pygeoapi.crs import get_transform_from_spec
 from pygeoapi.provider.sql import PostgreSQLProvider
+
+from pygeoapi_plugins.formatter.json_ import GeoJSONGeometry
 
 # Tables estimated below this many rows are counted precisely.
 # PSUEDO_COUNT_LIMIT is the original, misspelled name of the variable.
@@ -58,6 +59,9 @@ LOGGER = logging.getLogger(__name__)
 
 # Mapped attribute holding the geometry rendered by ST_AsGeoJSON
 _GEOJSON = '_pygeoapi_geojson'
+
+# ST_AsGeoJSON's own default number of decimal places
+_MAX_DECIMAL_DIGITS = 9
 
 
 class PseudoPostgreSQLProvider(PostgreSQLProvider):
@@ -230,6 +234,13 @@ class PostgreSQLGeoJSONProvider(PostgreSQLProvider):
         """
         super().__init__(provider_def)
 
+        # Decimal places ST_AsGeoJSON rounds coordinates to
+        self.max_decimal_digits = int(
+            provider_def.get('max_decimal_digits', _MAX_DECIMAL_DIGITS)
+        )
+        if self.max_decimal_digits < 0:
+            raise ValueError('max_decimal_digits must not be negative')
+
         # Table models are shared, so only map the expression once
         if not hasattr(self.table_model, _GEOJSON):
             setattr(self.table_model, _GEOJSON, query_expression())
@@ -242,7 +253,7 @@ class PostgreSQLGeoJSONProvider(PostgreSQLProvider):
         :returns: `ST_AsGeoJSON` expression
         """
         geom_column = getattr(self.table_model, self.geom)
-        return ST_AsGeoJSON(geom_column)
+        return ST_AsGeoJSON(geom_column, self.max_decimal_digits)
 
     def _select_properties_clause(self, select_properties, skip_geometry):
         """
@@ -289,8 +300,7 @@ class PostgreSQLGeoJSONProvider(PostgreSQLProvider):
         return {
             'type': 'Feature',
             'id': item_dict[self.id_field],
-            # orjson parses GeoJSON geometries faster than json
-            'geometry': orjson.loads(geojson) if geojson else None,
+            'geometry': GeoJSONGeometry(geojson),
             'properties': {
                 key: item_dict[key] for key in keys if key in item_dict
             },
