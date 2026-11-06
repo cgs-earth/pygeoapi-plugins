@@ -40,6 +40,7 @@ from pygeoapi_plugins.provider.mvt_cache import MVTPostgresFilesystem
 FILESYSTEM_CACHE = 'pygeoapi_plugins.provider.mvt_cache.MVTPostgresFilesystem'
 PASSWORD = os.environ.get('POSTGRESQL_PASSWORD', 'postgres')
 
+
 def _tile_provider(name, **extra):
     return {
         'type': 'tile',
