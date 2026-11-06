@@ -36,22 +36,21 @@ import logging
 
 # import osgeo if using geojson2jsonfg
 # from osgeo import gdal
-
 from pygeoapi.crs import (
     DEFAULT_CRS,
     crs_transform_feature,
-    get_transform_from_crs,
     get_crs,
+    get_transform_from_crs,
 )
-from pygeoapi.formatter.base import BaseFormatter
-from pygeoapi.util import to_json, url_join
+from pygeoapi.util import url_join
 
+from pygeoapi_plugins.formatter.json_ import JSONFormatter
 
 LOGGER = logging.getLogger(__name__)
 
 
-class JSONFGFormatter(BaseFormatter):
-    """JSON-FG formatter"""
+class JSONFGFormatter(JSONFormatter):
+    """JSON-FG formatter, written as `JSONFormatter` writes JSON"""
 
     def __init__(self, formatter_def: dict):
         """
@@ -62,32 +61,30 @@ class JSONFGFormatter(BaseFormatter):
         :returns: `pygeoapi_plugins.formatter.jsonfg.JSONFGFormatter`
         """
 
-        geom = False
-        if 'geom' in formatter_def:
-            geom = formatter_def['geom']
-
-        super().__init__({'name': 'jsonfg', 'geom': geom})
-        self.mimetype = 'application/geo+json'
+        super().__init__(formatter_def)
+        self.name = 'jsonfg'
         self.f = 'jsonfg'
-        self.extension = 'json'
 
-    def write(self, options: dict = {}, data: dict | None = {}) -> str:
+    def write(
+        self, options: dict | None = None, data: dict | None = None
+    ) -> bytes:
         """
         Generate data in JSON-FG format
 
         :param options: JSON-FG formatting options
         :param data: dict of GeoJSON data
 
-        :returns: string representation of format
+        :returns: bytes representation of format
         """
 
+        options = options or {}
         format_conditions = [
             data is None,
             isinstance(data, dict) and not data.get('features'),
         ]
         if any(format_conditions):
             LOGGER.warning('No features to write to JSON-FG')
-            return str()
+            return b''
 
         provider_def = options.get('provider_def', {})
         time_field = provider_def.get('time_field')
@@ -149,7 +146,7 @@ class JSONFGFormatter(BaseFormatter):
         #     LOGGER.error(err)
         #     raise FormatterSerializationError('Error writing JSONFG output')
 
-        return to_json(jsonfg)
+        return super().write(options, jsonfg)
 
     def __repr__(self):
         return f'<JSONFGFormatter> {self.name}'

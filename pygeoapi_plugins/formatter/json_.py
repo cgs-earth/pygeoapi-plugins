@@ -216,20 +216,26 @@ def _rebuild_geometry(raw: str | bytes, data: dict) -> GeoJSONGeometry:
     return geometry
 
 
+# Feature members that can hold a geometry: GeoJSON geometry, JSON-FG place
+_GEOMETRY_KEYS = ('geometry', 'place')
+
+
 def _embed_geometry(feature: dict) -> dict:
     """
-    Embed a pre-serialized geometry (e.g. from ST_AsGeoJSON) verbatim,
-    rather than re-encoding it
+    Embed pre-serialized geometries (e.g. from ST_AsGeoJSON) verbatim,
+    rather than re-encoding them
 
-    :param feature: `dict` of GeoJSON feature
+    :param feature: `dict` of GeoJSON or JSON-FG feature
 
-    :returns: `dict` of GeoJSON feature
+    :returns: `dict` of feature
     """
 
-    geometry = feature.get('geometry')
-    if isinstance(geometry, GeoJSONGeometry):
-        geometry = geometry.raw
-    if isinstance(geometry, (str, bytes)):
-        return {**feature, 'geometry': orjson.Fragment(geometry)}
+    embedded = {}
+    for key in _GEOMETRY_KEYS:
+        geometry = feature.get(key)
+        if isinstance(geometry, GeoJSONGeometry):
+            geometry = geometry.raw
+        if isinstance(geometry, (str, bytes)):
+            embedded[key] = orjson.Fragment(geometry)
 
-    return feature
+    return {**feature, **embedded} if embedded else feature

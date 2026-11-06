@@ -30,8 +30,10 @@
 # =================================================================
 
 import json
+
 import pytest
 
+from pygeoapi_plugins.formatter.json_ import GeoJSONGeometry
 from pygeoapi_plugins.formatter.jsonfg import JSONFGFormatter
 
 
@@ -147,3 +149,51 @@ def test_jsonfg_spatiotemporal_formatter(spatiotemporal_fixture):
     assert f_jsonfg['features'][0]['time'] == '2020-01-01T00:00:00Z'
 
     assert len(f_jsonfg['links']) == 1
+
+
+def test_jsonfg_formatter_identity():
+    f = JSONFGFormatter({})
+
+    assert f.name == 'jsonfg'
+    assert f.f == 'jsonfg'
+    assert f.extension == 'json'
+    assert f.mimetype == 'application/geo+json'
+
+
+def test_jsonfg_formatter_json_render(fixture):
+    fixture['features'][0]['properties']['name'] = '<b>Dinagat</b>'
+    result = JSONFGFormatter({}).write(data=fixture)
+
+    # Written as JSONFormatter writes JSON: bytes, < and > not escaped
+    assert isinstance(result, bytes)
+    assert b'<b>Dinagat</b>' in result
+    assert b'&lt;' not in result
+
+
+def test_jsonfg_formatter_geojson_geometry(fixture):
+    geometry = GeoJSONGeometry('{"type":"Point","coordinates":[125.6,10.1]}')
+    fixture['features'][0]['geometry'] = geometry
+
+    f_jsonfg = json.loads(JSONFGFormatter({}).write(data=fixture))
+
+    assert f_jsonfg['features'][0]['geometry'] == {
+        'type': 'Point',
+        'coordinates': [125.6, 10.1],
+    }
+    # Written from the database's JSON, without parsing it
+    assert geometry._loaded is False
+
+
+def test_jsonfg_formatter_geojson_place(spatiotemporal_fixture):
+    raw = '{"type":"Point","coordinates":[13981728.0436351,1130195.397638891]}'
+    spatiotemporal_fixture['features'][0]['geometry'] = GeoJSONGeometry(raw)
+    options = {'content_crs': 'http://www.opengis.net/def/crs/EPSG/0/3857'}
+
+    result = JSONFGFormatter({}).write(
+        data=spatiotemporal_fixture, options=options
+    )
+    feature = json.loads(result)['features'][0]
+
+    # place keeps the stored coordinates, geometry is in CRS84
+    assert feature['place'] == json.loads(raw)
+    assert feature['geometry']['coordinates'] == pytest.approx([125.6, 10.1])
