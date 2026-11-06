@@ -36,14 +36,13 @@
 # =================================================================
 
 import logging
-
 import os
-from sqlalchemy.exc import SQLAlchemyError
-from sqlalchemy.orm import Session, query_expression
-from geoalchemy2.functions import ST_AsGeoJSON
 
+from geoalchemy2.functions import ST_AsGeoJSON
 from pygeoapi.crs import get_transform_from_spec
 from pygeoapi.provider.sql import PostgreSQLProvider
+from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.orm import Session, query_expression
 
 from pygeoapi_plugins.formatter.json_ import GeoJSONGeometry
 
