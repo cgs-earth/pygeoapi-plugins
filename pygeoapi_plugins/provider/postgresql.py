@@ -37,7 +37,6 @@
 
 import logging
 
-import orjson
 import os
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session, query_expression
@@ -289,8 +288,7 @@ class PostgreSQLGeoJSONProvider(PostgreSQLProvider):
         return {
             'type': 'Feature',
             'id': item_dict[self.id_field],
-            # orjson parses GeoJSON geometries faster than json
-            'geometry': orjson.loads(geojson) if geojson else None,
+            'geometry': geojson,
             'properties': {
                 key: item_dict[key] for key in keys if key in item_dict
             },
