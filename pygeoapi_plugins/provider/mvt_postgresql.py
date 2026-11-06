@@ -29,7 +29,6 @@
 
 import logging
 
-from copy import deepcopy
 from enum import Enum
 from geoalchemy2.functions import (
     Box2D,
@@ -258,9 +257,12 @@ class MVTPostgreSQLProvider_(MVTPostgreSQLProvider):
             )
             minx, miny, maxx, maxy = map(float, extent)
             metadata['bounds'] = f'{minx}, {miny}, {maxx}, {maxy}'
-            metadata['center'] = f'{maxx - minx}, {maxy - miny}'
+            metadata['center'] = f'{(minx + maxx) / 2}, {(miny + maxy) / 2}'
 
-        _fields = deepcopy(self._fields)
+        # List every column, then restore the provider's own fields. They
+        # are kept, not copied: copied columns bring a copy of their table,
+        # which breaks later tile queries
+        _fields = self._fields
         self._fields = {}
         metadata['vector_layers'] = [
             {

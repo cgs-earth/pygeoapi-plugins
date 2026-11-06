@@ -192,24 +192,32 @@ def test_redis_cache(config):
     config['disable_cache_at_z'] = 14
 
     p = MVTPostgresRedis(config)
-    assert (
-        p.get_tiles_from_cache(
-            tileset=TILESET,
-            z=Z,
-            x=X,
-            y=Y,
-        )
-        is None
-    )
 
-    tile = p.get_tiles(tileset=TILESET, z=Z, x=X, y=Y)
+    # Start from an empty cache, as Redis keeps tiles between runs
+    key = p._get_tile_key('default', TILESET, Z, Y, X, 'pbf')
+    p.db.delete(key)
 
-    assert (
-        p.get_tiles_from_cache(
-            tileset=TILESET,
-            z=Z,
-            x=X,
-            y=Y,
+    try:
+        assert (
+            p.get_tiles_from_cache(
+                tileset=TILESET,
+                z=Z,
+                x=X,
+                y=Y,
+            )
+            is None
         )
-        == tile
-    )
+
+        tile = p.get_tiles(tileset=TILESET, z=Z, x=X, y=Y)
+
+        assert (
+            p.get_tiles_from_cache(
+                tileset=TILESET,
+                z=Z,
+                x=X,
+                y=Y,
+            )
+            == tile
+        )
+    finally:
+        p.db.delete(key)
