@@ -6,12 +6,13 @@
 
 Additional OGC API - Feature providers are listed below, along with a matrix of supported query parameters.
 
-| Provider           | Property Filters/Display | Result Type  | BBox | Datetime | Sort By | Skip Geometry | CQL | Transactions | CRS |
-| ------------------ | ------------------------ | ------------ | ---- | -------- | ------- | ------------- | --- | ------------ | --- |
-| `CKAN`             | ✅/✅                    | results/hits | ❌   | ❌       | ✅      | ✅            | ❌  | ❌           | ✅  |
-| `PsuedoPostgreSQL` | ✅/✅                    | results/hits | ✅   | ✅       | ✅      | ✅            | ✅  | ❌           | ✅  |
-| `SPARQL`           | ❌/✅                    | results/hits | ❌   | ❌       | ❌      | ❌            | ❌  | ❌           | ❌  |
-| `GeoPandas`        | ✅/✅                    | results/hits | ✅   | ✅       | ✅      | ✅            | ❌  | ✅           | ✅  |
+| Provider            | Property Filters/Display | Result Type  | BBox | Datetime | Sort By | Skip Geometry | CQL | Transactions | CRS |
+| ------------------- | ------------------------ | ------------ | ---- | -------- | ------- | ------------- | --- | ------------ | --- |
+| `CKAN`              | ✅/✅                    | results/hits | ❌   | ❌       | ✅      | ✅            | ❌  | ❌           | ✅  |
+| `PseudoPostgreSQL`  | ✅/✅                    | results/hits | ✅   | ✅       | ✅      | ✅            | ✅  | ❌           | ✅  |
+| `PostgreSQLGeoJSON` | ✅/✅                    | results/hits | ✅   | ✅       | ✅      | ✅            | ✅  | ❌           | ❌  |
+| `SPARQL`            | ❌/✅                    | results/hits | ❌   | ❌       | ❌      | ❌            | ❌  | ❌           | ❌  |
+| `GeoPandas`         | ✅/✅                    | results/hits | ✅   | ✅       | ✅      | ✅            | ❌  | ✅           | ✅  |
 
 The provider names listed in the table are only accessible in [internetofwater/pygeoapi](https://github.com/internetofwater/pygeoapi), otherwise the full python path is required.
 
@@ -41,12 +42,70 @@ In this example, the CKAN Provider is configured to work with the specified CKAN
 - `x_field`: The field representing the X-coordinate (longitude) for the features in the CKAN resource.
 - `y_field`: The field representing the Y-coordinate (latitude) for the features in the CKAN resource.
 
-### PseudoPostgresSQL
+### PseudoPostgreSQL
 
-The PseudoPostgresSQL Provider adds a simple capacity to the PostgresSQL Provider in pygeoapi core - faster counting.
-This is done by performing a pseudo-count on tables exceeding a definable limit.
-The limit is defined using the PSEUDO_COUNT_LIMIT environment variable.
-To use the PseudoPostgresSQL Provider, you need to specify `pygeoapi_plugins.provider.postgresql.PseudoPostgreSQLProvider` as the provider's name.
+The PseudoPostgreSQL Provider extends the PostgreSQL Provider in pygeoapi core with faster counting of `numberMatched` on large tables.
+Counting every row that matches a query can take longer than the query itself.
+Instead, the provider reads the number of rows the PostgreSQL query planner estimates the query will return, using `EXPLAIN`.
+If the estimate is below a limit, the provider runs a precise count instead, so `numberMatched` is exact for smaller results.
+
+- The limit is set with the `PSEUDO_COUNT_LIMIT` environment variable (default `5000000`). The original misspelling, `PSUEDO_COUNT_LIMIT`, is also accepted.
+- Requests with `resulttype=hits` always return a precise count.
+- If the estimate cannot be read, the provider logs a warning and falls back to a precise count.
+
+`numberMatched` is approximate above the limit, as accurate as the table statistics PostgreSQL keeps. Running `ANALYZE` on the table keeps the estimate current.
+
+To use the PseudoPostgreSQL Provider, you need to specify `pygeoapi_plugins.provider.postgresql.PseudoPostgreSQLProvider` as the provider's name.
+The rest of the configuration is the same as the [PostgreSQL Provider](https://docs.pygeoapi.io/en/latest/data-publishing/ogcapi-features.html#postgresql) in pygeoapi core.
+
+```yaml
+providers:
+  - type: feature
+    name: pygeoapi_plugins.provider.postgresql.PseudoPostgreSQLProvider
+    data:
+      host: 127.0.0.1
+      port: 5432
+      dbname: test
+      user: postgres
+      password: ${POSTGRESQL_PASSWORD}
+      search_path: [osm, public]
+    id_field: osm_id
+    table: hotosm_bdi_waterways
+    geom_field: foo_geom
+```
+
+### PostgreSQL GeoJSON
+
+The PostgreSQL GeoJSON Provider extends the PostgreSQL Provider in pygeoapi core by rendering geometries as GeoJSON in the database, using PostGIS `ST_AsGeoJSON`.
+The core provider loads each geometry and converts it to GeoJSON in Python, which is slow for large or complex geometries.
+Rendering in the database skips that conversion, so feature responses build faster.
+Pair it with the [JSON formatter](#json) to also skip re-encoding the GeoJSON for `f=json`.
+
+Geometries are returned in the table's own coordinate reference system: `ST_AsGeoJSON` does not reproject, so the `crs` query parameter is not supported.
+Store geometries in WGS 84 (EPSG:4326) to serve standard GeoJSON.
+
+To use the PostgreSQL GeoJSON Provider, you need to specify `pygeoapi_plugins.provider.postgresql.PostgreSQLGeoJSONProvider` as the provider's name.
+The rest of the configuration is the same as the [PostgreSQL Provider](https://docs.pygeoapi.io/en/latest/data-publishing/ogcapi-features.html#postgresql) in pygeoapi core.
+
+```yaml
+providers:
+  - type: feature
+    name: pygeoapi_plugins.provider.postgresql.PostgreSQLGeoJSONProvider
+    data:
+      host: 127.0.0.1
+      port: 5432
+      dbname: test
+      user: postgres
+      password: ${POSTGRESQL_PASSWORD}
+      search_path: [osm, public]
+    id_field: osm_id
+    table: hotosm_bdi_waterways
+    geom_field: foo_geom
+    max_decimal_digits: 6 # optional, default 9
+```
+
+`max_decimal_digits` sets how many decimal places `ST_AsGeoJSON` rounds coordinates to (default 9).
+Fewer digits make smaller responses; in degrees, 6 decimal places is about 0.1 m.
 
 ### SPARQL
 
@@ -318,6 +377,7 @@ sitemap-generator:
 The pygeoapi plugins repository includes a variety of custom formatters to modify the response
 body from OGC API - Feature and OGC API - EDR GeoJSON responses. The following formatters are supported:
 
+- **JSON**: `pygeoapi_plugins.formatter.JSON` — returns GeoJSON (`application/geo+json`) for `f=json`, serialized with [orjson](https://github.com/ijl/orjson). Faster than pygeoapi's default JSON output, and leaves `<` and `>` unescaped. See [JSON](#json) below.
 - **JSON-FG**: `pygeoapi_plugins.formatter.JSONFG` — returns JSON-FG compliant GeoJSON (`application/geo+json`). Useful for systems that require OGR-style JSON-FG output.
 - **Parquet**: `pygeoapi_plugins.formatter.Parquet` — returns an Apache Parquet binary (`application/vnd.apache.parquet`). Good for analytical workflows and columnar storage.
 - **Shapefile**: `pygeoapi_plugins.formatter.Shapefile` — returns a zipped Shapefile (`application/zip`).
@@ -349,3 +409,36 @@ resources:
       - name: pygeoapi_plugins.formatter.XML
       - name: pygeoapi_plugins.formatter.Parquet
 ```
+
+### JSON
+
+The JSON formatter replaces pygeoapi's default `f=json` output for the items of a collection.
+It serializes with orjson, which is about 10 times faster than pygeoapi's default for large responses, and it does not escape `<` and `>` as `&lt;` and `&gt;`.
+
+It works with any feature provider, and is fastest with the [PostgreSQL GeoJSON Provider](#postgresql-geojson).
+That provider keeps each geometry as the GeoJSON text from `ST_AsGeoJSON`, and the JSON formatter writes that text straight into the response, without parsing it into Python objects and encoding it again.
+Other outputs, such as HTML and JSON-LD, still get ordinary geometries, parsed only when they are read.
+
+```yaml
+resources:
+  my_collection:
+    type: collection
+    title: My Collection
+    providers:
+      - type: feature
+        name: pygeoapi_plugins.provider.postgresql.PostgreSQLGeoJSONProvider
+        data:
+          host: 127.0.0.1
+          dbname: test
+          user: postgres
+          password: ${POSTGRESQL_PASSWORD}
+        id_field: osm_id
+        table: hotosm_bdi_waterways
+        geom_field: foo_geom
+    formatters:
+      - name: pygeoapi_plugins.formatter.JSON
+```
+
+On the 14,776 features of the test table, building and serializing all of them took about 0.3 s with this pairing, compared with about 1 s for the core PostgreSQL Provider with pygeoapi's default JSON output.
+
+The JSON formatter only handles item lists (`/collections/{collectionId}/items?f=json`). Single items and other endpoints keep pygeoapi's default JSON output.
