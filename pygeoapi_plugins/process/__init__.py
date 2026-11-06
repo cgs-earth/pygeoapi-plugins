@@ -1,3 +1,4 @@
+# ruff: noqa
 # =================================================================
 #
 # Author: Benjamin Webb <bwebb@lincolninst.edu>
@@ -28,3 +29,7 @@
 # =================================================================
 
 """OGC process package, each process is an independent module"""
+
+from pygeoapi_plugins.process.intersect import IntersectionProcessor as Intersect
+
+from pygeoapi_plugins.process.sitemap import SitemapProcessor as Sitemap
