@@ -1,3 +1,4 @@
+# ruff: noqa
 # =================================================================
 #
 # Author: Benjamin Webb <bwebb@lincolninst.edu>
@@ -28,3 +29,28 @@
 # =================================================================
 
 """Provider module containing the plugins wrapping data sources"""
+
+from pygeoapi_plugins.provider.ckan import CKANProvider as CKAN
+
+from pygeoapi_plugins.provider.filesystem_xml import (
+    FileSystemXMLProvider as FilesystemXML,
+)
+
+from pygeoapi_plugins.provider.geopandas_ import GeoPandasProvider as GeoPandas
+
+from pygeoapi_plugins.provider.mvt_cache import (
+    MVTPostgresFilesystem as MVTPostgresFilesystem,
+    MVTPostgresCache as MVTPostgresCache,
+    MVTPostgresRedis as MVTPostgresRedis,
+)
+
+from pygeoapi_plugins.provider.mvt_postgresql import (
+    MVTPostgreSQLProvider_ as MVTPostgreSQL,
+)
+
+from pygeoapi_plugins.provider.postgresql import (
+    PostgreSQLGeoJSONProvider as PostgreSQLGeoJSON,
+    PseudoPostgreSQLProvider as PseudoPostgreSQL,
+)
+
+from pygeoapi_plugins.provider.sparql import SPARQLProvider as SPARQL
