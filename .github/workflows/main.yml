@@ -33,7 +33,7 @@ jobs:
         run: |
           sudo add-apt-repository ppa:ubuntugis/ubuntugis-unstable
           sudo apt update
-          sudo apt-get install gdal-bin libgdal-dev -y
+          sudo apt-get install gdal-bin libgdal-dev libsqlite3-mod-spatialite -y
       - name: Install uv
         uses: astral-sh/setup-uv@v10.3.3
         with:
