@@ -213,6 +213,7 @@ class PseudoPostgreSQLProvider(PostgreSQLProvider):
     def __repr__(self):
         return f'<PseudoPostgreSQLProvider> {self.table}'
 
+
 class PostgreSQLGeoJSONProvider(PostgreSQLProvider):
     """
     A PostgreSQL provider that renders geometries as GeoJSON in the
@@ -261,8 +262,9 @@ class PostgreSQLGeoJSONProvider(PostgreSQLProvider):
             getattr(self.table_model, _GEOJSON), self._geojson
         )
 
-    def _sqlalchemy_to_feature(self, item, crs_transform_out=None,
-                               select_properties=[]):
+    def _sqlalchemy_to_feature(
+        self, item, crs_transform_out=None, select_properties=[]
+    ):
         """
         Helper function to transform an SQLAlchemy result to a
         GeoJSON feature
@@ -291,5 +293,5 @@ class PostgreSQLGeoJSONProvider(PostgreSQLProvider):
             'geometry': orjson.loads(geojson) if geojson else None,
             'properties': {
                 key: item_dict[key] for key in keys if key in item_dict
-            }
+            },
         }
