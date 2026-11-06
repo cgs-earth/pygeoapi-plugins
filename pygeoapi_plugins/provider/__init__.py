@@ -32,7 +32,9 @@
 
 from pygeoapi_plugins.provider.ckan import CKANProvider as CKAN
 
-from pygeoapi_plugins.provider.filesystem_xml import FileSystemXMLProvider as FilesystemXML
+from pygeoapi_plugins.provider.filesystem_xml import (
+    FileSystemXMLProvider as FilesystemXML,
+)
 
 from pygeoapi_plugins.provider.geopandas_ import GeoPandasProvider as GeoPandas
 
@@ -42,7 +44,9 @@ from pygeoapi_plugins.provider.mvt_cache import (
     MVTPostgresRedis as MVTPostgresRedis,
 )
 
-from pygeoapi_plugins.provider.mvt_postgresql import MVTPostgreSQLProvider_ as MVTPostgreSQL
+from pygeoapi_plugins.provider.mvt_postgresql import (
+    MVTPostgreSQLProvider_ as MVTPostgreSQL,
+)
 
 from pygeoapi_plugins.provider.postgresql import (
     PostgreSQLGeoJSONProvider as PostgreSQLGeoJSON,
