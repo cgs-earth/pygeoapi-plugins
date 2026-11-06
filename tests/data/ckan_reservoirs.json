@@ -1,0 +1,176 @@
+{
+  "_comment": "Made-up test data for tests/test_ckan_provider.py, shaped like a CKAN datastore_search result. Names follow New Mexico reservoirs; the other values are illustrative, not real.",
+  "resource_id": "08369d21-520b-439e-97e3-5ecb50737887",
+  "fields": [
+    {
+      "id": "_id",
+      "type": "int"
+    },
+    {
+      "id": "DAMNAME",
+      "type": "text"
+    },
+    {
+      "id": "RIVER",
+      "type": "text"
+    },
+    {
+      "id": "SOURCE",
+      "type": "text"
+    },
+    {
+      "id": "STATE",
+      "type": "text"
+    },
+    {
+      "id": "YEAR",
+      "type": "numeric"
+    },
+    {
+      "id": "RES_ID",
+      "type": "numeric"
+    },
+    {
+      "id": "LONDD",
+      "type": "numeric"
+    },
+    {
+      "id": "LATDD",
+      "type": "numeric"
+    }
+  ],
+  "records": [
+    {
+      "_id": 1,
+      "DAMNAME": "NAVAJO",
+      "RIVER": "SAN JUAN RIVER",
+      "SOURCE": "E",
+      "STATE": "NM",
+      "YEAR": 1963,
+      "RES_ID": 101,
+      "LONDD": -107.609,
+      "LATDD": 36.8078
+    },
+    {
+      "_id": 2,
+      "DAMNAME": "EL VADO",
+      "RIVER": "RIO CHAMA",
+      "SOURCE": "E",
+      "STATE": "NM",
+      "YEAR": 1935,
+      "RES_ID": 102,
+      "LONDD": -106.73,
+      "LATDD": 36.6
+    },
+    {
+      "_id": 3,
+      "DAMNAME": "LA JARA LAKE",
+      "RIVER": "LA JARA CREEK",
+      "SOURCE": "F",
+      "STATE": "NM",
+      "YEAR": 1958,
+      "RES_ID": 103,
+      "LONDD": -107,
+      "LATDD": 36.74
+    },
+    {
+      "_id": 4,
+      "DAMNAME": "ABIQUIU",
+      "RIVER": "RIO CHAMA",
+      "SOURCE": "F",
+      "STATE": "NM",
+      "YEAR": 1963,
+      "RES_ID": 104,
+      "LONDD": -106.43,
+      "LATDD": 36.24
+    },
+    {
+      "_id": 5,
+      "DAMNAME": "COCHITI LAKE",
+      "RIVER": "RIO GRANDE",
+      "SOURCE": "E",
+      "STATE": "NM",
+      "YEAR": 1975,
+      "RES_ID": 105,
+      "LONDD": -106.32,
+      "LATDD": 35.62
+    },
+    {
+      "_id": 6,
+      "DAMNAME": "ELEPHANT BUTTE RESERVOIR",
+      "RIVER": "RIO GRANDE",
+      "SOURCE": "E",
+      "STATE": "NM",
+      "YEAR": 1916,
+      "RES_ID": 106,
+      "LONDD": -107.18,
+      "LATDD": 33.15
+    },
+    {
+      "_id": 7,
+      "DAMNAME": "CABALLO RESERVOIR",
+      "RIVER": "RIO GRANDE",
+      "SOURCE": "E",
+      "STATE": "NM",
+      "YEAR": 1938,
+      "RES_ID": 107,
+      "LONDD": -107.3,
+      "LATDD": 32.89
+    },
+    {
+      "_id": 8,
+      "DAMNAME": "CONCHAS LAKE",
+      "RIVER": "CANADIAN RIVER",
+      "SOURCE": "F",
+      "STATE": "NM",
+      "YEAR": 1939,
+      "RES_ID": 108,
+      "LONDD": -104.19,
+      "LATDD": 35.4
+    },
+    {
+      "_id": 9,
+      "DAMNAME": "UTE RESERVOIR",
+      "RIVER": "CANADIAN RIVER",
+      "SOURCE": "F",
+      "STATE": "NM",
+      "YEAR": 1963,
+      "RES_ID": 109,
+      "LONDD": -103.45,
+      "LATDD": 35.36
+    },
+    {
+      "_id": 10,
+      "DAMNAME": "SANTA ROSA LAKE",
+      "RIVER": "PECOS RIVER",
+      "SOURCE": "E",
+      "STATE": "NM",
+      "YEAR": 1980,
+      "RES_ID": 110,
+      "LONDD": -104.69,
+      "LATDD": 35.03
+    },
+    {
+      "_id": 11,
+      "DAMNAME": "SUMNER LAKE",
+      "RIVER": "PECOS RIVER",
+      "SOURCE": "F",
+      "STATE": "NM",
+      "YEAR": 1937,
+      "RES_ID": 111,
+      "LONDD": -104.38,
+      "LATDD": 34.61
+    },
+    {
+      "_id": 12,
+      "DAMNAME": "LAKE AVALON",
+      "RIVER": "PECOS RIVER",
+      "SOURCE": "F",
+      "STATE": "NM",
+      "YEAR": 1893,
+      "RES_ID": 112,
+      "LONDD": -104.25,
+      "LATDD": 32.49
+    }
+  ]
+}

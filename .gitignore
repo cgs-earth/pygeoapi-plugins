@@ -159,3 +159,7 @@ cython_debug/
 #  option (not recommended) you can uncomment the following to ignore the entire idea folder.
 #.idea/
 data/
+
+# Test data is committed, except tiles written by the MVT cache tests
+!tests/data/
+tests/data/tiles/
