@@ -32,6 +32,10 @@ dependencies = [
     "sqlalchemy",
 ]
 
+# Commands for the pygeoapi CLI, run with `pygeoapi plugins`
+[project.entry-points.pygeoapi]
+mvt-cache = "pygeoapi_plugins.cli:mvt_cache"
+
 [project.optional-dependencies]
 dev = ["pytest", "pytest-cov", "pre-commit"]
 gdal = ["GDAL"]
