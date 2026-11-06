@@ -499,3 +499,33 @@ def test_engine_and_table_model_stores(config, provider_class):
     provider3 = provider_class(different_host)
     assert provider3._engine is not provider0._engine
     assert provider3.table_model is not provider0.table_model
+
+
+def _max_decimals(coordinates):
+    """Most decimal places in any coordinate of a geometry"""
+    if isinstance(coordinates, (int, float)):
+        text = repr(coordinates)
+        return len(text.split('.')[1]) if '.' in text else 0
+    return max(_max_decimals(c) for c in coordinates)
+
+
+def test_max_decimal_digits(config):
+    default = PostgreSQLGeoJSONProvider(config)
+    assert default.max_decimal_digits == 9
+
+    rounded = PostgreSQLGeoJSONProvider({**config, 'max_decimal_digits': 3})
+    assert rounded.max_decimal_digits == 3
+
+    def decimals(provider):
+        results = provider.query(limit=10)
+        return _max_decimals(
+            [f['geometry']['coordinates'] for f in results['features']]
+        )
+
+    # Providers share the table model, but each keeps its own precision.
+    # The test data is stored to 7 decimal places.
+    assert decimals(rounded) == 3
+    assert decimals(default) == 7
+
+    with pytest.raises(ValueError):
+        PostgreSQLGeoJSONProvider({**config, 'max_decimal_digits': -1})

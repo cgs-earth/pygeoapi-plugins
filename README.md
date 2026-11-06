@@ -100,7 +100,11 @@ providers:
     id_field: osm_id
     table: hotosm_bdi_waterways
     geom_field: foo_geom
+    max_decimal_digits: 6 # optional, default 9
 ```
+
+`max_decimal_digits` sets how many decimal places `ST_AsGeoJSON` rounds coordinates to (default 9).
+Fewer digits make smaller responses; in degrees, 6 decimal places is about 0.1 m.
 
 ### SPARQL
 
