@@ -52,6 +52,16 @@ packages = ["pygeoapi_plugins"]
 [tool.hatch.metadata]
 allow-direct-references = true
 
+[tool.pytest.ini_options]
+addopts = "--cov=pygeoapi_plugins --cov-report="
+
+[tool.coverage.run]
+branch = true
+
+[tool.coverage.report]
+show_missing = true
+skip_empty = true
+
 [tool.pyright]
 exclude = ["tests"]
 

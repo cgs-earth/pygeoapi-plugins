@@ -27,74 +27,101 @@
 #
 # =================================================================
 
+import importlib
 import io
-import pytest
-from requests import Session
+import sys
 import xml.etree.ElementTree as ET
-from xml.sax.saxutils import unescape
 import zipfile
+from pathlib import Path
 
-from pygeoapi.util import url_join
+import pytest
+import yaml
 
-PYGEOAPI_URL = 'http://localhost:5000'
-PROCESS_URL = url_join(PYGEOAPI_URL, 'processes/sitemap-generator/execution')
-HTTP = Session()
+ROOT = Path(__file__).resolve().parent.parent
+
+# The sitemap process reads the pygeoapi config when it is imported, so it
+# is loaded with the config of the Docker pygeoapi instance it ships with
+DOCKER_CONFIG = ROOT / 'docker' / 'pygeoapi.config.yml'
+DOCKER_DATA = '/pygeoapi_plugins/'
+
+
+@pytest.fixture(scope='module')
+def sitemap_config(tmp_path_factory):
+    """Docker pygeoapi config, with data paths pointing at this repo"""
+    text = DOCKER_CONFIG.read_text(encoding='utf-8')
+    config = yaml.safe_load(text.replace(DOCKER_DATA, f'{ROOT}/'))
+
+    path = tmp_path_factory.mktemp('sitemap') / 'pygeoapi.config.yml'
+    path.write_text(yaml.safe_dump(config), encoding='utf-8')
+    return path
+
+
+@pytest.fixture(scope='module')
+def processor(sitemap_config):
+    module = 'pygeoapi_plugins.process.sitemap'
+    with pytest.MonkeyPatch.context() as mp:
+        mp.setenv('PYGEOAPI_CONFIG', str(sitemap_config))
+        sys.modules.pop(module, None)
+        sitemap = importlib.import_module(module)
+
+    yield sitemap.SitemapProcessor({'name': 'sitemap-generator'})
+
+    # Drop the module so it is not reused with another config
+    sys.modules.pop(module, None)
 
 
 @pytest.fixture
 def body():
     return {
-        'inputs': {
-            'include-common': True,
-            'include-features': False,
-            'zip': False,
-        }
+        'include-common': True,
+        'include-features': False,
+        'zip': False,
     }
 
 
-def test_sitemap_generator(body):
-    body['inputs']['include-features'] = True
-    r = HTTP.post(PROCESS_URL, json=body)
-    assert r.status_code == 200
+def test_sitemap_generator(processor, body):
+    body['include-features'] = True
+    mimetype, sitemap = processor.execute(body)
+    assert mimetype == 'application/json'
 
-    sitemap = r.json()
     assert len(sitemap) == 4
 
+    # Raw XML; over HTTP, pygeoapi escapes < and > in the JSON response
     common = sitemap.pop('common.xml')
-    assert len(common) == 3322
-    common = unescape(common)
     assert len(common) == 2548
 
     root = ET.fromstring(common)
     assert all(i.tag == j.tag for (i, j) in zip(root, root.findall('url')))
 
-    assert all(f.endswith('__0.xml') for f in sitemap)
+    assert set(sitemap) == {
+        'places__0.xml',
+        'populated__0.xml',
+        'states__0.xml',
+    }
 
 
-def test_sitemap_no_common(body):
-    body['inputs']['include-common'] = False
-    r = HTTP.post(PROCESS_URL, json=body)
-    assert r.status_code == 200
+def test_sitemap_no_common(processor, body):
+    body['include-common'] = False
+    mimetype, sitemap = processor.execute(body)
+    assert mimetype == 'application/json'
 
-    sitemap = r.json()
     assert len(sitemap) == 0
 
 
-def test_sitemap_no_features(body):
-    r = HTTP.post(PROCESS_URL, json=body)
-    assert r.status_code == 200
+def test_sitemap_no_features(processor, body):
+    mimetype, sitemap = processor.execute(body)
+    assert mimetype == 'application/json'
 
-    sitemap = r.json()
     assert len(sitemap) == 1
 
     common = sitemap.pop('common.xml')
-    assert len(common) == 3322
+    assert len(common) == 2548
 
 
-def test_sitemap_zip(body):
-    body['inputs']['zip'] = True
-    r = HTTP.post(PROCESS_URL, json=body)
-    assert r.status_code == 200
+def test_sitemap_zip(processor, body):
+    body['zip'] = True
+    mimetype, content = processor.execute(body)
+    assert mimetype == 'application/zip'
 
-    z = zipfile.ZipFile(io.BytesIO(r.content))
+    z = zipfile.ZipFile(io.BytesIO(content))
     assert len(z.namelist()) == 1

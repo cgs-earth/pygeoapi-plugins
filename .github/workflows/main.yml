@@ -24,21 +24,18 @@ jobs:
           - 6379:6379
 
     steps:
-      - uses: actions/checkout@v2
-      - uses: actions/setup-python@v2
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
         name: Setup Python
         with:
           python-version: 3.12
-      - name: Start pygeoapi sitemap instance
-        run: |
-          docker compose up -d --build &
       - name: Use ubuntuGIS unstable ppa
         run: |
           sudo add-apt-repository ppa:ubuntugis/ubuntugis-unstable
           sudo apt update
           sudo apt-get install gdal-bin libgdal-dev -y
       - name: Install uv
-        uses: astral-sh/setup-uv@v5
+        uses: astral-sh/setup-uv@v10.3.3
         with:
           enable-cache: true
           cache-dependency-glob: 'uv.lock'
@@ -53,18 +50,22 @@ jobs:
         env:
           POSTGRESQL_PASSWORD: ${{ env.POSTGRESQL_PASSWORD }}
         run: |
-          uv run pytest tests/test_intersect_process.py
-          uv run pytest tests/test_geopandas_provider.py
-          uv run pytest tests/test_jsonfg_formatter.py
-          uv run pytest tests/test_postgresql_provider.py
-          uv run pytest tests/test_mvt_postgresql_provider.py
-          uv run pytest tests/test_sitemap_process.py
-          # uv run pytest tests/test_sparql_provider.py
-          uv run pytest tests/test_xml_formatter.py
+          uv run pytest
+      - name: Coverage report 📊
+        if: ${{ !cancelled() }}
+        run: |
+          uv run coverage report
+          uv run coverage xml
+          echo '## Coverage' >> $GITHUB_STEP_SUMMARY
+          uv run coverage report --format=markdown >> $GITHUB_STEP_SUMMARY
+      - name: Upload coverage report
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: coverage
+          path: coverage.xml
       - name: Failed Tests
         if: failure()
         run: |
           echo "Tests failed. Collecting logs..."
-          docker ps -a
-          docker logs pygeoapi-plugins-pygeoapi-1
           uv pip freeze
