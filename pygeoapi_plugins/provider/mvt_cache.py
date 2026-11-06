@@ -297,6 +297,8 @@ class MVTPostgresRedis(MVTCacheProvider):
                 LOGGER.error('Error while saving tile to Redis')
                 return False
 
+        return True
+
     def _get_tile_key(self, layer, tileset, z, y, x, format_):
         z, y, x = map(str, [z, y, x])
         return '.'.join([layer, tileset, z, y, x, format_])
