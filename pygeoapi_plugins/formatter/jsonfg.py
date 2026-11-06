@@ -36,22 +36,21 @@ import logging
 
 # import osgeo if using geojson2jsonfg
 # from osgeo import gdal
-
 from pygeoapi.crs import (
     DEFAULT_CRS,
     crs_transform_feature,
-    get_transform_from_crs,
     get_crs,
+    get_transform_from_crs,
 )
-from pygeoapi.formatter.base import BaseFormatter
-from pygeoapi.util import to_json, url_join
+from pygeoapi.util import url_join
 
+from pygeoapi_plugins.formatter.json_ import JSONFormatter
 
 LOGGER = logging.getLogger(__name__)
 
 
-class JSONFGFormatter(BaseFormatter):
-    """JSON-FG formatter"""
+class JSONFGFormatter(JSONFormatter):
+    """JSON-FG formatter, written as `JSONFormatter` writes JSON"""
 
     def __init__(self, formatter_def: dict):
         """
@@ -62,32 +61,30 @@ class JSONFGFormatter(BaseFormatter):
         :returns: `pygeoapi_plugins.formatter.jsonfg.JSONFGFormatter`
         """
 
-        geom = False
-        if 'geom' in formatter_def:
-            geom = formatter_def['geom']
-
-        super().__init__({'name': 'jsonfg', 'geom': geom})
-        self.mimetype = 'application/geo+json'
+        super().__init__(formatter_def)
+        self.name = 'jsonfg'
         self.f = 'jsonfg'
-        self.extension = 'json'
 
-    def write(self, options: dict = {}, data: dict | None = {}) -> str:
+    def write(
+        self, options: dict | None = None, data: dict | None = None
+    ) -> bytes:
         """
         Generate data in JSON-FG format
 
         :param options: JSON-FG formatting options
         :param data: dict of GeoJSON data
 
-        :returns: string representation of format
+        :returns: bytes representation of format
         """
 
+        options = options or {}
         format_conditions = [
             data is None,
             isinstance(data, dict) and not data.get('features'),
         ]
         if any(format_conditions):
             LOGGER.warning('No features to write to JSON-FG')
-            return str()
+            return b''
 
         provider_def = options.get('provider_def', {})
         time_field = provider_def.get('time_field')
@@ -132,55 +129,7 @@ class JSONFGFormatter(BaseFormatter):
 
             jsonfg['features'].append(feature)
 
-        # The following code is an alternative implementation that uses GDAL
-        # to convert GeoJSON to JSON-FG. It is currently commented out because
-        # the direct manipulation of the GeoJSON structure is more
-        # straightforward and does not require GDAL as a dependency. However,
-        # if there are issues with the direct approach or if there is a need
-        # for more complex transformations, the GDAL-based implementation can
-        # be considered.
-        #
-        # try:
-        #     links = data.get('links')
-        #     output = geojson2jsonfg(data=data)
-        #     output['links'] = links
-        #     return to_json(output)
-        # except ValueError as err:
-        #     LOGGER.error(err)
-        #     raise FormatterSerializationError('Error writing JSONFG output')
-
-        return to_json(jsonfg)
+        return super().write(options, jsonfg)
 
     def __repr__(self):
         return f'<JSONFGFormatter> {self.name}'
-
-
-# def geojson2jsonfg(data: dict) -> dict:
-#     """
-#     Return JSON-FG from a GeoJSON content.
-
-#     :param data: dict of data
-
-#     :returns: dict of converted GeoJSON (JSON-FG)
-#     """
-#     gdal.UseExceptions()
-#     LOGGER.debug('Dump GeoJSON content into a data source')
-#     try:
-#         with gdal.OpenEx(json.dumps(data)) as srcDS:
-#             tmpfile = f'/vsimem/{uuid.uuid1()}.json'
-#             LOGGER.debug('Translate GeoJSON into a JSONFG memory file')
-#             gdal.VectorTranslate(tmpfile, srcDS, format='JSONFG')
-#             LOGGER.debug('Read JSONFG content from a memory file')
-#             data = gdal.VSIFOpenL(tmpfile, 'rb')
-#             if not data:
-#                 raise ValueError('Failed to read JSONFG content')
-#             gdal.VSIFSeekL(data, 0, 2)
-#             length = gdal.VSIFTellL(data)
-#             gdal.VSIFSeekL(data, 0, 0)
-#             jsonfg = json.loads(gdal.VSIFReadL(1, length, data).decode())
-#             return jsonfg
-#     except Exception as e:
-#         LOGGER.error(f'Failed to convert GeoJSON to JSON-FG: {e}')
-#         raise
-#     finally:
-#         gdal.VSIFCloseL(data)
