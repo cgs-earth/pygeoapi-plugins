@@ -109,23 +109,44 @@ class JSONFormatter(BaseFormatter):
         return f'<JSONFormatter> {self.name}'
 
 
-class GeoJSONGeometry(dict):
+class _LazyJSON(dict):
     """
-    A GeoJSON geometry that keeps the JSON it came from in `raw`, and only
-    parses it the first time its contents are read.
+    A dict that keeps the JSON it came from in `raw`, and only parses it
+    the first time its contents are read.
 
-    Until then the dict holds just `type`, so a geometry that `JSONFormatter`
-    writes out from `raw` never creates its coordinate lists. Every read
-    method parses first, so pygeoapi (HTML, JSON-LD, other formatters) sees
-    an ordinary dict. `raw` is not updated if the dict is changed.
+    Until then the dict holds just `type`, so an object that `JSONFormatter`
+    writes out from `raw` never creates its members. Every read method
+    parses first, so pygeoapi (HTML, JSON-LD, other formatters) sees an
+    ordinary dict. `raw` is not updated if the dict is changed.
 
     `orjson.dumps` reads dict storage directly, so it must be given `raw`
-    (as `JSONFormatter` does) rather than an unread `GeoJSONGeometry`.
+    (as `JSONFormatter` does) rather than an unread object.
+    """
+
+    __slots__ = ('_loaded', 'raw')
+
+    def _load(self):
+        """Parse `raw` into the dict, once"""
+        if not self._loaded:
+            self._loaded = True
+            dict.update(self, orjson.loads(self.raw))
+
+    def __reduce__(self):
+        self._load()
+        return (_rebuild, (type(self), self.raw, dict(self)))
+
+    __hash__ = None
+
+
+class GeoJSONGeometry(_LazyJSON):
+    """
+    A GeoJSON geometry, as written by `ST_AsGeoJSON(geom)`, parsed on
+    first read (see `_LazyJSON`).
 
     `GeoJSONGeometry(None)` returns `None`, for features without geometry.
     """
 
-    __slots__ = ('_loaded', 'raw')
+    __slots__ = ()
 
     @overload
     def __new__(cls, raw: None) -> None: ...
@@ -152,21 +173,24 @@ class GeoJSONGeometry(dict):
             super().__init__(orjson.loads(raw))
             self._loaded = True
 
-    def _load(self):
-        """Parse `raw` into the dict, once"""
-        if not self._loaded:
-            self._loaded = True
-            dict.update(self, orjson.loads(self.raw))
 
-    def __reduce__(self):
-        self._load()
-        return (_rebuild_geometry, (self.raw, dict(self)))
+class GeoJSONFeature(_LazyJSON):
+    """
+    A whole GeoJSON feature, as written by `ST_AsGeoJSON(record, ...)`,
+    parsed on first read (see `_LazyJSON`).
+    """
 
-    __hash__ = None
+    __slots__ = ()
+
+    def __init__(self, raw: str | bytes):
+        self.raw = raw
+        # Non-empty for the same reason as GeoJSONGeometry
+        super().__init__(type='Feature')
+        self._loaded = False
 
 
 def _parse_first(name: str):
-    """Wrap a dict method so it parses the geometry before running"""
+    """Wrap a dict method so it parses `raw` before running"""
     method = getattr(dict, name)
 
     def wrapper(self, *args, **kwargs):
@@ -203,17 +227,17 @@ for _name in (
     'update',
     'clear',
 ):
-    setattr(GeoJSONGeometry, _name, _parse_first(_name))
+    setattr(_LazyJSON, _name, _parse_first(_name))
 del _name
 
 
-def _rebuild_geometry(raw: str | bytes, data: dict) -> GeoJSONGeometry:
-    """Unpickle a `GeoJSONGeometry` with its (possibly changed) contents"""
-    geometry = GeoJSONGeometry(raw)
-    geometry._loaded = True
-    dict.clear(geometry)
-    dict.update(geometry, data)
-    return geometry
+def _rebuild(cls: type, raw: str | bytes, data: dict) -> _LazyJSON:
+    """Unpickle a `_LazyJSON` subclass with its (possibly changed) contents"""
+    obj = cls(raw)
+    obj._loaded = True
+    dict.clear(obj)
+    dict.update(obj, data)
+    return obj
 
 
 # Feature members that can hold a geometry: GeoJSON geometry, JSON-FG place
@@ -227,8 +251,12 @@ def _embed_geometry(feature: dict) -> dict:
 
     :param feature: `dict` of GeoJSON or JSON-FG feature
 
-    :returns: `dict` of feature
+    :returns: `dict` of feature, or `orjson.Fragment` of an unread
+              `GeoJSONFeature`
     """
+
+    if isinstance(feature, GeoJSONFeature) and not feature._loaded:
+        return orjson.Fragment(feature.raw)
 
     embedded = {}
     for key in _GEOMETRY_KEYS:

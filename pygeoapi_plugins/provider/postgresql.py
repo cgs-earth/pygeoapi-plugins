@@ -38,6 +38,7 @@
 import logging
 
 import os
+from sqlalchemy import func, literal_column, select
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session, query_expression
 from geoalchemy2.functions import ST_AsGeoJSON
@@ -45,7 +46,10 @@ from geoalchemy2.functions import ST_AsGeoJSON
 from pygeoapi.crs import get_transform_from_spec
 from pygeoapi.provider.sql import PostgreSQLProvider
 
-from pygeoapi_plugins.formatter.json_ import GeoJSONGeometry
+from pygeoapi_plugins.formatter.json_ import (
+    GeoJSONFeature,
+    GeoJSONGeometry,
+)
 
 # Tables estimated below this many rows are counted precisely.
 # PSUEDO_COUNT_LIMIT is the original, misspelled name of the variable.
@@ -59,6 +63,10 @@ LOGGER = logging.getLogger(__name__)
 
 # Mapped attribute holding the geometry rendered by ST_AsGeoJSON
 _GEOJSON = '_pygeoapi_geojson'
+
+# Second copy of the id column, which ST_AsGeoJSON(record) moves out of
+# properties into the feature id, so the id stays in properties as well
+_ID = '_pygeoapi_id'
 
 # ST_AsGeoJSON's own default number of decimal places
 _MAX_DECIMAL_DIGITS = 9
@@ -244,6 +252,137 @@ class PostgreSQLGeoJSONProvider(PostgreSQLProvider):
         # Table models are shared, so only map the expression once
         if not hasattr(self.table_model, _GEOJSON):
             setattr(self.table_model, _GEOJSON, query_expression())
+
+    def query(
+        self,
+        offset=0,
+        limit=10,
+        resulttype='results',
+        bbox=[],
+        datetime_=None,
+        properties=[],
+        sortby=[],
+        select_properties=[],
+        skip_geometry=False,
+        q=None,
+        filterq=None,
+        crs_transform_spec=None,
+        **kwargs,
+    ):
+        """
+        Query PostGIS, which writes each feature as GeoJSON text with
+        `ST_AsGeoJSON(record)`. Requests with a CRS transform or without
+        geometry take the core provider's path.
+
+        :param offset: starting record to return (default 0)
+        :param limit: number of records to return (default 10)
+        :param resulttype: return results or hit limit (default results)
+        :param bbox: bounding box [minx,miny,maxx,maxy]
+        :param datetime_: temporal (datestamp or extent)
+        :param properties: list of tuples (name, value)
+        :param sortby: list of dicts (property, order)
+        :param select_properties: list of property names
+        :param skip_geometry: bool of whether to skip geometry (default False)
+        :param q: full-text search term(s)
+        :param filterq: CQL query as text string
+        :param crs_transform_spec: `CrsTransformSpec` instance, optional
+
+        :returns: GeoJSON FeatureCollection
+        """
+        if crs_transform_spec is not None or skip_geometry:
+            return super().query(
+                offset=offset,
+                limit=limit,
+                resulttype=resulttype,
+                bbox=bbox,
+                datetime_=datetime_,
+                properties=properties,
+                sortby=sortby,
+                select_properties=select_properties,
+                skip_geometry=skip_geometry,
+                q=q,
+                filterq=filterq,
+                crs_transform_spec=crs_transform_spec,
+                **kwargs,
+            )
+
+        LOGGER.debug('Preparing filters')
+        # Filter helpers return True when there is nothing to filter
+        filters = [
+            f
+            for f in (
+                self._get_property_filters(properties),
+                self._get_cql_filters(filterq),
+                self._get_bbox_filter(bbox),
+                self._get_datetime_filter(datetime_),
+            )
+            if f is not True
+        ]
+        order_by_clauses = self._get_order_by_clauses(sortby, self.table_model)
+
+        response = {
+            'type': 'FeatureCollection',
+            'features': [],
+            'numberReturned': 0,
+        }
+
+        with self._engine.connect() as conn:
+            if self.count or resulttype == 'hits':
+                count = select(func.count()).select_from(self.table_model)
+                matched = conn.execute(count.where(*filters)).scalar_one()
+                response['numberMatched'] = matched
+                LOGGER.debug(f'Found {matched} result(s)')
+            if resulttype == 'hits':
+                return response
+
+            id_column = getattr(self.table_model, self.id_field)
+            table = (
+                select(id_column.label(_ID), *self._columns(select_properties))
+                .where(*filters)
+                .order_by(*order_by_clauses)
+                .offset(offset)
+                .limit(limit)
+                .subquery('t')
+            )
+            statement = select(
+                func.ST_AsGeoJSON(
+                    literal_column('t.*'),
+                    self.geom,
+                    self.max_decimal_digits,
+                    False,
+                    _ID,
+                )
+            ).select_from(table)
+
+            LOGGER.debug('Querying PostGIS')
+            response['features'] = [
+                GeoJSONFeature(row[0]) for row in conn.execute(statement)
+            ]
+
+        response['numberReturned'] = len(response['features'])
+        return response
+
+    def _columns(self, select_properties):
+        """
+        Columns for the feature: the properties chosen as the core
+        `_select_properties_clause` chooses them, then the geometry
+
+        :param select_properties: list of property names
+
+        :returns: `list` of mapped columns
+        """
+        if select_properties:
+            names = sorted(set(select_properties), key=select_properties.index)
+        else:
+            names = list(self.fields.keys())
+        if self.properties and names:
+            names = list(self.properties)
+
+        table_columns = self.table_model.__table__.columns
+        names = [name for name in names if name in table_columns]
+        names.append(self.geom)
+
+        return [getattr(self.table_model, name) for name in names]
 
     @property
     def _geojson(self):
