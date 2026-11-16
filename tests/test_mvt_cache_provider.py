@@ -221,3 +221,48 @@ def test_redis_cache(config):
         )
     finally:
         p.db.delete(key)
+
+
+@pytest.mark.parametrize('cache_empty_tiles', [True, False])
+@pytest.mark.parametrize(
+    'provider', [MVTPostgresFilesystem, MVTPostgresCache, MVTPostgresRedis]
+)
+def test_cache_empty_tiles(config, provider, cache_empty_tiles):
+    # A tile in the Atlantic, far from the Burundi test data
+    z, x, y = 5, 0, 0
+
+    d = TemporaryDirectory()
+    config['cache_directory'] = d.name
+    config['cache_empty_tiles'] = cache_empty_tiles
+
+    p = provider(config)
+
+    def clear_cache():
+        # Redis and the cache table keep tiles between tests. The table's
+        # force_create only drops it once per process, so delete the tile.
+        if provider is MVTPostgresRedis:
+            p.db.delete(p._get_tile_key('default', TILESET, z, y, x, 'pbf'))
+        elif provider is MVTPostgresCache:
+            table = p.cache_model
+            with p._engine.begin() as conn:
+                conn.execute(
+                    table.delete().where(
+                        table.c.z == z, table.c.x == x, table.c.y == y
+                    )
+                )
+
+    clear_cache()
+    try:
+        assert p.get_tiles_from_cache(tileset=TILESET, z=z, x=x, y=y) is None
+
+        tile = p.get_tiles(tileset=TILESET, z=z, x=x, y=y)
+        assert tile == b''
+
+        cached = p.get_tiles_from_cache(tileset=TILESET, z=z, x=x, y=y)
+        assert cached == (b'' if cache_empty_tiles else None)
+
+        # A cached empty tile is served from the cache
+        assert p.get_tiles(tileset=TILESET, z=z, x=x, y=y) == b''
+    finally:
+        clear_cache()
+        d.cleanup()

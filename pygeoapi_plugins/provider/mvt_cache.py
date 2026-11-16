@@ -63,6 +63,7 @@ class MVTCacheProvider(MVTPostgreSQLProvider_):
         super().__init__(provider_def)
 
         self.disable_cache_at_z = provider_def.get('disable_cache_at_z', 6)
+        self.cache_empty_tiles = provider_def.get('cache_empty_tiles', False)
 
     def get_tiles(
         self,
@@ -137,7 +138,7 @@ class MVTCacheProvider(MVTPostgreSQLProvider_):
         ]
 
         first_layer = layers[0]
-        if self.get_tiles_from_cache(*first_layer):
+        if self.get_tiles_from_cache(*first_layer) is not None:
             LOGGER.debug('Pre-cache skipped, tiles already exist in cache')
             return
 
@@ -232,7 +233,7 @@ class MVTPostgresFilesystem(MVTCacheProvider):
     ):
         tile_ = self._get_tile_path(layer, tileset, z, y, x, format_)
 
-        if tile and isinstance(tile, bytes):
+        if isinstance(tile, bytes) and (tile or self.cache_empty_tiles):
             tile_.parent.mkdir(parents=True, exist_ok=True)
 
             LOGGER.debug(f'Saving tile to {tile_}')
@@ -293,7 +294,7 @@ class MVTPostgresRedis(MVTCacheProvider):
     ):
         tile_ = self._get_tile_key(layer, tileset, z, y, x, format_)
 
-        if tile and isinstance(tile, bytes):
+        if isinstance(tile, bytes) and (tile or self.cache_empty_tiles):
             LOGGER.debug(f'Saving tile to {tile_}')
             if self.db.set(tile_, tile) is False:
                 LOGGER.error('Error while saving tile to Redis')
@@ -303,7 +304,7 @@ class MVTPostgresRedis(MVTCacheProvider):
 
     def _get_tile_key(self, layer, tileset, z, y, x, format_):
         z, y, x = map(str, [z, y, x])
-        return '.'.join([layer, tileset, z, y, x, format_])
+        return f'{layer}.{tileset}.{z}.{y}.{x}.{format_}'
 
 
 class MVTPostgresCache(MVTCacheProvider):
@@ -344,7 +345,7 @@ class MVTPostgresCache(MVTCacheProvider):
         )
         with Session(self._engine) as session:
             result = session.execute(query).scalar()
-            if result:
+            if result is not None:
                 LOGGER.debug(f'Found cached tile {tileset}/{z}/{x}/{y}')
                 return bytes(result)
 
@@ -357,7 +358,7 @@ class MVTPostgresCache(MVTCacheProvider):
         y=None,
         x=None,
     ):
-        if tile and isinstance(tile, bytes):
+        if isinstance(tile, bytes) and (tile or self.cache_empty_tiles):
             query = self.cache_model.insert().values(
                 layer=layer, tilematrixset=tileset, z=z, y=y, x=x, tile=tile
             )
