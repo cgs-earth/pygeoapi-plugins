@@ -345,7 +345,7 @@ class PostgreSQLGeoJSONProvider(PostgreSQLProvider):
                 .subquery('t')
             )
             statement = select(
-                func.ST_AsGeoJSON(
+                ST_AsGeoJSON(
                     literal_column('t.*'),
                     self.geom,
                     self.max_decimal_digits,
