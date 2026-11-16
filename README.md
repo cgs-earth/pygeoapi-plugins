@@ -76,13 +76,14 @@ providers:
 
 ### PostgreSQL GeoJSON
 
-The PostgreSQL GeoJSON Provider extends the PostgreSQL Provider in pygeoapi core by rendering geometries as GeoJSON in the database, using PostGIS `ST_AsGeoJSON`.
+The PostgreSQL GeoJSON Provider extends the PostgreSQL Provider in pygeoapi core by rendering features as GeoJSON in the database, using PostGIS `ST_AsGeoJSON`.
+It requires PostGIS 3.5 or later, for the `id_column` argument of `ST_AsGeoJSON(record)`.
 The core provider loads each geometry and converts it to GeoJSON in Python, which is slow for large or complex geometries.
 Rendering in the database skips that conversion, so feature responses build faster.
 Pair it with the [JSON formatter](#json) to also skip re-encoding the GeoJSON for `f=json`.
 
-Geometries are returned in the table's own coordinate reference system: `ST_AsGeoJSON` does not reproject, so the `crs` query parameter is not supported.
-Store geometries in WGS 84 (EPSG:4326) to serve standard GeoJSON.
+The `crs` query parameter is supported: PostGIS reprojects geometries with `ST_Transform`, following the same axis order as the core provider (including `always_xy`).
+`skipGeometry` writes each feature's geometry as `null`.
 
 To use the PostgreSQL GeoJSON Provider, you need to specify `pygeoapi_plugins.provider.postgresql.PostgreSQLGeoJSONProvider` as the provider's name.
 The rest of the configuration is the same as the [PostgreSQL Provider](https://docs.pygeoapi.io/en/latest/data-publishing/ogcapi-features.html#postgresql) in pygeoapi core.

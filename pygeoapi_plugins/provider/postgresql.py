@@ -38,18 +38,21 @@
 import logging
 
 import os
-from sqlalchemy import func, literal_column, select
-from sqlalchemy.exc import SQLAlchemyError
-from sqlalchemy.orm import Session, query_expression
-from geoalchemy2.functions import ST_AsGeoJSON
+from sqlalchemy import Text, cast, func, literal, literal_column, null, select
+from sqlalchemy.exc import ProgrammingError, SQLAlchemyError
+from sqlalchemy.orm import Session
+from geoalchemy2 import Geometry
+from geoalchemy2.functions import (
+    ST_AsGeoJSON,
+    ST_FlipCoordinates,
+    ST_Transform,
+)
 
-from pygeoapi.crs import get_transform_from_spec
+from pygeoapi.crs import get_crs, get_srid, get_transform_from_spec
+from pygeoapi.provider.base import ProviderQueryError
 from pygeoapi.provider.sql import PostgreSQLProvider
 
-from pygeoapi_plugins.formatter.json_ import (
-    GeoJSONFeature,
-    GeoJSONGeometry,
-)
+from pygeoapi_plugins.formatter.json_ import GeoJSONFeature
 
 # Tables estimated below this many rows are counted precisely.
 # PSUEDO_COUNT_LIMIT is the original, misspelled name of the variable.
@@ -60,9 +63,6 @@ PSEUDO_COUNT_LIMIT = int(
 )
 
 LOGGER = logging.getLogger(__name__)
-
-# Mapped attribute holding the geometry rendered by ST_AsGeoJSON
-_GEOJSON = '_pygeoapi_geojson'
 
 # Second copy of the id column, which ST_AsGeoJSON(record) moves out of
 # properties into the feature id, so the id stays in properties as well
@@ -228,8 +228,9 @@ class PseudoPostgreSQLProvider(PostgreSQLProvider):
 
 class PostgreSQLGeoJSONProvider(PostgreSQLProvider):
     """
-    A PostgreSQL provider that renders geometries as GeoJSON in the
-    database with ST_AsGeoJSON, instead of converting them in Python
+    A PostgreSQL provider that renders features as GeoJSON in the
+    database with ST_AsGeoJSON, instead of converting them in Python.
+    Requires PostGIS 3.5 or later.
     """
 
     def __init__(self, provider_def: dict):
@@ -249,10 +250,6 @@ class PostgreSQLGeoJSONProvider(PostgreSQLProvider):
         if self.max_decimal_digits < 0:
             raise ValueError('max_decimal_digits must not be negative')
 
-        # Table models are shared, so only map the expression once
-        if not hasattr(self.table_model, _GEOJSON):
-            setattr(self.table_model, _GEOJSON, query_expression())
-
     def query(
         self,
         offset=0,
@@ -271,8 +268,8 @@ class PostgreSQLGeoJSONProvider(PostgreSQLProvider):
     ):
         """
         Query PostGIS, which writes each feature as GeoJSON text with
-        `ST_AsGeoJSON(record)`. Requests with a CRS transform or without
-        geometry take the core provider's path.
+        `ST_AsGeoJSON(record)`. PostGIS also reprojects the geometry for a
+        CRS transform, and writes a null geometry when it is skipped.
 
         :param offset: starting record to return (default 0)
         :param limit: number of records to return (default 10)
@@ -289,23 +286,6 @@ class PostgreSQLGeoJSONProvider(PostgreSQLProvider):
 
         :returns: GeoJSON FeatureCollection
         """
-        if crs_transform_spec is not None or skip_geometry:
-            return super().query(
-                offset=offset,
-                limit=limit,
-                resulttype=resulttype,
-                bbox=bbox,
-                datetime_=datetime_,
-                properties=properties,
-                sortby=sortby,
-                select_properties=select_properties,
-                skip_geometry=skip_geometry,
-                q=q,
-                filterq=filterq,
-                crs_transform_spec=crs_transform_spec,
-                **kwargs,
-            )
-
         LOGGER.debug('Preparing filters')
         # Filter helpers return True when there is nothing to filter
         filters = [
@@ -335,9 +315,15 @@ class PostgreSQLGeoJSONProvider(PostgreSQLProvider):
             if resulttype == 'hits':
                 return response
 
+            geometry = self._geometry(skip_geometry, crs_transform_spec)
+
             id_column = getattr(self.table_model, self.id_field)
             table = (
-                select(id_column.label(_ID), *self._columns(select_properties))
+                select(
+                    id_column.label(_ID),
+                    *self._columns(select_properties),
+                    geometry.label(self.geom),
+                )
                 .where(*filters)
                 .order_by(*order_by_clauses)
                 .offset(offset)
@@ -355,17 +341,26 @@ class PostgreSQLGeoJSONProvider(PostgreSQLProvider):
             ).select_from(table)
 
             LOGGER.debug('Querying PostGIS')
-            response['features'] = [
-                GeoJSONFeature(row[0]) for row in conn.execute(statement)
-            ]
+            try:
+                rows = conn.execute(statement)
+            except ProgrammingError as err:
+                # 42883 is undefined_function: before PostGIS 3.5,
+                # ST_AsGeoJSON(record) has no id_column argument
+                if getattr(err.orig, 'pgcode', None) == '42883':
+                    msg = 'PostgreSQLGeoJSONProvider requires PostGIS 3.5+'
+                    LOGGER.error(f'{msg}: {err.orig}')
+                    raise ProviderQueryError(user_msg=msg) from err
+                raise
+
+            response['features'] = [GeoJSONFeature(row[0]) for row in rows]
 
         response['numberReturned'] = len(response['features'])
         return response
 
     def _columns(self, select_properties):
         """
-        Columns for the feature: the properties chosen as the core
-        `_select_properties_clause` chooses them, then the geometry
+        Property columns for the feature, chosen as the core
+        `_select_properties_clause` chooses them
 
         :param select_properties: list of property names
 
@@ -379,68 +374,55 @@ class PostgreSQLGeoJSONProvider(PostgreSQLProvider):
             names = list(self.properties)
 
         table_columns = self.table_model.__table__.columns
-        names = [name for name in names if name in table_columns]
-        names.append(self.geom)
+        return [
+            getattr(self.table_model, name)
+            for name in names
+            if name in table_columns
+        ]
 
-        return [getattr(self.table_model, name) for name in names]
-
-    @property
-    def _geojson(self):
+    def _geometry(self, skip_geometry=False, crs_transform_spec=None):
         """
-        SQL expression rendering the geometry column as GeoJSON
+        Geometry column for the feature, reprojected by PostGIS when there
+        is a CRS transform. Coordinates are flipped wherever the core
+        provider's pyproj transform reads or writes them northing first.
 
-        :returns: `ST_AsGeoJSON` expression
+        :param skip_geometry: `bool`, optional
+        :param crs_transform_spec: `CrsTransformSpec` instance, optional
+
+        :returns: SQL expression of the geometry
         """
-        geom_column = getattr(self.table_model, self.geom)
-        return ST_AsGeoJSON(geom_column, self.max_decimal_digits)
-
-    def _select_properties_clause(self, select_properties, skip_geometry):
-        """
-        Load the selected properties, and the geometry as GeoJSON in place
-        of the geometry column
-
-        :param select_properties: list of property names
-        :param skip_geometry: bool of whether to skip geometry
-
-        :returns: SQLAlchemy load options
-        """
-        clause = super()._select_properties_clause(select_properties, True)
         if skip_geometry:
-            return clause
+            return cast(null(), Geometry)
 
-        return clause.with_expression(
-            getattr(self.table_model, _GEOJSON), self._geojson
-        )
+        geom = getattr(self.table_model, self.geom)
+        if crs_transform_spec is None:
+            return geom
 
-    def _sqlalchemy_to_feature(
-        self, item, crs_transform_out=None, select_properties=[]
-    ):
-        """
-        Helper function to transform an SQLAlchemy result to a
-        GeoJSON feature
+        source = get_crs(crs_transform_spec.source_crs_uri)
+        target = get_crs(crs_transform_spec.target_crs_uri)
+        always_xy = crs_transform_spec.always_xy
 
-        :param item: SQLAlchemy result
-        :param crs_transform_out: CRS transformation (unused)
-        :param select_properties: additional properties to filter on
+        if not always_xy and _northing_first(source):
+            geom = ST_FlipCoordinates(geom)
 
-        :returns: `dict` of GeoJSON feature
-        """
-        item_dict = item.__dict__
-        if _GEOJSON not in item_dict:
-            # Items loaded without the GeoJSON expression, such as by
-            # `get`, still hold the geometry column
-            return super()._sqlalchemy_to_feature(
-                item, crs_transform_out, select_properties
-            )
+        srid = get_srid(target)
+        to_crs = srid if srid else cast(literal(target.to_wkt()), Text)
+        geom = ST_Transform(geom, to_crs)
 
-        geojson = item_dict[_GEOJSON]
-        keys = select_properties or self.fields.keys()
+        if not always_xy and _northing_first(target):
+            geom = ST_FlipCoordinates(geom)
 
-        return {
-            'type': 'Feature',
-            'id': item_dict[self.id_field],
-            'geometry': GeoJSONGeometry(geojson),
-            'properties': {
-                key: item_dict[key] for key in keys if key in item_dict
-            },
-        }
+        return geom
+
+
+def _northing_first(crs):
+    """
+    Whether a CRS lists its northing (or southing) axis first, as
+    EPSG:4326 does
+
+    :param crs: `pyproj.CRS` instance
+
+    :returns: `bool`
+    """
+    axes = crs.axis_info
+    return bool(axes) and axes[0].direction.lower() in ('north', 'south')

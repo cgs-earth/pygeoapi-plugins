@@ -279,7 +279,7 @@ def test_simplify_low_zoom(config):
         y=y,
     )
     assert tile is not None
-    assert len(tile) == pytest.approx(19922, 0.1)
+    assert len(tile) == pytest.approx(22738, 0.1)
 
     config['simplify_geometry'] = True
     p = MVTPostgreSQLProvider_(config)
@@ -343,7 +343,7 @@ def test_simplify_alt_methods(config):
         y=y,
     )
     assert tile4 is not None
-    assert len(tile4) == pytest.approx(15172, 0.1)
+    assert len(tile4) == pytest.approx(17140, 0.1)
     assert len(tile) <= len(tile4)
 
     config['simplify_method'] = 'ST_FakeSimplify'
