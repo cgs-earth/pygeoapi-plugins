@@ -38,7 +38,11 @@ from pygeoapi.formatter.base import FormatterSerializationError
 from pygeoapi.linked_data import jsonldify_geometry
 from pygeoapi.util import to_json
 
-from pygeoapi_plugins.formatter.json_ import GeoJSONGeometry, JSONFormatter
+from pygeoapi_plugins.formatter.json_ import (
+    GeoJSONFeature,
+    GeoJSONGeometry,
+    JSONFormatter,
+)
 
 POINT = '{"type":"Point","coordinates":[125.6,10.1]}'
 
@@ -137,6 +141,21 @@ def test_json_formatter_geojson_geometry(fixture):
     assert json.loads(result) == expected
     # Written from raw, so the geometry is never parsed
     assert geometry._loaded is False
+
+
+def test_json_formatter_geojson_feature(fixture):
+    raw = orjson.dumps(fixture['features'][0])
+    feature = GeoJSONFeature(raw)
+    data = {**fixture, 'features': [feature]}
+
+    result = JSONFormatter({}).write(data=data)
+
+    # Written from raw, unchanged, and never parsed
+    assert raw in result
+    assert json.loads(result) == fixture
+    assert feature._loaded is False
+    # Read as a dict, it parses to the same feature
+    assert dict(feature) == fixture['features'][0]
 
 
 def test_geojson_geometry_none():

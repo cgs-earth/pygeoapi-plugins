@@ -42,8 +42,15 @@ import os
 import pytest
 
 from pygeofilter.parsers.ecql import parse
+from sqlalchemy.engine import Connection
+from sqlalchemy.exc import ProgrammingError
 
-from pygeoapi.provider.base import ProviderItemNotFoundError
+from pygeoapi.crs import create_crs_transform_spec
+from pygeoapi.provider.base import (
+    ProviderItemNotFoundError,
+    ProviderQueryError,
+)
+from pygeoapi.provider.sql import PostgreSQLProvider
 
 from pygeoapi_plugins.provider.postgresql import (
     PseudoPostgreSQLProvider,
@@ -529,3 +536,74 @@ def test_max_decimal_digits(config):
 
     with pytest.raises(ValueError):
         PostgreSQLGeoJSONProvider({**config, 'max_decimal_digits': -1})
+
+
+def _flatten(coordinates):
+    """Every number in a geometry's coordinates, in order"""
+    if isinstance(coordinates, (int, float)):
+        return [coordinates]
+    return [n for c in coordinates for n in _flatten(c)]
+
+
+@pytest.mark.parametrize('always_xy', [False, True])
+@pytest.mark.parametrize(
+    'crs',
+    [
+        'http://www.opengis.net/def/crs/EPSG/0/4326',  # northing first
+        'http://www.opengis.net/def/crs/EPSG/0/3857',
+        'http://www.opengis.net/def/crs/EPSG/0/32735',
+    ],
+)
+def test_query_crs_transform(config, crs, always_xy):
+    """PostGIS reprojects as the core provider's pyproj transform does"""
+    config = {**config, 'crs': [DEFAULT_CRS, crs], 'always_xy': always_xy}
+    spec = create_crs_transform_spec(config, crs)
+
+    expected = PostgreSQLProvider(config).query(crs_transform_spec=spec)
+    result = PostgreSQLGeoJSONProvider(config).query(crs_transform_spec=spec)
+
+    assert len(result['features']) == len(expected['features']) == 10
+    for feature, core in zip(result['features'], expected['features']):
+        assert feature['id'] == core['id']
+        assert feature['properties'] == core['properties']
+        assert feature['geometry']['type'] == core['geometry']['type']
+        assert _flatten(feature['geometry']['coordinates']) == pytest.approx(
+            _flatten(core['geometry']['coordinates']), abs=1e-8
+        )
+
+
+def test_query_skip_geometry_without_properties(config):
+    """A feature with no geometry and no properties is still GeoJSON"""
+    provider = PostgreSQLGeoJSONProvider(config)
+    result = provider.query(
+        limit=1, skip_geometry=True, select_properties=['does not exist']
+    )
+    feature = result['features'][0]
+
+    assert feature['id'] == 13990765
+    assert feature['geometry'] is None
+    assert feature['properties'] == {}
+
+
+def test_query_requires_postgis_3_5(config, monkeypatch):
+    """Before PostGIS 3.5, ST_AsGeoJSON(record) has no id_column argument"""
+
+    class UndefinedFunction(Exception):
+        pgcode = '42883'
+
+    execute = Connection.execute
+
+    def older_postgis(self, statement, *args, **kwargs):
+        if 'ST_AsGeoJSON' in str(statement):
+            raise ProgrammingError(
+                str(statement),
+                {},
+                UndefinedFunction('function st_asgeojson does not exist'),
+            )
+        return execute(self, statement, *args, **kwargs)
+
+    monkeypatch.setattr(Connection, 'execute', older_postgis)
+
+    provider = PostgreSQLGeoJSONProvider(config)
+    with pytest.raises(ProviderQueryError, match='PostGIS 3.5'):
+        provider.query()
